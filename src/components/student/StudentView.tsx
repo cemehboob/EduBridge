@@ -97,7 +97,9 @@ export const StudentView: React.FC<StudentViewProps> = ({
   onOpenResourceVault,
   onCelebrate
 }) => {
-  const [activeTab, setActiveTab] = useState<StudentTab>('language');
+  const defaultTab: StudentTab =
+    profile.ageCohort === 'early' || profile.ageCohort === 'senior' ? 'cohorts' : 'language';
+  const [activeTab, setActiveTab] = useState<StudentTab>(defaultTab);
   const [tutorInitialPrompt, setTutorInitialPrompt] = useState<string | undefined>(undefined);
   const [isBadgeGridExpanded, setIsBadgeGridExpanded] = useState(false);
 
@@ -403,6 +405,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
       <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         {activeTab === 'cohorts' && (
           <UniversalLearningArena
+            initialCohort={profile?.ageCohort}
             onOpenResourceVault={onOpenResourceVault}
           />
         )}
@@ -422,6 +425,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
         {activeTab === 'vocab_quiz' && (
           <VocabularyQuiz
+            profile={profile}
             vocabularyWords={vocabularyWords}
             onCompleteQuiz={(score, total, xpEarned) => {
               if (onCelebrate && (score / total) >= 0.8) {

@@ -1,5 +1,9 @@
 export type UserRole = 'student' | 'parent' | 'teacher' | 'admin';
 
+export type FontScale = 'standard' | 'large' | 'xlarge';
+
+export type AgeCohortId = 'early' | 'junior' | 'academy' | 'pro' | 'senior';
+
 export type OllamaModelKey = 'phi-4-mini' | 'qwen-3-8b' | 'deepseek-8b' | 'llama-3.3-8b';
 
 export interface OllamaModelInfo {
@@ -33,6 +37,9 @@ export interface UserProfile {
   targetCareer?: string;
   joinedDate: string;
   preferredLanguage: string;
+  dateOfBirth?: string;
+  ageCohort?: AgeCohortId;
+  educationLevel?: string;
 }
 
 // Language Module
@@ -366,6 +373,9 @@ export interface UserAccount {
     theme: 'light' | 'dark' | 'system';
     soundEnabled: boolean;
     emailNotifications: boolean;
+    ageCohort?: AgeCohortId;
+    educationLevel?: string;
+    fontScale?: FontScale;
   };
   profileStats: {
     currentStreak: number;
@@ -460,10 +470,6 @@ export interface AchievementBadge {
 // ==========================================
 // Universal Age Cohorts & Accessibility (Ages 5 to 100+)
 // ==========================================
-
-export type FontScale = 'standard' | 'large' | 'xlarge';
-
-export type AgeCohortId = 'early' | 'junior' | 'academy' | 'pro' | 'senior';
 
 export interface AgeCohortInfo {
   id: AgeCohortId;

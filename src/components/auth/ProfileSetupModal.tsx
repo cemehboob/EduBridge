@@ -13,8 +13,9 @@ import {
   Shield,
   Save
 } from 'lucide-react';
-import { UserAccount } from '../../types';
+import { UserAccount, AgeCohortId, FontScale } from '../../types';
 import { sound } from '../../utils/audio';
+import { calculateAge, calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 
 interface ProfileSetupModalProps {
   isOpen: boolean;
@@ -32,6 +33,12 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const [name, setName] = useState(user.name);
   const [password, setPassword] = useState(user.password);
   const [dob, setDob] = useState(user.dateOfBirth);
+  const [ageCohort, setAgeCohort] = useState<AgeCohortId>(
+    user.preferences.ageCohort || calculateCohortFromDob(user.dateOfBirth)
+  );
+  const [fontScale, setFontScale] = useState<FontScale>(
+    user.preferences.fontScale || 'standard'
+  );
   const [prefLanguage, setPrefLanguage] = useState(user.preferences.preferredLanguage);
   const [targetExam, setTargetExam] = useState(user.preferences.targetExam || 'IELTS Academic');
   const [targetBand, setTargetBand] = useState(user.preferences.targetBand || '8.0 Band');
@@ -45,6 +52,8 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
     e.preventDefault();
     sound.playSuccess();
 
+    const calculatedEdu = calculateEducationLevel(dob);
+
     const updated: UserAccount = {
       ...user,
       name: name.trim(),
@@ -56,7 +65,10 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
         targetExam,
         targetBand,
         targetCareer,
-        dailyGoalXp
+        dailyGoalXp,
+        ageCohort,
+        educationLevel: calculatedEdu,
+        fontScale
       }
     };
 
@@ -162,9 +174,55 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
                   type="date"
                   required
                   value={dob}
-                  onChange={(e) => setDob(e.target.value)}
+                  onChange={(e) => {
+                    setDob(e.target.value);
+                    const inferred = calculateCohortFromDob(e.target.value);
+                    setAgeCohort(inferred);
+                  }}
                   className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs"
                 />
+              </div>
+              <div className="mt-1 text-[11px] text-indigo-700 font-bold flex items-center gap-1.5">
+                <span>Calculated Age: {calculateAge(dob)} years old</span>
+                <span>•</span>
+                <span className="text-slate-600">{calculateEducationLevel(dob)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Developmental Stage & Accessibility Scaling */}
+          <div className="pt-2 border-t border-slate-100 space-y-3">
+            <span className="font-black text-slate-900 uppercase tracking-wider block text-[11px]">
+              Developmental Cohort &amp; Accessibility Scale
+            </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Developmental Stage Cohort</label>
+                <select
+                  value={ageCohort}
+                  onChange={(e) => setAgeCohort(e.target.value as AgeCohortId)}
+                  className="w-full p-2 rounded-xl border border-slate-300 text-xs font-semibold"
+                >
+                  <option value="early">🧸 Little Explorers (Ages 5–8 Phonics)</option>
+                  <option value="junior">🎒 Junior Scholars (Ages 9–14 STEM)</option>
+                  <option value="academy">🎓 Academy &amp; Exams (Ages 15–24 IELTS)</option>
+                  <option value="pro">💼 Professional Fluency (Ages 25–54)</option>
+                  <option value="senior">🌿 Golden Age (Ages 55+ Vitality)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Display Font Scaling</label>
+                <select
+                  value={fontScale}
+                  onChange={(e) => setFontScale(e.target.value as FontScale)}
+                  className="w-full p-2 rounded-xl border border-slate-300 text-xs font-semibold"
+                >
+                  <option value="standard">Standard (A - Default)</option>
+                  <option value="large">Large (A+ - Enhanced Readability)</option>
+                  <option value="xlarge">Extra Large (A++ - Senior &amp; Low-Vision)</option>
+                </select>
               </div>
             </div>
           </div>

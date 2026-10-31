@@ -77,6 +77,12 @@ export const UniversalLearningArena: React.FC<UniversalLearningArenaProps> = ({
 }) => {
   const [activeCohort, setActiveCohort] = useState<AgeCohortId>(initialCohort);
 
+  useEffect(() => {
+    if (initialCohort) {
+      setActiveCohort(initialCohort);
+    }
+  }, [initialCohort]);
+
   // 1. Ages 5-8 State
   const [earlySubTab, setEarlySubTab] = useState<'phonics' | 'builder' | 'story' | 'timer'>('phonics');
   const [activePhonicsFilter, setActivePhonicsFilter] = useState<'all' | 'vowel' | 'consonant' | 'blend'>('all');

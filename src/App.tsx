@@ -22,6 +22,7 @@ import {
 import { StorageService } from './services/storage';
 import { systemMetrics } from './data/initialData';
 import { sound } from './utils/audio';
+import { userAccountToProfile, calculateCohortFromDob, calculateEducationLevel } from './utils/userProfile';
 
 import { Header } from './components/Header';
 import { StudentView } from './components/student/StudentView';
@@ -380,34 +381,59 @@ export default function App() {
     }
   };
 
-  // User Management & RBAC Handlers
-  const handleLogin = (user: UserAccount) => {
-    const updated = users.map((u) =>
-      u.id === user.id ? { ...u, lastLoginAt: new Date().toLocaleString() } : u
-    );
-    setUsers(updated);
-    StorageService.saveUsers(updated);
-    setCurrentUser(user);
-    StorageService.setActiveUser(user.id);
-    setActiveRole(user.role);
-    setProfile((prev) => ({
-      ...prev,
-      name: user.name,
-      currentStreak: user.profileStats.currentStreak,
-      xp: user.profileStats.xp,
-      hearts: user.profileStats.hearts,
-      maxHearts: user.profileStats.maxHearts,
-      todayXp: user.profileStats.todayXp,
-      dailyGoalXp: user.preferences.dailyGoalXp
-    }));
+  // Centralized User Activation & Synchronization Handler
+  const activateUser = (user: UserAccount, isNewRegistration = false) => {
+    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const updatedUser: UserAccount = {
+      ...user,
+      lastLoginAt: timestamp
+    };
+
+    // Update or insert into users list
+    const updatedUsers = users.some((u) => u.id === user.id)
+      ? users.map((u) => (u.id === user.id ? updatedUser : u))
+      : [updatedUser, ...users];
+
+    setUsers(updatedUsers);
+    StorageService.saveUsers(updatedUsers);
+
+    // Set active user credentials
+    setCurrentUser(updatedUser);
+    StorageService.setActiveUser(updatedUser.id);
+
+    // Derive complete, isolated UserProfile for the new user
+    const newProfile = userAccountToProfile(updatedUser);
+    setProfile(newProfile);
+    StorageService.saveProfile(newProfile);
+
+    // Switch view role to newly connected user's authorized role
+    setActiveRole(updatedUser.role);
+
+    // Synchronize Font Scale preferences (e.g. Senior gets xlarge by default)
+    const newScale: FontScale =
+      updatedUser.preferences.fontScale || (newProfile.ageCohort === 'senior' ? 'xlarge' : 'standard');
+    setFontScale(newScale);
+    StorageService.saveFontScale(newScale);
+
+    // Synchronize Active Age Cohort
+    StorageService.saveActiveCohort(newProfile.ageCohort || 'academy');
+
+    // Synchronize Sound effects preference
+    const soundPref = updatedUser.preferences.soundEnabled ?? true;
+    setSoundEnabled(soundPref);
+    sound.enabled = soundPref;
+
+    // Close Auth modal
     setIsAuthModalOpen(false);
 
-    // Audit Log entry
+    // Append Audit Trail
     const newLog: AuditLog = {
       id: `log_${Date.now()}`,
       timestamp: new Date().toLocaleTimeString(),
-      user: user.email,
-      action: `USER_AUTHENTICATED: Logged in successfully with role '${user.role}'`,
+      user: updatedUser.email,
+      action: isNewRegistration
+        ? `USER_REGISTERED: New account provisioned for ${updatedUser.name} (${updatedUser.role}) with cohort '${newProfile.ageCohort}'`
+        : `USER_AUTHENTICATED: Switched active user to ${updatedUser.name} (${updatedUser.role}, ${newProfile.educationLevel})`,
       category: 'AUTH',
       status: 'SUCCESS'
     };
@@ -416,41 +442,18 @@ export default function App() {
     StorageService.saveAuditLogs(updatedLogs);
   };
 
-  const handleRegister = (newUser: UserAccount) => {
-    const updatedUsers = [newUser, ...users];
-    setUsers(updatedUsers);
-    StorageService.saveUsers(updatedUsers);
-    setCurrentUser(newUser);
-    StorageService.setActiveUser(newUser.id);
-    setActiveRole(newUser.role);
-    setProfile((prev) => ({
-      ...prev,
-      name: newUser.name,
-      currentStreak: newUser.profileStats.currentStreak,
-      xp: newUser.profileStats.xp,
-      hearts: newUser.profileStats.hearts,
-      maxHearts: newUser.profileStats.maxHearts,
-      todayXp: newUser.profileStats.todayXp,
-      dailyGoalXp: newUser.preferences.dailyGoalXp
-    }));
-    setIsAuthModalOpen(false);
+  // User Management & RBAC Handlers
+  const handleLogin = (user: UserAccount) => {
+    activateUser(user, false);
+  };
 
-    // Audit Log entry
-    const newLog: AuditLog = {
-      id: `log_${Date.now()}`,
-      timestamp: new Date().toLocaleTimeString(),
-      user: newUser.email,
-      action: `USER_REGISTERED: New account created for ${newUser.name} (${newUser.role}) stored in JSON`,
-      category: 'AUTH',
-      status: 'SUCCESS'
-    };
-    const updatedLogs = [newLog, ...auditLogs];
-    setAuditLogs(updatedLogs);
-    StorageService.saveAuditLogs(updatedLogs);
+  const handleRegister = (newUser: UserAccount) => {
+    activateUser(newUser, true);
   };
 
   const handleLogout = () => {
     StorageService.setActiveUser(null);
+    setCurrentUser(null);
     setIsAuthModalOpen(true);
   };
 
@@ -459,11 +462,18 @@ export default function App() {
     setUsers(updated);
     StorageService.saveUsers(updated);
     setCurrentUser(updatedUser);
-    setProfile((prev) => ({
-      ...prev,
-      name: updatedUser.name,
-      dailyGoalXp: updatedUser.preferences.dailyGoalXp
-    }));
+
+    const newProfile = userAccountToProfile(updatedUser);
+    setProfile(newProfile);
+    StorageService.saveProfile(newProfile);
+
+    if (updatedUser.preferences.fontScale) {
+      setFontScale(updatedUser.preferences.fontScale);
+      StorageService.saveFontScale(updatedUser.preferences.fontScale);
+    }
+    if (updatedUser.preferences.ageCohort) {
+      StorageService.saveActiveCohort(updatedUser.preferences.ageCohort);
+    }
   };
 
   const handleToggleUserStatus = (userId: string) => {
@@ -635,6 +645,7 @@ export default function App() {
       <div className="flex-1 py-4 sm:py-6">
         {effectiveRole === 'student' && (
           <StudentView
+            key={currentUser?.id || 'guest'}
             profile={profile}
             units={units}
             mockTests={mockTests}

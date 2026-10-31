@@ -41,6 +41,7 @@ import {
 } from '../data/initialData';
 import { initialScheduledJobs, generateOneHundredWordsBatch } from './scheduleJobService';
 import { initialUsers, initialFeatureFlags, initialFeedbackTickets, initialUserGuideArticles } from '../data/userManagementData';
+import { userAccountToProfile, calculateCohortFromDob } from '../utils/userProfile';
 
 const KEYS = {
   PROFILE: 'edubridge_profile_v1',
@@ -91,8 +92,22 @@ function safeSet<T>(key: string, value: T): void {
 }
 
 export const StorageService = {
-  getProfile: (): UserProfile => safeGet<UserProfile>(KEYS.PROFILE, initialProfile),
-  saveProfile: (p: UserProfile): void => safeSet(KEYS.PROFILE, p),
+  getProfile: (): UserProfile => {
+    const active = StorageService.getActiveUser();
+    if (active) {
+      const userKey = `edubridge_profile_${active.id}`;
+      const saved = safeGet<UserProfile | null>(userKey, null);
+      if (saved) return saved;
+      return userAccountToProfile(active);
+    }
+    return safeGet<UserProfile>(KEYS.PROFILE, initialProfile);
+  },
+  saveProfile: (p: UserProfile): void => {
+    safeSet(KEYS.PROFILE, p);
+    if (p.id) {
+      safeSet(`edubridge_profile_${p.id}`, p);
+    }
+  },
 
   getUnits: (): Unit[] => safeGet<Unit[]>(KEYS.UNITS, initialUnits),
   saveUnits: (u: Unit[]): void => safeSet(KEYS.UNITS, u),
@@ -194,12 +209,45 @@ export const StorageService = {
 
   getLastSync: (): string => localStorage.getItem(KEYS.LAST_SYNC) || new Date().toISOString(),
 
-  // Backup & Restore
-  getFontScale: (): FontScale => safeGet<FontScale>(KEYS.FONT_SCALE, 'standard'),
-  saveFontScale: (scale: FontScale): void => safeSet(KEYS.FONT_SCALE, scale),
+  // Font Scale & Cohort with active user synchronization
+  getFontScale: (): FontScale => {
+    const active = StorageService.getActiveUser();
+    if (active?.preferences?.fontScale) {
+      return active.preferences.fontScale;
+    }
+    return safeGet<FontScale>(KEYS.FONT_SCALE, 'standard');
+  },
+  saveFontScale: (scale: FontScale): void => {
+    safeSet(KEYS.FONT_SCALE, scale);
+    const active = StorageService.getActiveUser();
+    if (active) {
+      const allUsers = StorageService.getUsers().map((u) =>
+        u.id === active.id ? { ...u, preferences: { ...u.preferences, fontScale: scale } } : u
+      );
+      safeSet(KEYS.USERS, allUsers);
+    }
+  },
 
-  getActiveCohort: (): AgeCohortId => safeGet<AgeCohortId>(KEYS.ACTIVE_COHORT, 'academy'),
-  saveActiveCohort: (cohort: AgeCohortId): void => safeSet(KEYS.ACTIVE_COHORT, cohort),
+  getActiveCohort: (): AgeCohortId => {
+    const active = StorageService.getActiveUser();
+    if (active?.preferences?.ageCohort) {
+      return active.preferences.ageCohort;
+    }
+    if (active?.dateOfBirth) {
+      return calculateCohortFromDob(active.dateOfBirth);
+    }
+    return safeGet<AgeCohortId>(KEYS.ACTIVE_COHORT, 'academy');
+  },
+  saveActiveCohort: (cohort: AgeCohortId): void => {
+    safeSet(KEYS.ACTIVE_COHORT, cohort);
+    const active = StorageService.getActiveUser();
+    if (active) {
+      const allUsers = StorageService.getUsers().map((u) =>
+        u.id === active.id ? { ...u, preferences: { ...u.preferences, ageCohort: cohort } } : u
+      );
+      safeSet(KEYS.USERS, allUsers);
+    }
+  },
 
   exportAllData: (): string => {
     const backup = {

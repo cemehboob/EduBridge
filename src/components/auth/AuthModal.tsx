@@ -15,8 +15,9 @@ import {
   ArrowRight,
   CheckCircle2
 } from 'lucide-react';
-import { UserAccount, UserRole } from '../../types';
+import { UserAccount, UserRole, FontScale } from '../../types';
 import { sound } from '../../utils/audio';
+import { calculateAge, calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -101,6 +102,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    const cohort = calculateCohortFromDob(regDob);
+    const eduLevel = calculateEducationLevel(regDob);
+    const defaultScale: FontScale = cohort === 'senior' ? 'xlarge' : 'standard';
+
     const newUser: UserAccount = {
       id: `usr_${Date.now()}`,
       name: regName.trim(),
@@ -120,7 +125,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         targetCareer: 'AI & Machine Learning Engineer',
         theme: 'system',
         soundEnabled: true,
-        emailNotifications: true
+        emailNotifications: true,
+        ageCohort: cohort,
+        educationLevel: eduLevel,
+        fontScale: defaultScale
       },
       profileStats: {
         currentStreak: 1,
@@ -248,29 +256,67 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
 
               {/* Quick One-Click Demo Role Accounts */}
-              <div className="pt-3 border-t border-slate-100 space-y-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block text-center">
-                  Or One-Click Demo Sign-In
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {users.slice(0, 4).map((u) => (
-                    <button
-                      key={u.id}
-                      type="button"
-                      onClick={() => handleQuickLogin(u)}
-                      className="p-2.5 rounded-xl border border-slate-200 hover:border-indigo-400 bg-slate-50 hover:bg-white text-left transition-all"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-black text-[10px] flex items-center justify-center">
-                          {u.name.slice(0, 2).toUpperCase()}
-                        </div>
+              <div className="pt-3 border-t border-slate-100 space-y-3">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 block mb-1.5">
+                    👶 Learner Developmental Cohorts (Ages 5–100+)
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {users.filter((u) => u.role === 'student').map((u) => {
+                      const age = calculateAge(u.dateOfBirth);
+                      const cohort = u.preferences.ageCohort || calculateCohortFromDob(u.dateOfBirth);
+                      const cohortEmoji: Record<string, string> = {
+                        early: '🧸',
+                        junior: '🎒',
+                        academy: '🎓',
+                        pro: '💼',
+                        senior: '🌿'
+                      };
+                      return (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => handleQuickLogin(u)}
+                          className="p-2 rounded-xl border border-slate-200 hover:border-indigo-500 bg-slate-50/70 hover:bg-white text-left transition-all group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs flex items-center justify-center shrink-0">
+                              {cohortEmoji[cohort] || '📚'}
+                            </div>
+                            <div className="truncate min-w-0">
+                              <p className="text-xs font-bold text-slate-900 truncate group-hover:text-indigo-600">
+                                {u.name}
+                              </p>
+                              <p className="text-[10px] text-slate-500 font-medium truncate">
+                                Age {age} · {u.preferences.educationLevel || cohort}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1.5">
+                    👥 Staff &amp; Administrator Portals
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {users.filter((u) => u.role !== 'student').map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => handleQuickLogin(u)}
+                        className="p-2 rounded-xl border border-slate-200 hover:border-purple-400 bg-slate-50 hover:bg-white text-left transition-all"
+                      >
                         <div className="truncate">
-                          <p className="text-xs font-bold text-slate-900 truncate">{u.name}</p>
-                          <p className="text-[10px] text-indigo-600 font-semibold uppercase">{u.role}</p>
+                          <p className="text-xs font-bold text-slate-900 truncate">{u.name.split(' ')[0]}</p>
+                          <p className="text-[10px] text-purple-700 font-bold uppercase">{u.role}</p>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </form>

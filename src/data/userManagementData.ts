@@ -20,7 +20,10 @@ export const initialUsers: UserAccount[] = [
       targetCareer: 'AI & Machine Learning Engineer',
       theme: 'system',
       soundEnabled: true,
-      emailNotifications: true
+      emailNotifications: true,
+      ageCohort: 'academy',
+      educationLevel: 'High School & College Prep (Ages 15–24)',
+      fontScale: 'standard'
     },
     profileStats: {
       currentStreak: 14,
@@ -31,6 +34,142 @@ export const initialUsers: UserAccount[] = [
       hearts: 5,
       maxHearts: 5,
       todayXp: 45
+    }
+  },
+  {
+    id: 'usr_student_early',
+    name: 'Leo Chen (Age 7)',
+    email: 'leo.chen@edubridge.org',
+    password: 'Password123!',
+    dateOfBirth: '2019-03-12',
+    role: 'student',
+    status: 'active',
+    createdAt: '2026-09-01',
+    lastLoginAt: '2026-10-31 04:10:00',
+    preferences: {
+      preferredLanguage: 'English',
+      dailyGoalXp: 50,
+      targetExam: 'Primary Phonics & Reading',
+      targetBand: 'Star Reader Tier 1',
+      targetCareer: 'Astronaut Explorer',
+      theme: 'light',
+      soundEnabled: true,
+      emailNotifications: false,
+      ageCohort: 'early',
+      educationLevel: 'Early Primary & Phonics (Ages 5–8)',
+      fontScale: 'large'
+    },
+    profileStats: {
+      currentStreak: 8,
+      highestStreak: 10,
+      xp: 1250,
+      level: 4,
+      league: 'Gold',
+      hearts: 5,
+      maxHearts: 5,
+      todayXp: 50
+    }
+  },
+  {
+    id: 'usr_student_junior',
+    name: 'Maya Patel (Age 12)',
+    email: 'maya.patel@edubridge.org',
+    password: 'Password123!',
+    dateOfBirth: '2014-06-25',
+    role: 'student',
+    status: 'active',
+    createdAt: '2026-08-20',
+    lastLoginAt: '2026-10-31 03:30:00',
+    preferences: {
+      preferredLanguage: 'English',
+      dailyGoalXp: 80,
+      targetExam: 'Middle School STEM Olympiad',
+      targetBand: 'Gold Division',
+      targetCareer: 'Biomedical Scientist',
+      theme: 'system',
+      soundEnabled: true,
+      emailNotifications: true,
+      ageCohort: 'junior',
+      educationLevel: 'Elementary & Middle School (Ages 9–14)',
+      fontScale: 'standard'
+    },
+    profileStats: {
+      currentStreak: 19,
+      highestStreak: 25,
+      xp: 4800,
+      level: 11,
+      league: 'Sapphire',
+      hearts: 5,
+      maxHearts: 5,
+      todayXp: 60
+    }
+  },
+  {
+    id: 'usr_student_pro',
+    name: 'David Sterling (Executive)',
+    email: 'david.sterling@edubridge.org',
+    password: 'Password123!',
+    dateOfBirth: '1990-08-14',
+    role: 'student',
+    status: 'active',
+    createdAt: '2026-07-05',
+    lastLoginAt: '2026-10-30 22:15:00',
+    preferences: {
+      preferredLanguage: 'English',
+      dailyGoalXp: 120,
+      targetExam: 'Executive Business Fluency',
+      targetBand: 'Senior Leadership Register',
+      targetCareer: 'Chief Technology Officer',
+      theme: 'system',
+      soundEnabled: true,
+      emailNotifications: true,
+      ageCohort: 'pro',
+      educationLevel: 'Professional & Career Fluency (Ages 25–54)',
+      fontScale: 'standard'
+    },
+    profileStats: {
+      currentStreak: 32,
+      highestStreak: 45,
+      xp: 8900,
+      level: 14,
+      league: 'Diamond',
+      hearts: 5,
+      maxHearts: 5,
+      todayXp: 80
+    }
+  },
+  {
+    id: 'usr_student_senior',
+    name: 'Evelyn Vance (Lifelong)',
+    email: 'evelyn.vance@edubridge.org',
+    password: 'Password123!',
+    dateOfBirth: '1954-04-10',
+    role: 'student',
+    status: 'active',
+    createdAt: '2026-06-12',
+    lastLoginAt: '2026-10-31 01:20:00',
+    preferences: {
+      preferredLanguage: 'English',
+      dailyGoalXp: 40,
+      targetExam: 'Cognitive Reserve & Vitality',
+      targetBand: 'Lifelong Wisdom Guild',
+      targetCareer: 'Memoir Writer & Historian',
+      theme: 'light',
+      soundEnabled: true,
+      emailNotifications: false,
+      ageCohort: 'senior',
+      educationLevel: 'Golden Age & Lifelong Learning (Ages 55+)',
+      fontScale: 'xlarge'
+    },
+    profileStats: {
+      currentStreak: 65,
+      highestStreak: 70,
+      xp: 6200,
+      level: 12,
+      league: 'Diamond',
+      hearts: 5,
+      maxHearts: 5,
+      todayXp: 40
     }
   },
   {
@@ -48,7 +187,10 @@ export const initialUsers: UserAccount[] = [
       dailyGoalXp: 50,
       theme: 'system',
       soundEnabled: true,
-      emailNotifications: true
+      emailNotifications: true,
+      ageCohort: 'pro',
+      educationLevel: 'Parent & Family Guardian',
+      fontScale: 'standard'
     },
     profileStats: {
       currentStreak: 5,
@@ -76,7 +218,10 @@ export const initialUsers: UserAccount[] = [
       dailyGoalXp: 80,
       theme: 'system',
       soundEnabled: true,
-      emailNotifications: true
+      emailNotifications: true,
+      ageCohort: 'pro',
+      educationLevel: 'Educator & Curriculum Studio',
+      fontScale: 'standard'
     },
     profileStats: {
       currentStreak: 45,
@@ -104,7 +249,10 @@ export const initialUsers: UserAccount[] = [
       dailyGoalXp: 120,
       theme: 'system',
       soundEnabled: true,
-      emailNotifications: true
+      emailNotifications: true,
+      ageCohort: 'pro',
+      educationLevel: 'System Administration & Security',
+      fontScale: 'standard'
     },
     profileStats: {
       currentStreak: 90,

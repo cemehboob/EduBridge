@@ -14,184 +14,143 @@ import {
   ArrowRight,
   HelpCircle,
   Award,
-  ChevronRight
+  ChevronRight,
+  Star,
+  ShieldCheck,
+  Flame,
+  UserCheck
 } from 'lucide-react';
-import { VocabularyWord } from '../../types';
+import { VocabularyWord, UserProfile, AgeCohortId } from '../../types';
 import { sound } from '../../utils/audio';
 import { triggerCelebration } from '../../utils/celebration';
+import { AIService } from '../../services/aiService';
+import { cohortQuizCategories, cohortQuizQuestions, CohortQuizQuestion } from '../../data/cohortQuizzesData';
+import { calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 
 interface VocabularyQuizProps {
-  vocabularyWords: VocabularyWord[];
+  vocabularyWords?: VocabularyWord[];
+  profile?: UserProfile;
   onCompleteQuiz?: (score: number, totalQuestions: number, xpEarned: number) => void;
 }
 
-type QuestionMode = 'definition' | 'meaning' | 'sentence' | 'synonym';
-
-interface GeneratedQuestion {
-  id: string;
-  targetWord: VocabularyWord;
-  mode: QuestionMode;
-  questionText: string;
-  options: string[]; // 4 choices
-  correctAnswer: string;
-  explanation: string;
-}
+type QuizTrack = 'cohort' | 'cefr';
 
 export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
   vocabularyWords = [],
+  profile,
   onCompleteQuiz
 }) => {
-  // Config state
+  // Infer user cohort or fallback to academy
+  const userInferredCohort: AgeCohortId =
+    profile?.ageCohort || (profile?.dateOfBirth ? calculateCohortFromDob(profile.dateOfBirth) : 'academy');
+
+  // Track & Cohort config state
+  const [activeTrack, setActiveTrack] = useState<QuizTrack>('cohort');
+  const [selectedCohort, setSelectedCohort] = useState<AgeCohortId>(userInferredCohort);
   const [selectedCefr, setSelectedCefr] = useState<string>('ALL');
-  const [selectedLength, setSelectedLength] = useState<number>(10);
-  const [selectedMode, setSelectedMode] = useState<QuestionMode>('definition');
+
+  // Sync cohort whenever profile changes (e.g. user login switch)
+  useEffect(() => {
+    if (profile?.ageCohort) {
+      setSelectedCohort(profile.ageCohort);
+    } else if (profile?.dateOfBirth) {
+      setSelectedCohort(calculateCohortFromDob(profile.dateOfBirth));
+    }
+    // Reset active quiz on user switch to ensure fresh state
+    setIsQuizActive(false);
+    setIsQuizFinished(false);
+    setCurrentIndex(0);
+    setSelectedOption(null);
+    setIsSubmitted(false);
+    setUserAnswers([]);
+  }, [profile?.id, profile?.ageCohort, profile?.dateOfBirth]);
 
   // Quiz execution state
   const [isQuizActive, setIsQuizActive] = useState<boolean>(false);
-  const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
+  const [cohortQuestions, setCohortQuestions] = useState<CohortQuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [userAnswers, setUserAnswers] = useState<{ questionId: string; selected: string; isCorrect: boolean }[]>([]);
   const [streakCombo, setStreakCombo] = useState<number>(0);
   const [maxStreak, setMaxStreak] = useState<number>(0);
+  const [starsEarned, setStarsEarned] = useState<number>(0);
   const [isQuizFinished, setIsQuizFinished] = useState<boolean>(false);
 
-  // Available CEFR levels
-  const cefrLevels = ['ALL', 'B1', 'B2', 'C1', 'C2'];
+  // Active category info
+  const activeCategoryInfo = cohortQuizCategories.find((c) => c.id === selectedCohort) || cohortQuizCategories[2];
 
-  // Speech TTS handler
+  // Speech helper with cohort-adaptive pitch and pace
   const handleSpeak = (text: string) => {
     sound.playClick();
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.lang = 'en-US';
-      window.speechSynthesis.speak(utterance);
+    if (selectedCohort === 'senior') {
+      AIService.speakSeniorClear(text);
+    } else {
+      AIService.speakAdaptive(text, selectedCohort);
     }
   };
 
-  // Generate dynamic questions based on current config and vocabularyWords pool
-  const generateQuestions = (): GeneratedQuestion[] => {
-    let pool = vocabularyWords.length > 0 ? vocabularyWords : defaultFallbackWords;
-
-    if (selectedCefr !== 'ALL') {
-      const filtered = pool.filter((w) => w.cefrLevel.toUpperCase() === selectedCefr.toUpperCase());
-      if (filtered.length >= 4) {
-        pool = filtered;
-      }
-    }
-
-    // Shuffle pool
-    const shuffledPool = [...pool].sort(() => Math.random() - 0.5);
-    const targetWords = shuffledPool.slice(0, Math.min(selectedLength, shuffledPool.length));
-
-    return targetWords.map((word, idx) => {
-      // Determine question mode (either fixed or mixed)
-      const currentMode = selectedMode;
-
-      // Distractors from other words
-      const otherWords = pool.filter((w) => w.id !== word.id);
-      const shuffledOthers = [...otherWords].sort(() => Math.random() - 0.5);
-
-      let questionText = '';
-      let correctAnswer = '';
-      let options: string[] = [];
-      let explanation = '';
-
-      if (currentMode === 'definition') {
-        // Prompt: Given definition, pick word
-        questionText = `Which word matches this definition?\n"${word.definition}"`;
-        correctAnswer = word.word;
-        const distractors = shuffledOthers.slice(0, 3).map((w) => w.word);
-        options = [word.word, ...distractors].sort(() => Math.random() - 0.5);
-        explanation = `"${word.word}" (${word.partOfSpeech}) means: ${word.definition}`;
-      } else if (currentMode === 'meaning') {
-        // Prompt: Given word, pick definition
-        questionText = `What is the correct definition of "${word.word}"?`;
-        correctAnswer = word.definition;
-        const distractors = shuffledOthers.slice(0, 3).map((w) => w.definition);
-        options = [word.definition, ...distractors].sort(() => Math.random() - 0.5);
-        explanation = `"${word.word}" ${word.phonetic ? `[${word.phonetic}]` : ''}: ${word.definition}`;
-      } else if (currentMode === 'sentence') {
-        // Prompt: Fill in sentence blank
-        let sentenceWithBlank = word.example || word.exampleSentence || `The student used the word ${word.word} in an essay.`;
-        // Replace exact word (case-insensitive) with blank
-        const regex = new RegExp(`\\b${word.word}\\b`, 'gi');
-        if (regex.test(sentenceWithBlank)) {
-          sentenceWithBlank = sentenceWithBlank.replace(regex, '_______');
-        } else {
-          sentenceWithBlank = `Fill in the blank: "It was a ________ moment." (${word.definition})`;
-        }
-        questionText = `Select the missing word to complete the sentence:\n"${sentenceWithBlank}"`;
-        correctAnswer = word.word;
-        const distractors = shuffledOthers.slice(0, 3).map((w) => w.word);
-        options = [word.word, ...distractors].sort(() => Math.random() - 0.5);
-        explanation = `Example: ${word.example || word.exampleSentence || `"${word.word}" fits the context.`}`;
-      } else {
-        // Synonym mode
-        const synonym = word.synonyms && word.synonyms.length > 0 ? word.synonyms[0] : word.word;
-        questionText = `Which word is closest in meaning to "${word.word}"?`;
-        correctAnswer = synonym;
-
-        const distractorSynonyms = shuffledOthers
-          .slice(0, 3)
-          .map((w) => (w.synonyms && w.synonyms[0] ? w.synonyms[0] : w.word));
-        
-        options = [synonym, ...distractorSynonyms].sort(() => Math.random() - 0.5);
-        explanation = `"${word.word}" is synonymous with "${synonym}". Definition: ${word.definition}`;
-      }
-
-      return {
-        id: `q_${word.id}_${idx}_${Date.now()}`,
-        targetWord: word,
-        mode: currentMode,
-        questionText,
-        options,
-        correctAnswer,
-        explanation
-      };
-    });
-  };
-
+  // Start Quiz Handler
   const handleStartQuiz = () => {
     sound.playClick();
-    const generated = generateQuestions();
-    setQuestions(generated);
+    // Filter questions by selected cohort
+    const pool = cohortQuizQuestions.filter((q) => q.cohort === selectedCohort);
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+
+    setCohortQuestions(shuffled);
     setCurrentIndex(0);
     setSelectedOption(null);
     setIsSubmitted(false);
     setUserAnswers([]);
     setStreakCombo(0);
     setMaxStreak(0);
+    setStarsEarned(0);
     setIsQuizFinished(false);
     setIsQuizActive(true);
+
+    // Initial voice prompt
+    if (shuffled[0]) {
+      handleSpeak(shuffled[0].prompt);
+    }
   };
 
-  const handleOptionClick = (option: string) => {
+  // Answer selection
+  const handleSelectOption = (option: string) => {
     if (isSubmitted) return;
     sound.playClick();
     setSelectedOption(option);
   };
 
+  // Submit Answer
   const handleSubmitAnswer = () => {
     if (!selectedOption || isSubmitted) return;
 
-    const currentQ = questions[currentIndex];
-    const isCorrect = selectedOption === currentQ.correctAnswer;
+    const currentQ = cohortQuestions[currentIndex];
+    const isCorrect = selectedOption.trim() === currentQ.correctAnswer.trim();
+
+    setIsSubmitted(true);
 
     if (isCorrect) {
       sound.playSuccess();
-      const newCombo = streakCombo + 1;
-      setStreakCombo(newCombo);
-      if (newCombo > maxStreak) setMaxStreak(newCombo);
+      const nextStreak = streakCombo + 1;
+      setStreakCombo(nextStreak);
+      if (nextStreak > maxStreak) setMaxStreak(nextStreak);
+      setStarsEarned((s) => s + 1);
+
+      // Play vocal praise for early and senior learners
+      if (selectedCohort === 'early') {
+        AIService.speakAdaptive(currentQ.praise, 'early');
+      } else if (selectedCohort === 'senior') {
+        AIService.speakSeniorClear(currentQ.praise);
+      }
     } else {
       sound.playError();
-      setStreakCombo(0);
+      // For senior learners, maintain calm zero-stress positive tone
+      if (selectedCohort !== 'senior') {
+        setStreakCombo(0);
+      }
     }
 
-    setIsSubmitted(true);
     setUserAnswers((prev) => [
       ...prev,
       {
@@ -202,17 +161,23 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
     ]);
   };
 
+  // Next Question / Finish
   const handleNextQuestion = () => {
     sound.playClick();
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
+    if (currentIndex < cohortQuestions.length - 1) {
+      const nextIdx = currentIndex + 1;
+      setCurrentIndex(nextIdx);
       setSelectedOption(null);
       setIsSubmitted(false);
+      if (cohortQuestions[nextIdx]) {
+        handleSpeak(cohortQuestions[nextIdx].prompt);
+      }
     } else {
-      // Finish quiz
-      const correctCount = userAnswers.filter((a) => a.isCorrect).length;
-      const accuracy = Math.round((correctCount / questions.length) * 100);
-      const xpEarned = correctCount * 15 + maxStreak * 5;
+      // Quiz finished
+      const correct = userAnswers.filter((a) => a.isCorrect).length;
+      const total = cohortQuestions.length;
+      const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+      const xpEarned = correct * 20 + maxStreak * 10;
 
       setIsQuizFinished(true);
       setIsQuizActive(false);
@@ -222,592 +187,386 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
       }
 
       if (onCompleteQuiz) {
-        onCompleteQuiz(correctCount, questions.length, xpEarned);
+        onCompleteQuiz(correct, total, xpEarned);
       }
     }
   };
 
-  // Calculated results
+  const currentQ = cohortQuestions[currentIndex];
   const correctCount = userAnswers.filter((a) => a.isCorrect).length;
-  const accuracyPercent = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
-  const totalXpEarned = correctCount * 15 + maxStreak * 5;
+  const totalQuestions = cohortQuestions.length;
+  const accuracyPercent = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+  const totalXpEarned = correctCount * 20 + maxStreak * 10;
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner Header */}
-      <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="space-y-6 animate-fade-in">
+      
+      {/* Top Banner Header with User Personalization */}
+      <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
-              <Brain className="w-3.5 h-3.5 text-indigo-400" />
-              Interactive Vocabulary Vault
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-black uppercase tracking-wider text-teal-300 backdrop-blur-md">
+              <Brain className="w-3.5 h-3.5" />
+              <span>Age &amp; Education Calibrated Mastery Quizzes</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Adaptive Vocabulary Mastery Quiz
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+              Adaptive Vocabulary &amp; Concept Quiz
             </h1>
-            <p className="text-indigo-200/90 text-sm max-w-2xl leading-relaxed">
-              Test your knowledge of academic & CEFR-aligned lexicon with dynamic multiple-choice drills, instant audio pronunciation, and real-time streak multipliers.
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+              Dynamically tailored across 5 developmental stages—from Montessori phonics &amp; sight words for young explorers to high-stakes exam lexicons, executive diplomacy, and senior cognitive vitality.
             </p>
           </div>
 
-          {!isQuizActive && !isQuizFinished && (
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-3 rounded-xl border border-white/15">
-              <div className="text-right">
-                <div className="text-xs text-indigo-200">System Vocab Pool</div>
-                <div className="text-xl font-bold text-white">{vocabularyWords.length} Words</div>
+          {/* User Profile Personalization Badge */}
+          {profile && (
+            <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/15 flex items-center gap-3 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-400 to-indigo-500 text-slate-950 font-black text-sm flex items-center justify-center shadow-md">
+                {profile.name.slice(0, 2).toUpperCase()}
               </div>
-              <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">
-                <BookOpen className="w-5 h-5" />
+              <div>
+                <span className="text-[10px] text-teal-300 font-extrabold uppercase tracking-wider block">
+                  Active Learner
+                </span>
+                <div className="text-xs font-black text-white">{profile.name}</div>
+                <div className="text-[11px] text-slate-300">
+                  {profile.educationLevel || calculateEducationLevel(profile.dateOfBirth)}
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* VIEW 1: Quiz Configuration Setup (Before starting) */}
+      {/* VIEW 1: Quiz Configuration & Age Cohort Selector (Before starting) */}
       {!isQuizActive && !isQuizFinished && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Controls Card */}
-          <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
-            <div className="border-b border-slate-100 pb-4">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Filter className="w-5 h-5 text-indigo-600" />
-                Customize Your Practice Session
-              </h2>
-              <p className="text-sm text-slate-500 mt-1">
-                Configure your target CEFR level, question mode, and quiz length to sharpen your vocabulary retention.
-              </p>
+        <div className="space-y-6">
+          
+          {/* 5-Level Age & Education Cohort Switcher */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-xs font-black uppercase text-indigo-600 tracking-wider">
+                  Developmental Stage Calibration
+                </span>
+                <h3 className="text-lg font-black text-slate-900">
+                  Select Educational Level &amp; Cognitive Focus
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Automatically calibrated to your profile, or pick any level to explore.
+                </p>
+              </div>
+
+              {profile && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Calibrated for: {profile.name.split(' ')[0]} ({activeCategoryInfo.badge})</span>
+                </div>
+              )}
             </div>
 
-            {/* Mode Selector */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                Quiz Mode
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  {
-                    id: 'definition',
-                    title: 'Definition Match',
-                    desc: 'Read the definition and identify the matching vocabulary word.'
-                  },
-                  {
-                    id: 'meaning',
-                    title: 'Word Meaning',
-                    desc: 'Read the word and pick the correct formal definition.'
-                  },
-                  {
-                    id: 'sentence',
-                    title: 'Contextual Fill-in-Blank',
-                    desc: 'Complete example sentences with the proper target term.'
-                  },
-                  {
-                    id: 'synonym',
-                    title: 'Synonym Challenge',
-                    desc: 'Match words with their closest academic synonyms.'
-                  }
-                ].map((mode) => (
+            {/* 5 Cohort Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {cohortQuizCategories.map((cat) => {
+                const isSelected = selectedCohort === cat.id;
+                return (
                   <button
-                    key={mode.id}
+                    key={cat.id}
                     onClick={() => {
                       sound.playClick();
-                      setSelectedMode(mode.id as QuestionMode);
+                      setSelectedCohort(cat.id);
                     }}
-                    className={`text-left p-4 rounded-xl border-2 transition-all ${
-                      selectedMode === mode.id
-                        ? 'border-indigo-600 bg-indigo-50/50 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    className={`p-4 rounded-2xl text-left transition-all border flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-indigo-50/60 border-indigo-600 shadow-md ring-2 ring-indigo-500/20 translate-y-[-2px]'
+                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center justify-between font-bold text-slate-900 text-sm">
-                      {mode.title}
-                      {selectedMode === mode.id && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">{cat.icon}</span>
+                        {isSelected && <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mt-2">
+                        {cat.ageRange}
+                      </span>
+                      <h4 className="text-xs font-extrabold text-slate-900 leading-tight">
+                        {cat.name}
+                      </h4>
+                      <p className="text-[11px] font-semibold text-indigo-700 mt-1">{cat.badge}</p>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1 leading-relaxed">{mode.desc}</div>
+                    <p className="text-[10px] text-slate-500 line-clamp-2 mt-3 leading-relaxed">
+                      {cat.description}
+                    </p>
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
 
-            {/* CEFR Level Filter */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                CEFR Proficiency Filter
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {cefrLevels.map((lvl) => (
-                  <button
-                    key={lvl}
-                    onClick={() => {
-                      sound.playClick();
-                      setSelectedCefr(lvl);
-                    }}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                      selectedCefr === lvl
-                        ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-600 ring-offset-2'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    {lvl === 'ALL' ? 'All Levels (Mixed)' : `Level ${lvl}`}
-                  </button>
-                ))}
+            {/* Selected Level Summary & Start CTA */}
+            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{activeCategoryInfo.icon}</span>
+                  <span className="text-xs font-black uppercase text-indigo-600">
+                    {activeCategoryInfo.defaultModeName}
+                  </span>
+                </div>
+                <h4 className="text-sm sm:text-base font-extrabold text-slate-900">
+                  Ready to test: {activeCategoryInfo.name} ({activeCategoryInfo.ageRange})
+                </h4>
+                <p className="text-xs text-slate-600">
+                  {selectedCohort === 'early' && 'Includes picture sight words, phonics sounds, cheerful voice, and stars.'}
+                  {selectedCohort === 'junior' && 'Includes middle-school science, bioluminescence, photosynthesis, and physics velocity.'}
+                  {selectedCohort === 'academy' && 'Includes IELTS Academic Band 8.5+ lexicon, Task 2 collocations, and formal register.'}
+                  {selectedCohort === 'pro' && 'Includes corporate diplomacy, de-escalation tactics, scope creep, and executive cadence.'}
+                  {selectedCohort === 'senior' && 'Includes digital scam spotting, neuroplasticity facts, and calm 0.82x voice narration.'}
+                </p>
               </div>
-            </div>
 
-            {/* Question Length */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                Number of Questions
-              </label>
-              <div className="flex gap-3">
-                {[5, 10, 20].map((len) => (
-                  <button
-                    key={len}
-                    onClick={() => {
-                      sound.playClick();
-                      setSelectedLength(len);
-                    }}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
-                      selectedLength === len
-                        ? 'border-indigo-600 bg-indigo-60 text-indigo-700 font-extrabold'
-                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                    }`}
-                  >
-                    {len} Questions
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Start Button */}
-            <div className="pt-4 border-t border-slate-100">
               <button
                 onClick={handleStartQuiz}
-                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 text-base transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 shrink-0"
               >
-                <Zap className="w-5 h-5 text-amber-300 fill-amber-300" />
-                Start Vocabulary Quiz Now
+                <Zap className="w-4 h-4 text-amber-300" />
+                <span>Start Calibrated Quiz Now</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
-            </div>
-          </div>
-
-          {/* Quick Insights & Sample Vocabulary Card */}
-          <div className="space-y-6">
-            <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl p-6 text-white space-y-4 shadow-md">
-              <h3 className="font-bold text-base flex items-center gap-2 text-indigo-300">
-                <Target className="w-5 h-5" />
-                Quiz Reward Structure
-              </h3>
-              <div className="space-y-3 text-xs text-slate-300">
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-white/10">
-                  <span>Correct Choice</span>
-                  <span className="font-bold text-emerald-400">+15 XP</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-white/10">
-                  <span>Streak Multiplier</span>
-                  <span className="font-bold text-amber-400">+5 XP per streak</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-white/10">
-                  <span>Score &ge; 80%</span>
-                  <span className="font-bold text-purple-400">Badge Progress & Confetti 🎉</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Preview of Vocab Words */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-indigo-600" />
-                  Featured Words in Pool
-                </h4>
-                <span className="text-xs font-semibold text-slate-500">Showing 4 of {vocabularyWords.length}</span>
-              </div>
-              <div className="divide-y divide-slate-100">
-                {(vocabularyWords.length > 0 ? vocabularyWords.slice(0, 4) : defaultFallbackWords.slice(0, 4)).map((w) => (
-                  <div key={w.id} className="py-2.5 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                        {w.word}
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono font-normal">
-                          {w.partOfSpeech}
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-500 line-clamp-1">{w.definition}</div>
-                    </div>
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/50">
-                      {w.cefrLevel}
-                    </span>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* VIEW 2: Active Question Card */}
-      {isQuizActive && questions.length > 0 && (
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Top Progress & Stats Bar */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-extrabold px-3 py-1.5 rounded-lg bg-indigo-100 text-indigo-800">
-                Question {currentIndex + 1} / {questions.length}
-              </span>
-              <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                <Zap className="w-4 h-4 fill-amber-500" />
-                Streak: {streakCombo}
+      {/* VIEW 2: Active Quiz Runner */}
+      {isQuizActive && currentQ && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6 max-w-4xl mx-auto">
+          
+          {/* Header Status Bar */}
+          <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">{activeCategoryInfo.icon}</span>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 block">
+                  {currentQ.educationLevel}
+                </span>
+                <h4 className="text-xs sm:text-sm font-extrabold text-slate-900">
+                  Question {currentIndex + 1} of {totalQuestions} • {currentQ.category}
+                </h4>
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="flex-1 max-w-xs bg-slate-100 h-2.5 rounded-full overflow-hidden">
-              <div
-                className="bg-indigo-600 h-full transition-all duration-300 rounded-full"
-                style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-              />
+            <div className="flex items-center gap-3">
+              {/* Stars Counter for Early Learners */}
+              {selectedCohort === 'early' && (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-black">
+                  <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                  <span>{starsEarned} Stars</span>
+                </div>
+              )}
+
+              {/* Streak Counter */}
+              <div className="flex items-center gap-1 px-3 py-1 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-black">
+                <Flame className="w-4 h-4 text-indigo-600" />
+                <span>{streakCombo} Streak</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Target Word & Phonetics Prompt Box */}
+          <div className={`rounded-3xl p-6 sm:p-8 text-center space-y-3 ${
+            selectedCohort === 'early'
+              ? 'bg-gradient-to-b from-amber-50 to-orange-50 border-2 border-amber-300'
+              : selectedCohort === 'senior'
+              ? 'bg-gradient-to-b from-rose-50 to-pink-50 border border-rose-200'
+              : 'bg-slate-900 text-white'
+          }`}>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-2xl sm:text-3xl font-black tracking-wider">
+                {currentQ.word}
+              </span>
+              {currentQ.phonetic && (
+                <span className={`text-xs sm:text-sm font-mono font-medium ${
+                  selectedCohort === 'early' ? 'text-amber-800' : selectedCohort === 'senior' ? 'text-rose-800' : 'text-indigo-300'
+                }`}>
+                  [{currentQ.phonetic}]
+                </span>
+              )}
+              <button
+                onClick={() => handleSpeak(currentQ.word)}
+                className={`p-2 rounded-xl transition-all ${
+                  selectedCohort === 'early'
+                    ? 'bg-amber-200 text-amber-900 hover:bg-amber-300'
+                    : selectedCohort === 'senior'
+                    ? 'bg-rose-200 text-rose-900 hover:bg-rose-300'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+                title="Listen Pronunciation"
+              >
+                <Volume2 className="w-4 h-4" />
+              </button>
             </div>
 
+            <p className={`text-sm sm:text-base font-bold max-w-xl mx-auto leading-relaxed ${
+              selectedCohort === 'early' ? 'text-slate-800' : selectedCohort === 'senior' ? 'text-slate-800' : 'text-slate-200'
+            }`}>
+              {currentQ.prompt}
+            </p>
+          </div>
+
+          {/* Options Grid */}
+          <div className="grid grid-cols-1 gap-3">
+            {currentQ.options.map((option, idx) => {
+              const isSelected = selectedOption === option;
+              const isCorrectAnswer = option.trim() === currentQ.correctAnswer.trim();
+
+              let btnClass = 'bg-white border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/20 text-slate-800';
+
+              if (isSubmitted) {
+                if (isCorrectAnswer) {
+                  btnClass = 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold ring-2 ring-emerald-500/20';
+                } else if (isSelected && !isCorrectAnswer) {
+                  btnClass = 'bg-rose-50 border-rose-500 text-rose-950 font-bold';
+                } else {
+                  btnClass = 'bg-slate-50 border-slate-200 text-slate-400 opacity-60';
+                }
+              } else if (isSelected) {
+                btnClass = 'bg-indigo-50 border-indigo-600 text-indigo-950 font-bold ring-2 ring-indigo-500/20 shadow-xs';
+              }
+
+              return (
+                <button
+                  key={idx}
+                  disabled={isSubmitted}
+                  onClick={() => handleSelectOption(option)}
+                  className={`p-4 rounded-2xl border text-xs sm:text-sm text-left transition-all flex items-center justify-between gap-3 ${btnClass}`}
+                >
+                  <span className="leading-relaxed">{option}</span>
+                  {isSubmitted && isCorrectAnswer && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
+                  {isSubmitted && isSelected && !isCorrectAnswer && <XCircle className="w-5 h-5 text-rose-600 shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Explanation & Feedback Card */}
+          {isSubmitted && (
+            <div className={`p-5 rounded-2xl border text-xs leading-relaxed space-y-2 animate-fade-in ${
+              selectedOption?.trim() === currentQ.correctAnswer.trim()
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                : 'bg-amber-50 border-amber-200 text-amber-950'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className="font-black uppercase tracking-wider text-sm flex items-center gap-1.5">
+                  {selectedOption?.trim() === currentQ.correctAnswer.trim() ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>{currentQ.praise}</span>
+                    </>
+                  ) : (
+                    <>
+                      <HelpCircle className="w-4 h-4 text-amber-600" />
+                      <span>Explanation &amp; Correct Answer</span>
+                    </>
+                  )}
+                </span>
+                <button
+                  onClick={() => handleSpeak(currentQ.explanation)}
+                  className="text-indigo-700 hover:text-indigo-900 font-bold flex items-center gap-1"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span>Listen</span>
+                </button>
+              </div>
+              <p className="text-slate-800">{currentQ.explanation}</p>
+            </div>
+          )}
+
+          {/* Action Footer */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
             <button
               onClick={() => {
                 sound.playClick();
                 setIsQuizActive(false);
               }}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
             >
-              Quit Quiz
+              Exit Quiz
+            </button>
+
+            {!isSubmitted ? (
+              <button
+                disabled={!selectedOption}
+                onClick={handleSubmitAnswer}
+                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs disabled:opacity-40 shadow-xs"
+              >
+                Submit Answer
+              </button>
+            ) : (
+              <button
+                onClick={handleNextQuestion}
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs flex items-center gap-2"
+              >
+                <span>{currentIndex < totalQuestions - 1 ? 'Next Question' : 'View Final Results'}</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 3: Final Results & Celebration */}
+      {isQuizFinished && (
+        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm text-center space-y-6 max-w-xl mx-auto">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
+            <Trophy className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-xs font-black uppercase text-indigo-600 tracking-wider">
+              {activeCategoryInfo.name} Completed
+            </span>
+            <h3 className="text-2xl font-black text-slate-900">Quiz Completed!</h3>
+            <p className="text-xs text-slate-500">
+              Great job practicing concepts calibrated for {activeCategoryInfo.badge}.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">Score</span>
+              <span className="text-xl font-black text-slate-900">{correctCount} / {totalQuestions}</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">Accuracy</span>
+              <span className="text-xl font-black text-emerald-600">{accuracyPercent}%</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">XP Earned</span>
+              <span className="text-xl font-black text-indigo-600">+{totalXpEarned} XP</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button
+              onClick={handleStartQuiz}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-xs flex items-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Retry This Level</span>
+            </button>
+            <button
+              onClick={() => {
+                sound.playClick();
+                setIsQuizFinished(false);
+                setIsQuizActive(false);
+              }}
+              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs"
+            >
+              Change Level
             </button>
           </div>
-
-          {/* Current Question Card */}
-          {(() => {
-            const currentQ = questions[currentIndex];
-            return (
-              <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-md space-y-6">
-                {/* Question Header & Prompt */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-md">
-                      {currentQ.targetWord.cefrLevel} Level • {currentQ.targetWord.partOfSpeech}
-                    </span>
-                    <button
-                      onClick={() => handleSpeak(currentQ.targetWord.word)}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 px-3 py-1.5 rounded-lg transition-colors"
-                      title="Pronounce word"
-                    >
-                      <Volume2 className="w-4 h-4 text-indigo-600" />
-                      Audio Playback
-                    </button>
-                  </div>
-
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 leading-snug whitespace-pre-line">
-                    {currentQ.questionText}
-                  </h3>
-                </div>
-
-                {/* Multiple Choice Options */}
-                <div className="grid grid-cols-1 gap-3 pt-2">
-                  {currentQ.options.map((option, idx) => {
-                    const letter = String.fromCharCode(65 + idx); // A, B, C, D
-                    const isSelected = selectedOption === option;
-                    const isCorrectAnswer = option === currentQ.correctAnswer;
-
-                    let btnStyle = 'border-slate-200 bg-white hover:border-indigo-300 text-slate-800';
-
-                    if (isSubmitted) {
-                      if (isCorrectAnswer) {
-                        btnStyle = 'border-emerald-500 bg-emerald-50 text-emerald-900 font-bold ring-2 ring-emerald-500/30';
-                      } else if (isSelected && !isCorrectAnswer) {
-                        btnStyle = 'border-rose-500 bg-rose-50 text-rose-900 font-bold';
-                      } else {
-                        btnStyle = 'border-slate-200 bg-slate-50 text-slate-400 opacity-60';
-                      }
-                    } else if (isSelected) {
-                      btnStyle = 'border-indigo-600 bg-indigo-50 text-indigo-900 font-bold ring-2 ring-indigo-600/30';
-                    }
-
-                    return (
-                      <button
-                        key={idx}
-                        disabled={isSubmitted}
-                        onClick={() => handleOptionClick(option)}
-                        className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between gap-4 ${btnStyle}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 ${
-                              isSubmitted && isCorrectAnswer
-                                ? 'bg-emerald-600 text-white'
-                                : isSubmitted && isSelected && !isCorrectAnswer
-                                ? 'bg-rose-600 text-white'
-                                : isSelected
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {letter}
-                          </span>
-                          <span className="text-sm sm:text-base leading-relaxed">{option}</span>
-                        </div>
-
-                        {isSubmitted && (
-                          <div className="shrink-0">
-                            {isCorrectAnswer ? (
-                              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                            ) : isSelected ? (
-                              <XCircle className="w-5 h-5 text-rose-600" />
-                            ) : null}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Submit / Next Button */}
-                {!isSubmitted ? (
-                  <button
-                    disabled={!selectedOption}
-                    onClick={handleSubmitAnswer}
-                    className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                      selectedOption
-                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md'
-                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    }`}
-                  >
-                    Check Answer
-                  </button>
-                ) : (
-                  <div className="space-y-4 pt-2">
-                    {/* Explanation Box */}
-                    <div
-                      className={`p-4 rounded-xl border ${
-                        selectedOption === currentQ.correctAnswer
-                          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
-                          : 'bg-rose-50/80 border-rose-200 text-rose-950'
-                      }`}
-                    >
-                      <div className="font-bold text-sm flex items-center gap-2">
-                        {selectedOption === currentQ.correctAnswer ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                            Correct Answer! (+15 XP)
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="w-4 h-4 text-rose-600" />
-                            Incorrect. The correct answer was: &quot;{currentQ.correctAnswer}&quot;
-                          </>
-                        )}
-                      </div>
-                      <p className="text-xs mt-2 leading-relaxed opacity-90">{currentQ.explanation}</p>
-                    </div>
-
-                    <button
-                      onClick={handleNextQuestion}
-                      className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-2 text-sm transition-all"
-                    >
-                      {currentIndex < questions.length - 1 ? (
-                        <>
-                          Next Question
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      ) : (
-                        <>
-                          View Complete Quiz Results
-                          <Trophy className="w-4 h-4 text-amber-400" />
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
         </div>
       )}
 
-      {/* VIEW 3: Quiz Results & XP Summary */}
-      {isQuizFinished && (
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-xl text-center space-y-6">
-            <div className="inline-flex p-4 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600">
-              <Trophy className="w-12 h-12 text-amber-500 animate-bounce" />
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                Quiz Session Completed!
-              </h2>
-              <p className="text-sm text-slate-600">
-                Great effort! Here is your performance breakdown for this vocabulary test.
-              </p>
-            </div>
-
-            {/* Score Grid */}
-            <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase">Score</div>
-                <div className="text-2xl font-black text-slate-900">
-                  {correctCount} / {questions.length}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase">Accuracy</div>
-                <div className={`text-2xl font-black ${accuracyPercent >= 80 ? 'text-emerald-600' : 'text-indigo-600'}`}>
-                  {accuracyPercent}%
-                </div>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase">XP Awarded</div>
-                <div className="text-2xl font-black text-amber-600 flex items-center justify-center gap-1">
-                  +{totalXpEarned}
-                </div>
-              </div>
-            </div>
-
-            {/* Questions Review List */}
-            <div className="text-left space-y-3 pt-4 border-t border-slate-100">
-              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-indigo-600" />
-                Detailed Question Review
-              </h3>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {questions.map((q, idx) => {
-                  const ans = userAnswers[idx];
-                  return (
-                    <div
-                      key={q.id}
-                      className={`p-3 rounded-lg border text-xs flex items-start justify-between gap-3 ${
-                        ans?.isCorrect ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'
-                      }`}
-                    >
-                      <div className="space-y-1">
-                        <div className="font-bold text-slate-800">
-                          Q{idx + 1}: {q.targetWord.word} ({q.targetWord.cefrLevel})
-                        </div>
-                        <div className="text-slate-600">{q.explanation}</div>
-                      </div>
-                      <div className="shrink-0 font-extrabold">
-                        {ans?.isCorrect ? (
-                          <span className="text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-4 h-4" /> Correct
-                          </span>
-                        ) : (
-                          <span className="text-rose-600 flex items-center gap-1">
-                            <XCircle className="w-4 h-4" /> Incorrect
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <button
-                onClick={handleStartQuiz}
-                className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-2 text-sm transition-all"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Retake Quiz
-              </button>
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  setIsQuizFinished(false);
-                }}
-                className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-sm transition-all"
-              >
-                Configure New Quiz
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
-
-// Fallback pool in case vocabularyWords prop is empty
-const defaultFallbackWords: VocabularyWord[] = [
-  {
-    id: 'vw_fb_1',
-    word: 'Meticulous',
-    phonetic: '/mɪˈtɪkjələs/',
-    partOfSpeech: 'Adjective',
-    translation: 'Cuidadoso / Meticuloso',
-    definition: 'Showing great attention to detail; very careful and precise.',
-    cefrLevel: 'C1',
-    category: 'Academic Discourse',
-    dateAdded: '2026-10-31',
-    example: 'The research assistant was meticulous in logging every experimental data point.',
-    exampleSentence: 'The research assistant was meticulous in logging every experimental data point.',
-    synonyms: ['precise', 'scrupulous', 'painstaking'],
-    antonyms: ['careless', 'sloppy']
-  },
-  {
-    id: 'vw_fb_2',
-    word: 'Pragmatic',
-    phonetic: '/præɡˈmætɪk/',
-    partOfSpeech: 'Adjective',
-    translation: 'Práctico / Pragmático',
-    definition: 'Dealing with things sensibly and realistically based on practical considerations.',
-    cefrLevel: 'B2',
-    category: 'Logic & Reasoning',
-    dateAdded: '2026-10-31',
-    example: 'The team took a pragmatic approach to solving the software deployment bug.',
-    exampleSentence: 'The team took a pragmatic approach to solving the software deployment bug.',
-    synonyms: ['practical', 'sensible', 'realistic'],
-    antonyms: ['idealistic', 'impractical']
-  },
-  {
-    id: 'vw_fb_3',
-    word: 'Ubiquitous',
-    phonetic: '/juːˈbɪkwɪtəs/',
-    partOfSpeech: 'Adjective',
-    translation: 'Ubicuo',
-    definition: 'Present, appearing, or found everywhere.',
-    cefrLevel: 'C2',
-    category: 'Advanced Lexicon',
-    dateAdded: '2026-10-31',
-    example: 'Smartphones have become ubiquitous features of modern daily communication.',
-    exampleSentence: 'Smartphones have become ubiquitous features of modern daily communication.',
-    synonyms: ['omnipresent', 'pervasive', 'universal'],
-    antonyms: ['rare', 'scarce']
-  },
-  {
-    id: 'vw_fb_4',
-    word: 'Eloquent',
-    phonetic: '/ˈeləkwənt/',
-    partOfSpeech: 'Adjective',
-    translation: 'Elocuente',
-    definition: 'Fluent or persuasive in speaking or writing.',
-    cefrLevel: 'B2',
-    category: 'Communication',
-    dateAdded: '2026-10-31',
-    example: 'The speaker delivered an eloquent speech that moved the entire audience.',
-    exampleSentence: 'The speaker delivered an eloquent speech that moved the entire audience.',
-    synonyms: ['articulate', 'expressive', 'persuasive'],
-    antonyms: ['inarticulate', 'hesitant']
-  },
-  {
-    id: 'vw_fb_5',
-    word: 'Resilient',
-    phonetic: '/rɪˈzɪliənt/',
-    partOfSpeech: 'Adjective',
-    translation: 'Resiliente',
-    definition: 'Able to withstand or recover quickly from difficult conditions.',
-    cefrLevel: 'B1',
-    category: 'Growth Mindset',
-    dateAdded: '2026-10-31',
-    example: 'Students who stay resilient turn academic challenges into learning milestones.',
-    exampleSentence: 'Students who stay resilient turn academic challenges into learning milestones.',
-    synonyms: ['adaptable', 'tough', 'buoyant'],
-    antonyms: ['fragile', 'vulnerable']
-  }
-];
