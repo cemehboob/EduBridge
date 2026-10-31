@@ -89,6 +89,23 @@ async function runTests() {
     console.log(`PASS: ${SUPPORTED_LANGUAGES.length} speech languages supported.`);
   }
 
+  // Test 8: Essay Writing with Typo ("write an eassy on my friend") & Full Text Output
+  console.log('\nTest 8: Testing Essay Request ("write an eassy on my friend")...');
+  const essayRes = await QuestionSolverService.solveQuestion('write an eassy on my friend', 'keyboard');
+  if (essayRes.subject !== 'Essay Writing') {
+    console.error(`FAIL: Expected subject "Essay Writing", received "${essayRes.subject}"`);
+    failures++;
+  } else {
+    console.log(`PASS: Identified as subject "${essayRes.subject}", topic "${essayRes.topic}"`);
+  }
+
+  if (!essayRes.finalAnswer.includes('Friendship') || !essayRes.finalAnswer.includes('best friend') || essayRes.finalAnswer.length < 300) {
+    console.error(`FAIL: Expected complete essay text (>300 chars), received length ${essayRes.finalAnswer.length}`);
+    failures++;
+  } else {
+    console.log(`PASS: Complete full-text essay generated (${essayRes.finalAnswer.length} characters with full paragraphs).`);
+  }
+
   console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
