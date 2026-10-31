@@ -425,7 +425,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
         )}
 
         {activeTab === 'exam' && (
-          <ExamPrepView mockTests={mockTests} />
+          <ExamPrepView mockTests={mockTests} profile={profile} />
         )}
 
         {activeTab === 'vocab_quiz' && (

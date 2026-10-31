@@ -23,20 +23,84 @@ import {
   BookOpen,
   CheckSquare
 } from 'lucide-react';
-import { ExamType, MockTest, ExamAttempt, IELTSPracticeTest, Band9EssayTemplate } from '../../types';
+import { ExamType, MockTest, ExamAttempt, IELTSPracticeTest, Band9EssayTemplate, UserProfile, AgeCohortId } from '../../types';
 import { IELTSPracticeService } from '../../services/ieltsPracticeService';
 import { AIService } from '../../services/aiService';
-import { tfngExercises, band9EssayTemplates, cueCardItems } from '../../data/ageCohortsData';
+import { tfngExercises, band9EssayTemplates, cueCardItems, ageCohorts } from '../../data/ageCohortsData';
 import { sound } from '../../utils/audio';
+import { calculateCohortFromDob } from '../../utils/userProfile';
 
 interface ExamPrepViewProps {
   mockTests: MockTest[];
+  profile?: UserProfile;
   onRecordAttempt?: (attempt: ExamAttempt) => void;
 }
 
-export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
-  const [selectedExam, setSelectedExam] = useState<ExamType>('IELTS Academic');
+export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }) => {
+  const examOptions: ExamType[] = [
+    'IELTS Academic',
+    'IELTS General Training',
+    'PTE',
+    'TOEFL',
+    'OET',
+    'DET',
+    'Cambridge English'
+  ];
+
+  const getTargetExamFromProfile = (p?: UserProfile): ExamType => {
+    if (p?.targetExam) {
+      const match = examOptions.find(
+        (e) => e.toLowerCase() === p.targetExam?.toLowerCase() ||
+               (e.includes('IELTS') && p.targetExam?.includes('IELTS'))
+      );
+      if (match) return match;
+    }
+    if (p?.targetCareer?.toLowerCase().includes('medic') || 
+        p?.targetCareer?.toLowerCase().includes('nurs') ||
+        p?.targetCareer?.toLowerCase().includes('doctor') ||
+        p?.targetCareer?.toLowerCase().includes('health')) {
+      return 'OET';
+    }
+    if (p?.ageCohort === 'early') return 'DET';
+    return 'IELTS Academic';
+  };
+
+  const userCohort: AgeCohortId =
+    profile?.ageCohort || (profile?.dateOfBirth ? calculateCohortFromDob(profile.dateOfBirth) : 'academy');
+  const userCohortInfo = ageCohorts.find((c) => c.id === userCohort) || ageCohorts[2];
+
+  const [selectedExam, setSelectedExam] = useState<ExamType>(() => getTargetExamFromProfile(profile));
   const [activeTabMode, setActiveTabMode] = useState<'practice' | 'mock' | 'tfng' | 'task2' | 'cuecard'>('practice');
+  const [filterByCohortLevel, setFilterByCohortLevel] = useState<boolean>(true);
+
+  // Sync exam when user switches or profile updates preferences
+  useEffect(() => {
+    const target = getTargetExamFromProfile(profile);
+    setSelectedExam(target);
+    setActiveTest(null);
+    setExamResult(null);
+    setIsRunning(false);
+  }, [profile?.id, profile?.targetExam, profile?.ageCohort, profile?.educationLevel]);
+
+  // Determine expected difficulty range for user based on age & education level
+  const getExpectedDifficultyForUser = (cohort: AgeCohortId, eduLevel?: string): ('Foundation' | 'Standard' | 'Advanced')[] => {
+    const edu = (eduLevel || '').toLowerCase();
+    if (edu.includes('primary') || edu.includes('elementary') || cohort === 'early') {
+      return ['Foundation', 'Standard'];
+    }
+    if (edu.includes('middle') || cohort === 'junior') {
+      return ['Foundation', 'Standard'];
+    }
+    if (edu.includes('doctorate') || edu.includes('master') || edu.includes('postgraduate') || cohort === 'pro') {
+      return ['Advanced', 'Standard'];
+    }
+    if (cohort === 'senior') {
+      return ['Standard', 'Advanced', 'Foundation'];
+    }
+    return ['Standard', 'Advanced', 'Foundation'];
+  };
+
+  const preferredDifficulties = getExpectedDifficultyForUser(userCohort, profile?.educationLevel);
 
   // AspireFree Deliberate Practice Suite states
   const [activeTfngIndex, setActiveTfngIndex] = useState(0);
@@ -69,27 +133,32 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [examResult, setExamResult] = useState<ExamAttempt | null>(null);
 
-  const examOptions: ExamType[] = [
-    'IELTS Academic',
-    'IELTS General Training',
-    'PTE',
-    'TOEFL',
-    'OET',
-    'DET',
-    'Cambridge English'
-  ];
-
   // Filter practice tests by selected IELTS category & module
   const currentIeltsCategory = selectedExam === 'IELTS General Training' ? 'IELTS General Training' : 'IELTS Academic';
-  const filteredPracticeTests = practiceTests.filter(
+  const allPracticeTestsForModule = practiceTests.filter(
     (t) => t.category === currentIeltsCategory && t.module === selectedPracticeModule
   );
+  // Sort practice tests so user's expected difficulty comes first
+  const filteredPracticeTests = [...allPracticeTestsForModule].sort((a, b) => {
+    const aMatch = preferredDifficulties.includes(a.difficulty) ? 1 : 0;
+    const bMatch = preferredDifficulties.includes(b.difficulty) ? 1 : 0;
+    return bMatch - aMatch;
+  });
 
-  const filteredMockTests = mockTests.filter((t) => {
+  // All mock tests for selected exam
+  const examMockTests = mockTests.filter((t) => {
     if (selectedExam.includes('IELTS')) return t.exam === 'IELTS';
     return t.exam === selectedExam;
   });
-  const currentTest = activeTest || filteredMockTests[0] || mockTests[0];
+
+  // Filtered by cohort/age/education difficulty if toggle is active
+  const filteredMockTests = filterByCohortLevel
+    ? examMockTests.filter((t) => preferredDifficulties.includes(t.difficulty))
+    : examMockTests;
+
+  // Safe fallback to all exam tests if strict filter yields 0
+  const effectiveMockTests = filteredMockTests.length > 0 ? filteredMockTests : examMockTests;
+  const currentTest = activeTest || effectiveMockTests[0] || mockTests[0];
 
   // Timer countdown
   useEffect(() => {
@@ -279,21 +348,80 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
   };
 
   return (
-    <div className="w-full space-y-8 pb-12">
+    <div className="w-full space-y-6 pb-12">
       
+      {/* Personalized Learner Profile & Age Adaptation Banner */}
+      <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-emerald-50 rounded-3xl p-6 border border-indigo-100/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center font-black text-lg shrink-0 shadow-sm">
+            {profile?.name ? profile.name.charAt(0) : 'U'}
+          </div>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-black text-slate-900">
+                Personalized for {profile?.name || 'Learner'}
+              </span>
+              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 uppercase tracking-wide">
+                {userCohortInfo.name} ({userCohort.toUpperCase()})
+              </span>
+              {profile?.educationLevel && (
+                <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  {profile.educationLevel}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+              <span>
+                Target Exam: <strong className="text-indigo-900 font-extrabold">{profile?.targetExam || selectedExam}</strong>
+              </span>
+              {profile?.targetBand && (
+                <span>
+                  · Target Score: <strong className="text-emerald-700 font-extrabold">{profile.targetBand}</strong>
+                </span>
+              )}
+              {profile?.targetCareer && (
+                <span>
+                  · Career Track: <strong className="text-purple-700 font-extrabold">{profile.targetCareer}</strong>
+                </span>
+              )}
+              <span>
+                · Recommended Difficulty: <strong className="text-indigo-700 font-bold">{preferredDifficulties.join(' / ')}</strong>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => {
+              sound.playClick();
+              setFilterByCohortLevel(!filterByCohortLevel);
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 shadow-2xs ${
+              filterByCohortLevel
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{filterByCohortLevel ? `Adaptive Filter: ${userCohort.toUpperCase()} Active` : 'Showing All Difficulties'}</span>
+          </button>
+        </div>
+      </div>
+
       {/* Top Exam Navigation Bar */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600">
               <Award className="w-4 h-4" />
-              <span>E2Language &amp; IELTS Comprehensive Test Simulator</span>
+              <span>Standardized Test Simulator · Age-Tailored Pacing</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Standardized Language &amp; Professional Test Prep
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Over 1,100 practice tests available across IELTS Academic and General Training modules prior to mock exams.
+              Practicing according to your age cohort ({userCohortInfo.name}) and education level ({profile?.educationLevel || 'Standard'}).
             </p>
           </div>
 
@@ -307,6 +435,10 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {examOptions.map((exam) => {
             const isSelected = selectedExam === exam;
+            const isTarget = profile?.targetExam && (
+              exam.toLowerCase() === profile.targetExam.toLowerCase() ||
+              (exam.includes('IELTS') && profile.targetExam.includes('IELTS'))
+            );
             return (
               <button
                 key={exam}
@@ -317,13 +449,18 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
                   setExamResult(null);
                   setIsRunning(false);
                 }}
-                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
+                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
                   isSelected
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                 }`}
               >
-                {exam}
+                <span>{exam}</span>
+                {isTarget && (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-extrabold ${isSelected ? 'bg-indigo-500 text-white' : 'bg-indigo-100 text-indigo-700'}`}>
+                    🎯 Target
+                  </span>
+                )}
               </button>
             );
           })}
@@ -560,18 +697,19 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
         </div>
       ) : (
         /* Official Timed Mock Tests Mode */
-        filteredMockTests.length > 0 ? (
+        effectiveMockTests.length > 0 ? (
           <div className="space-y-6">
-            {filteredMockTests.length > 1 && (
+            {effectiveMockTests.length > 1 && (
               <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xs font-black uppercase tracking-wider text-indigo-700">
-                    Available {selectedExam} Tests ({filteredMockTests.length}):
+                    {selectedExam} Tests ({effectiveMockTests.length}):
                   </span>
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
-                  {filteredMockTests.map((t) => {
+                  {effectiveMockTests.map((t) => {
                     const isCur = currentTest.id === t.id;
+                    const isRecommended = preferredDifficulties.includes(t.difficulty);
                     return (
                       <button
                         key={t.id}
@@ -585,13 +723,26 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
                           setEssayText('');
                           setSpeakingText('');
                         }}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
                           isCur
                             ? 'bg-indigo-600 text-white shadow-xs'
                             : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                         }`}
                       >
-                        {t.title}
+                        <span>{t.title}</span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold ${
+                          isCur ? 'bg-indigo-500 text-white' :
+                          t.difficulty === 'Foundation' ? 'bg-amber-100 text-amber-800' :
+                          t.difficulty === 'Advanced' ? 'bg-purple-100 text-purple-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {t.difficulty}
+                        </span>
+                        {isRecommended && (
+                          <span className={isCur ? 'text-amber-300 font-extrabold text-[10px]' : 'text-amber-500 font-extrabold text-[10px]'}>
+                            ★
+                          </span>
+                        )}
                       </button>
                     );
                   })}

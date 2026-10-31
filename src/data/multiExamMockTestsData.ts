@@ -730,5 +730,286 @@ export const multiExamMockTests: MockTest[] = [
         modelAnswer: 'The institution of pre-publication peer review has long been venerated as the gold standard of scientific veracity. However, as contemporary research becomes increasingly hyper-specialized and competitive, serious scrutiny must be directed toward whether this mechanism accelerates genuine discovery or merely fortifies entrenched dogmatism.\n\nOn one hand, the indispensability of rigorous vetting cannot be overstated. By subjecting experimental methodologies, statistical models, and causal inferences to the forensic examination of independent specialists, peer review acts as an indispensable bulwark against mendacious claims, flawed protocols, and sensationalized pseudoscience. The integrity of biomedical literature, where erroneous assertions directly endanger human lives, hinges entirely upon this systematic filter.\n\nConversely, an insidious drawback lies in the innate conservative bias of incumbent editorial panels. When iconoclastic researchers submit manuscripts that fundamentally challenge prevailing paradigms, peer reviewers—often senior figures whose reputations rest upon established orthodoxy—frequently exhibit unconscious antipathy toward radical hypotheses. History abounds with seminal discoveries, from the bacterial etiology of ulcers to endosymbiotic theory, which were initially rejected by prestigious journals. Furthermore, the advent of open preprint servers has demonstrated that post-publication community scrutiny often uncovers flaws with greater agility than small anonymous committees.\n\nIn conclusion, while peer review remains a vital safeguard against empirical negligence, its pre-publication monopoly must be augmented by transparent, open-access post-publication dialogue to prevent methodological vigilance from degenerating into intellectual gatekeeping.'
       }
     ]
+  },
+
+  // ==========================================
+  // 6. FOUNDATION TESTS (FOR EARLY & JUNIOR COHORTS & PRIMARY/MIDDLE SCHOOL)
+  // ==========================================
+  {
+    id: 'mock_det_foundation_01',
+    exam: 'DET',
+    title: 'Duolingo English Test - Junior Explorer Foundation #01',
+    difficulty: 'Foundation',
+    totalDurationMin: 40,
+    targetBandRequirement: '90 – 115 / 160 (Junior CEFR A2/B1)',
+    sections: [
+      {
+        id: 'sec_det_found_lit',
+        name: 'Reading',
+        durationMinutes: 10,
+        questionsCount: 2,
+        samplePrompt: 'Junior Reading & Word Building',
+        rubric: [
+          { criteria: 'Vocabulary', weight: '50%', description: 'Everyday words and simple school contexts' },
+          { criteria: 'Spelling', weight: '50%', description: 'Accurate basic English spelling' }
+        ]
+      },
+      {
+        id: 'sec_det_found_wri',
+        name: 'Writing',
+        durationMinutes: 15,
+        questionsCount: 1,
+        samplePrompt: 'Junior 3-Minute Story Composition',
+        rubric: [
+          { criteria: 'Creativity & Flow', weight: '50%', description: 'Clear narrative sentences' },
+          { criteria: 'Grammar', weight: '50%', description: 'Present and past tense usage' }
+        ]
+      },
+      {
+        id: 'sec_det_found_spk',
+        name: 'Speaking',
+        durationMinutes: 15,
+        questionsCount: 1,
+        samplePrompt: 'Describe Your Favorite Pet or Animal (60 seconds)',
+        rubric: [
+          { criteria: 'Pronunciation', weight: '50%', description: 'Clear words and steady speech' },
+          { criteria: 'Fluency', weight: '50%', description: 'Confidence speaking in English' }
+        ]
+      }
+    ],
+    questions: [
+      {
+        id: 'q_det_found_r1',
+        section: 'Reading',
+        instruction: 'Read and Complete: Type the missing letters to complete the story.',
+        passage: 'Dolphins are very intell___ mammals that live in the oc___n. They swim in gr___ps called pods and commu___cate using whistle sounds.',
+        questionText: 'Complete the sentence with correct missing letters: "Dolphins are very intelligent mammals that live in the ocean. They swim in groups called pods and communicate using whistle sounds."',
+        correctAnswer: 'Dolphins are very intelligent mammals that live in the ocean. They swim in groups called pods and communicate using whistle sounds.'
+      },
+      {
+        id: 'q_det_found_w1',
+        section: 'Writing',
+        instruction: 'Write a short story of 40–70 words about your ideal school adventure.',
+        questionText: 'If you could design a dream science trip for your school class, where would you go and what would you discover?',
+        modelAnswer: 'If I could design a dream science trip, I would take our class to a giant marine aquarium and ocean research center. We would look through underwater glass tunnels at gentle sea turtles, colorful coral reefs, and baby dolphins. We would also learn how young scientists protect our oceans from plastic pollution!'
+      },
+      {
+        id: 'q_det_found_s1',
+        section: 'Speaking',
+        instruction: 'Speak for 60 seconds into your microphone.',
+        questionText: 'Tell a story about your favorite animal or pet. Describe what it looks like, what it likes to eat, and why it makes you happy.',
+        modelAnswer: 'My favorite animal is a golden retriever puppy named Barnaby. He has fluffy golden fur, warm brown eyes, and a wagging tail that never stops! He loves playing fetch in the park and eating crunchy dog biscuits. Whenever I come home from school, he runs to greet me at the door.'
+      }
+    ]
+  },
+  {
+    id: 'mock_cambridge_foundation_01',
+    exam: 'Cambridge English',
+    title: 'Cambridge A2 Key & B1 Preliminary Foundation Simulation #101',
+    difficulty: 'Foundation',
+    totalDurationMin: 50,
+    targetBandRequirement: '140 – 160 / 210 (Foundational Level)',
+    sections: [
+      {
+        id: 'sec_cam_found_r',
+        name: 'Reading',
+        durationMinutes: 25,
+        questionsCount: 2,
+        samplePrompt: 'Junior Reading Comprehension & Sentence Matching',
+        rubric: [
+          { criteria: 'Factual Understanding', weight: '50%', description: 'Finding information in daily notices' },
+          { criteria: 'Grammar', weight: '50%', description: 'Basic prepositions and verb forms' }
+        ]
+      },
+      {
+        id: 'sec_cam_found_w',
+        name: 'Writing',
+        durationMinutes: 25,
+        questionsCount: 1,
+        samplePrompt: 'Friendly Email to a Penpal About a School Club',
+        rubric: [
+          { criteria: 'Task Completion', weight: '50%', description: 'Addresses all 3 penpal questions' },
+          { criteria: 'Vocabulary', weight: '50%', description: 'Friendly conversational language' }
+        ]
+      }
+    ],
+    questions: [
+      {
+        id: 'q_cam_found_r1',
+        section: 'Reading',
+        instruction: 'Read the school library notice and choose the correct option.',
+        passage: 'NOTICE: The school library will open every morning at 8:00 AM for the Robotics and Chess Club. Books can be checked out during lunch break, and tablets must remain at charging stations.',
+        questionText: 'What time does the library open for the Robotics and Chess Club?',
+        options: ['8:00 AM', '12:00 PM (Lunch break)', '3:30 PM (After school)', 'Only on weekends'],
+        correctAnswer: '8:00 AM'
+      },
+      {
+        id: 'q_cam_found_w1',
+        section: 'Writing',
+        instruction: 'Write a friendly email of 60–80 words to your friend Charlie.',
+        questionText: 'Write to Charlie inviting him to your school coding and science club. Mention when it meets, what project you are building, and what he should bring.',
+        modelAnswer: 'Hi Charlie,\n\nI hope you are doing great! I would love to invite you to our school robotics club. We meet every Wednesday afternoon at 3:30 PM in the computer lab. We are currently programming a small rover robot with lights and obstacle sensors. You only need to bring your notebook and your enthusiasm! Let me know if you can join us.\n\nBest,\nYour friend'
+      }
+    ]
+  },
+  {
+    id: 'mock_ielts_foundation_01',
+    exam: 'IELTS',
+    title: 'IELTS Academic Foundation Diagnostic #01',
+    difficulty: 'Foundation',
+    totalDurationMin: 45,
+    targetBandRequirement: '5.5 – 6.5 Band (Foundation Level)',
+    sections: [
+      {
+        id: 'sec_ielts_found_r',
+        name: 'Reading',
+        durationMinutes: 20,
+        questionsCount: 2,
+        samplePrompt: 'Introductory Academic Passage on Honeybee Communication',
+        rubric: [
+          { criteria: 'Scanning', weight: '50%', description: 'Locating direct factual facts in text' },
+          { criteria: 'Vocabulary', weight: '50%', description: 'Understanding context clues' }
+        ]
+      },
+      {
+        id: 'sec_ielts_found_s',
+        name: 'Speaking',
+        durationMinutes: 15,
+        questionsCount: 1,
+        samplePrompt: 'Part 2 Cue Card: Describe your favorite school subject or hobby',
+        rubric: [
+          { criteria: 'Fluency', weight: '50%', description: 'Steady pace without long hesitations' },
+          { criteria: 'Grammar', weight: '50%', description: 'Accurate basic sentence structures' }
+        ]
+      }
+    ],
+    questions: [
+      {
+        id: 'q_ielts_found_r1',
+        section: 'Reading',
+        instruction: 'Read the short scientific passage and answer the question.',
+        passage: 'Honeybees communicate the location of flower blossoms through a unique movement known as the waggle dance. By angling their body relative to the position of the sun, foraging bees inform hive mates of both the distance and direction of nectar rich fields.',
+        questionText: 'How do honeybees communicate the direction of nectar sources to other bees?',
+        options: [
+          'By performing a waggle dance angled relative to the sun',
+          'By making loud buzzing sounds with their wings',
+          'By leaving colorful flower petals on the ground',
+          'By flying in straight lines without returning'
+        ],
+        correctAnswer: 'By performing a waggle dance angled relative to the sun'
+      },
+      {
+        id: 'q_ielts_found_s1',
+        section: 'Speaking',
+        instruction: 'Deliver a 1 to 2 minute response to the cue card prompt.',
+        questionText: 'Describe a school subject or hobby that you enjoy learning about. State: What it is, when you started learning it, why you find it interesting, and what you hope to learn next.',
+        modelAnswer: 'I would like to describe my passion for learning computer programming. I started learning it two years ago in my school middle school club using visual blocks and simple Python scripts. I love it because it feels like solving interactive puzzles, where you can bring creative ideas to life on screen. In the future, I hope to build educational games that help other students learn science!'
+      }
+    ]
+  },
+  {
+    id: 'mock_toefl_foundation_01',
+    exam: 'TOEFL',
+    title: 'TOEFL Junior & Academic Foundation #01',
+    difficulty: 'Foundation',
+    totalDurationMin: 45,
+    targetBandRequirement: '60 – 75 / 120 (Junior / Middle School Level)',
+    sections: [
+      {
+        id: 'sec_toefl_found_r',
+        name: 'Reading',
+        durationMinutes: 20,
+        questionsCount: 2,
+        samplePrompt: 'Junior Science Passage: The Rings of Saturn',
+        rubric: [
+          { criteria: 'Main Idea', weight: '50%', description: 'Understanding primary passage topic' },
+          { criteria: 'Detail Finding', weight: '50%', description: 'Locating specific planetary facts' }
+        ]
+      },
+      {
+        id: 'sec_toefl_found_w',
+        name: 'Writing',
+        durationMinutes: 20,
+        questionsCount: 1,
+        samplePrompt: 'Junior Classroom Discussion: Team Sports vs Solo Hobbies',
+        rubric: [
+          { criteria: 'Clear Opinion', weight: '50%', description: 'Expressing a clear reason and example' },
+          { criteria: 'Sentence Clarity', weight: '50%', description: 'Accurate punctuation and spelling' }
+        ]
+      }
+    ],
+    questions: [
+      {
+        id: 'q_toefl_found_r1',
+        section: 'Reading',
+        instruction: 'Read the astronomy passage and answer the factual question.',
+        passage: 'Saturn is the sixth planet from the Sun and is famous for its bright, glittering rings. Although they look solid from telescope pictures on Earth, the rings are actually made of billions of tiny pieces of water ice, rock, and space dust ranging in size from grains of sand to giant boulders.',
+        questionText: 'According to the passage, what are Saturn’s rings primarily composed of?',
+        options: [
+          'Billions of pieces of water ice, rock, and space dust',
+          'Solid sheets of metal and glass',
+          'Glowing hot gas from the sun',
+          'Liquid oceans of salt water'
+        ],
+        correctAnswer: 'Billions of pieces of water ice, rock, and space dust'
+      },
+      {
+        id: 'q_toefl_found_w1',
+        section: 'Writing',
+        instruction: 'Write a short response (50–80 words) to the teacher’s question.',
+        questionText: 'Mr. Henderson: Do you prefer participating in team sports like soccer and basketball, or individual hobbies like drawing and reading? Give one reason with an example.',
+        modelAnswer: 'I prefer participating in team sports like basketball. Playing on a team teaches you how to cooperate with your friends, pass the ball, and celebrate victories together. Last year, when our school team fell behind by five points, we encouraged each other and came back to win through great teamwork!'
+      }
+    ]
+  },
+  {
+    id: 'mock_pte_foundation_01',
+    exam: 'PTE',
+    title: 'PTE Academic Foundation Starter #01',
+    difficulty: 'Foundation',
+    totalDurationMin: 40,
+    targetBandRequirement: '50 – 58 / 90 (Foundation Level)',
+    sections: [
+      {
+        id: 'sec_pte_found_spk',
+        name: 'Speaking',
+        durationMinutes: 15,
+        questionsCount: 2,
+        samplePrompt: 'Read Aloud & Sentence Repeat',
+        rubric: [
+          { criteria: 'Clear Speech', weight: '50%', description: 'Natural speed and clear words' },
+          { criteria: 'Pronunciation', weight: '50%', description: 'Clear vowel and consonant sounds' }
+        ]
+      },
+      {
+        id: 'sec_pte_found_lis',
+        name: 'Listening',
+        durationMinutes: 20,
+        questionsCount: 1,
+        samplePrompt: 'Write From Dictation (Junior Everyday Sentence)',
+        rubric: [
+          { criteria: 'Spelling', weight: '50%', description: 'Correct English spelling' },
+          { criteria: 'Listening', weight: '50%', description: 'Exact words matched' }
+        ]
+      }
+    ],
+    questions: [
+      {
+        id: 'q_pte_found_s1',
+        section: 'Speaking',
+        instruction: 'Read Aloud: Speak clearly into your microphone within 30 seconds.',
+        questionText: 'Healthy sleep habits and daily physical exercise help students maintain energetic focus throughout the school day.',
+        correctAnswer: 'Healthy sleep habits and daily physical exercise help students maintain energetic focus throughout the school day.'
+      },
+      {
+        id: 'q_pte_found_l1',
+        section: 'Listening',
+        instruction: 'Write from Dictation: Type the exact sentence as dictated.',
+        audioTranscript: 'The science teacher demonstrated how plants convert sunlight into energy.',
+        questionText: 'Listen and write down the exact sentence:',
+        correctAnswer: 'The science teacher demonstrated how plants convert sunlight into energy.'
+      }
+    ]
   }
 ];
+
