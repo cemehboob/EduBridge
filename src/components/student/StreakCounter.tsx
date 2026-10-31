@@ -16,23 +16,11 @@ import {
 import { UserProfile } from '../../types';
 import { sound } from '../../utils/audio';
 import { triggerCelebration } from '../../utils/celebration';
+import { StreakService, StreakDayRecord, StreakDayStatus } from '../../services/streakService';
 
 interface StreakCounterProps {
   profile: UserProfile;
   onCelebrate?: (type: 'streak') => void;
-}
-
-interface DayActivity {
-  dayNumber: number;
-  dateStr: string;
-  dayOfWeek: string;
-  isToday: boolean;
-  isFuture: boolean;
-  isStreakDay: boolean;
-  xpEarned: number;
-  lessonsCompleted: number;
-  goalAchieved: boolean;
-  status: 'active' | 'rest' | 'freeze' | 'future';
 }
 
 export const StreakCounter: React.FC<StreakCounterProps> = ({
@@ -40,9 +28,9 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
   onCelebrate
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [selectedDay, setSelectedDay] = useState<DayActivity | null>(null);
+  const [selectedDay, setSelectedDay] = useState<StreakDayRecord | null>(null);
 
-  // Month & Heatmap Calculations
+  // Month & Heatmap Calculations via StreakService (Timezone-safe & Status Verified)
   const {
     monthName,
     year,
@@ -50,107 +38,14 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
     firstDayOfWeek,
     daysActivity,
     totalMonthXp,
-    activeDaysThisMonth
+    activeDaysThisMonth,
+    firstDayStatus
   } = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed
-    const todayDate = now.getDate();
-
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    const monthName = monthNames[month];
-
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0 is Sunday
-
-    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-    const streakLength = profile.currentStreak;
-    const streakStartDay = Math.max(1, todayDate - streakLength + 1);
-
-    let totalMonthXp = 0;
-    let activeDaysCount = 0;
-
-    const daysActivity: DayActivity[] = [];
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateObj = new Date(year, month, day);
-      const isToday = day === todayDate;
-      const isFuture = day > todayDate;
-      const isStreakDay = !isFuture && day >= streakStartDay && day <= todayDate;
-
-      let xp = 0;
-      let lessons = 0;
-      let goalAchieved = false;
-      let status: 'active' | 'rest' | 'freeze' | 'future' = 'rest';
-
-      if (isFuture) {
-        status = 'future';
-      } else if (isToday) {
-        xp = profile.todayXp;
-        lessons = Math.max(1, Math.floor(profile.todayXp / 20));
-        goalAchieved = profile.todayXp >= profile.dailyGoalXp;
-        status = xp > 0 ? 'active' : 'freeze';
-        if (xp > 0) activeDaysCount++;
-        totalMonthXp += xp;
-      } else if (isStreakDay) {
-        // Deterministic realistic XP for past streak days
-        xp = ((day * 19 + 7) % 55) + 40; // 40 to 95 XP
-        lessons = Math.floor(xp / 25) + 1;
-        goalAchieved = xp >= profile.dailyGoalXp;
-        status = 'active';
-        activeDaysCount++;
-        totalMonthXp += xp;
-      } else {
-        // Days earlier in the month before current streak run
-        // Seeded realistic activity (some study days, a rest day, a streak freeze)
-        const seed = (day * 13) % 10;
-        if (day === streakStartDay - 1 && streakStartDay > 1) {
-          status = 'freeze'; // freeze used right before current streak
-          xp = 15;
-          lessons = 1;
-          activeDaysCount++;
-          totalMonthXp += xp;
-        } else if (seed > 3) {
-          xp = ((day * 11) % 40) + 30;
-          lessons = 2;
-          goalAchieved = xp >= profile.dailyGoalXp;
-          status = 'active';
-          activeDaysCount++;
-          totalMonthXp += xp;
-        } else {
-          status = 'rest';
-          xp = 0;
-          lessons = 0;
-        }
-      }
-
-      daysActivity.push({
-        dayNumber: day,
-        dateStr: `${monthName} ${day}, ${year}`,
-        dayOfWeek: weekdays[dateObj.getDay()],
-        isToday,
-        isFuture,
-        isStreakDay,
-        xpEarned: xp,
-        lessonsCompleted: lessons,
-        goalAchieved,
-        status
-      });
-    }
-
-    return {
-      monthName,
-      year,
-      daysInMonth,
-      firstDayOfWeek,
-      daysActivity,
-      totalMonthXp,
-      activeDaysThisMonth: activeDaysCount
-    };
+    return StreakService.calculateStreakMonth(
+      profile.currentStreak,
+      profile.todayXp,
+      profile.dailyGoalXp
+    );
   }, [profile.currentStreak, profile.todayXp, profile.dailyGoalXp]);
 
   const handleCelebrate = () => {
@@ -160,11 +55,11 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
   };
 
   // Intensity color styling for heatmap
-  const getIntensityClasses = (day: DayActivity) => {
+  const getIntensityClasses = (day: StreakDayRecord) => {
     if (day.isFuture) {
       return 'bg-slate-50 text-slate-300 border-dashed border-slate-200 cursor-not-allowed';
     }
-    if (day.status === 'freeze') {
+    if (day.status === 'Freeze') {
       return 'bg-cyan-100 text-cyan-800 border-cyan-300 font-bold';
     }
     if (day.xpEarned === 0) {
@@ -249,6 +144,15 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
                 <div className="text-xs font-black text-slate-900">
                   {activeDaysThisMonth} / {new Date().getDate()} Days
                 </div>
+              </div>
+            </div>
+
+            {/* Day 1 Streak Status Indicator */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 shadow-2xs">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <div>
+                <div className="text-[10px] uppercase font-bold text-emerald-700">Streak Day 1</div>
+                <div className="text-xs font-black text-emerald-900">{firstDayStatus} ✓</div>
               </div>
             </div>
 
@@ -403,9 +307,21 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
                       </span>
                     )}
                     {activeDetail.isStreakDay && (
-                      <span className="text-[10px] font-bold uppercase bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <span className="text-[10px] font-bold uppercase bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md flex items-center gap-1 border border-orange-200">
                         <Flame className="w-3 h-3 fill-orange-500" />
                         Streak Active
+                      </span>
+                    )}
+                    {activeDetail.isFirstDayOfStreak && (
+                      <span className="text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md flex items-center gap-1 border border-emerald-300">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        Day 1: Closed ✓
+                      </span>
+                    )}
+                    {activeDetail.status === 'Closed' && !activeDetail.isFirstDayOfStreak && (
+                      <span className="text-[10px] font-bold uppercase bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md flex items-center gap-1 border border-blue-200">
+                        <CheckCircle2 className="w-3 h-3 text-blue-600" />
+                        Status: Closed
                       </span>
                     )}
                   </div>
@@ -417,7 +333,7 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
                         Earned <strong className="text-indigo-600">{activeDetail.xpEarned} XP</strong> across {activeDetail.lessonsCompleted} learning session{activeDetail.lessonsCompleted > 1 ? 's' : ''}.
                         {activeDetail.goalAchieved ? ' Daily goal accomplished!' : ''}
                       </span>
-                    ) : activeDetail.status === 'freeze' ? (
+                    ) : activeDetail.status === 'Freeze' ? (
                       <span className="text-cyan-700 font-semibold">Streak freeze active — streak was safely protected! 🛡️</span>
                     ) : (
                       <span className="text-slate-500">Rest &amp; recovery day. No lessons completed.</span>

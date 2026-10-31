@@ -55,6 +55,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   );
   const [visibleModules, setVisibleModules] = useState<Required<VisibleModulesConfig>>({
     cohorts: user.preferences.visibleModules?.cohorts ?? true,
+    solver: user.preferences.visibleModules?.solver ?? true,
     language: user.preferences.visibleModules?.language ?? true,
     exam: user.preferences.visibleModules?.exam ?? (ageCohort !== 'early'),
     vocab_quiz: user.preferences.visibleModules?.vocab_quiz ?? true,
@@ -385,6 +386,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
                 <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   {[
                     { key: 'cohorts', label: '🧸 Story & Phonics Arena' },
+                    { key: 'solver', label: '💡 AI Universal Question Solver' },
                     { key: 'language', label: '🌳 Language Learning Tree' },
                     { key: 'vocab_quiz', label: '🧠 Vocabulary Quiz Hub' },
                     { key: 'exam', label: '🎯 Practice Tests & Simulators' },

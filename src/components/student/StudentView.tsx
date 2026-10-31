@@ -47,10 +47,11 @@ import { StreakCounter } from './StreakCounter';
 import { BadgeGrid } from './BadgeGrid';
 import { VocabularyQuiz } from './VocabularyQuiz';
 import { UniversalLearningArena } from '../cohorts/UniversalLearningArena';
+import { QuestionSolverView } from '../solver/QuestionSolverView';
 import { BadgeService } from '../../services/badgeService';
 import { sound } from '../../utils/audio';
 
-type StudentTab = 'language' | 'cohorts' | 'exam' | 'vocab_quiz' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges';
+type StudentTab = 'language' | 'cohorts' | 'solver' | 'exam' | 'vocab_quiz' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges';
 
 interface StudentViewProps {
   profile: UserProfile;
@@ -124,6 +125,13 @@ export const StudentView: React.FC<StudentViewProps> = ({
       icon: <Sparkles className="w-4 h-4 text-amber-500" />,
       badge: isKidMode ? 'Stories' : '5 Cohorts',
       isKidDefault: profile.ageCohort === 'early' || !profile.targetExam
+    },
+    {
+      id: 'solver',
+      label: isKidMode ? '💡 AI Magic Solver' : 'AI Question Solver',
+      icon: <Brain className="w-4 h-4 text-indigo-500" />,
+      badge: isKidMode ? 'Magic' : 'Step-by-Step',
+      isKidDefault: true
     },
     {
       id: 'language',
@@ -520,6 +528,16 @@ export const StudentView: React.FC<StudentViewProps> = ({
           <UniversalLearningArena
             initialCohort={profile?.ageCohort}
             onOpenResourceVault={onOpenResourceVault}
+          />
+        )}
+
+        {activeTab === 'solver' && (
+          <QuestionSolverView
+            onQuestionSolved={(subject) => {
+              if (onCelebrate) {
+                onCelebrate('daily_goal');
+              }
+            }}
           />
         )}
 

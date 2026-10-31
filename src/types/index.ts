@@ -46,6 +46,7 @@ export interface UserProfile {
 
 export interface VisibleModulesConfig {
   cohorts?: boolean;
+  solver?: boolean;
   language?: boolean;
   exam?: boolean;
   vocab_quiz?: boolean;
