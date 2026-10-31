@@ -536,6 +536,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'student',
     summary: 'Duolingo-inspired interactive units, vocabulary flashcards, Piper speech playback, and oral recording.',
     keywords: ['language', 'spanish', 'units', 'flashcards', 'pronunciation', 'piper', 'whisper'],
+    screenshotUrl: '/assets/guide/dashboard_language_tree.jpg',
+    screenshotCaption: 'Interactive Skill Trees with Duolingo-Style Stepping Nodes, Unit Modules, and Audio Pronunciation.',
     imagePlaceholder: {
       title: 'Skill Tree & Stepping Nodes',
       caption: 'Branching unit structure with interactive lesson exercises.',
@@ -595,6 +597,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'student',
     summary: 'How to utilize Phi-4 Mini, Qwen 3, DeepSeek 8B, and Llama 3.3 for Socratic learning.',
     keywords: ['ai', 'bridge', 'ollama', 'phi', 'qwen', 'deepseek', 'llama', 'socratic'],
+    screenshotUrl: '/assets/guide/ai_tutor_socratic.jpg',
+    screenshotCaption: 'Bridge AI Mentor with 4 Ollama Models (Phi-4, Qwen 3, DeepSeek, Llama 3.3) and Socratic Dialogue.',
     imagePlaceholder: {
       title: 'Bridge AI Multi-Model Intelligence',
       caption: 'Socratic mentor interface with chain-of-thought mathematical reasoning steps.',
@@ -622,6 +626,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'parent',
     summary: 'Monitor study hours, cognitive growth radars, screen time limits, and deliver encouraging praise.',
     keywords: ['parent', 'child', 'hours', 'limits', 'reports', 'praise', 'safety'],
+    screenshotUrl: '/assets/guide/parent_portal_oversight.jpg',
+    screenshotCaption: 'Parental Growth & Safety Oversight with Study Hour Guardrails, Cognitive Radar, and Encouragement Messenger.',
     imagePlaceholder: {
       title: 'Parental Growth & Safety Oversight',
       caption: 'Screen time guardrails, weekly cognitive reports, and encouragement messenger.',
@@ -648,6 +654,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'student',
     summary: 'Earn prestigious commemorative achievement badges for vocabulary milestones, unbroken streaks, and top leaderboard finishes.',
     keywords: ['badge', 'achievement', 'milestone', '1000 words', '7-day streak', 'top of leaderboard', 'criteria', 'xp', 'tooltip'],
+    screenshotUrl: '/assets/guide/streak_habit_heatmap.jpg',
+    screenshotCaption: 'Milestone Badges & Honors Grid with Unlocked Medallions, Criteria Breakdown, and XP Rewards.',
     imagePlaceholder: {
       title: 'Milestone Badges & Honors Showcase',
       caption: 'Visual medallion grid with interactive criteria tooltips and real-time progress indicators.',
@@ -679,6 +687,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'teacher',
     summary: 'Construct courses, manage question banks, assign cohort homework, and analyze grade distributions.',
     keywords: ['teacher', 'course', 'question bank', 'assignments', 'cohort', 'grading'],
+    screenshotUrl: '/assets/guide/teacher_studio_curriculum.jpg',
+    screenshotCaption: 'Teacher Studio with Item Master Question Bank, Cohort Assignments, and Rubric Directorate.',
     imagePlaceholder: {
       title: 'Teacher Studio & Assessment Directorate',
       caption: 'Cohort submission tracking, rubric builder, and item master question bank.',
@@ -705,6 +715,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'admin',
     summary: 'Production Docker Compose stack, PostgreSQL 17, Redis, MinIO, Ollama VRAM allocation, and cron schedulers.',
     keywords: ['admin', 'docker', 'postgres', 'redis', 'minio', 'ollama', 'vram', 'cron', 'audit', 'rbac'],
+    screenshotUrl: '/assets/guide/admin_infrastructure_schedulers.jpg',
+    screenshotCaption: 'Enterprise Admin Portal with Nightly 00:00 Schedulers, Ingestion Timestamp Ledger, and Vocabulary Vault.',
     imagePlaceholder: {
       title: 'Docker Compose Self-Hosted Infrastructure',
       caption: 'Multi-service architecture connecting NGINX, NestJS, PostgreSQL 17, Redis, and Ollama.',
@@ -730,6 +742,51 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
           'Vocabulary Expansion Daemon: Automatically enriches the lexicon with 100+ CEFR-tagged words.',
           'Audit Log Ledger: All administrative actions are permanently committed to an immutable log.'
         ]
+      }
+    ]
+  },
+  {
+    id: 'guide_data_storage',
+    title: 'Data Storage Architecture & System Database Confirmation',
+    category: 'System Setup & DevSecOps',
+    icon: 'Layers',
+    minRole: 'student',
+    summary: 'Complete guide explaining where all system data is stored: client-side JSON database layer, structured source files, and production PostgreSQL / Redis stores.',
+    keywords: ['database', 'storage', 'json', 'postgres', 'redis', 'localstorage', 'backup', 'data files'],
+    screenshotUrl: '/assets/guide/admin_infrastructure_schedulers.jpg',
+    screenshotCaption: 'EduBridge Data Architecture: Client-Side JSON Database Keys, Seed Fixtures, and Production Enterprise Stores.',
+    contentSections: [
+      {
+        heading: '1. Current Application Storage Layer (JSON Database in LocalStorage)',
+        text: 'The web application operates on a high-speed, offline-first client-side JSON database layer managed through StorageService (src/services/storage.ts). All application records are serialized into structured JSON format in browser local storage under versioned keys:',
+        steps: [
+          'edubridge_users_json_v1: User credentials, roles (Student, Parent, Teacher, Admin), dates of birth, and personalized preferences.',
+          'edubridge_mocktests_v1 & edubridge_practice_tests_v1: All official timed mock exams and 1,100+ practice tests with passages and explanations.',
+          'edubridge_vocab_words_v1: Dynamic Lexicon Vault with 300+ CEFR-indexed academic and STEM words.',
+          'edubridge_ingested_ledger_v1: Complete chronological ledger recording exact timestamps for every generated test and word.',
+          'edubridge_scheduled_jobs_v1: Nightly 00:00 UTC cron jobs configuration, status, and execution counters.',
+          'edubridge_audit_logs_v1: Immutable administrative security and system audit events.'
+        ]
+      },
+      {
+        heading: '2. Source Seed & Static Data Files',
+        text: 'Baseline datasets and initial fixtures are stored in modular TypeScript/JSON data files in the src/data/ directory:',
+        steps: [
+          'src/data/userManagementData.ts: Initial user accounts, feature flags, feedback tickets, and user guide articles.',
+          'src/data/authenticIeltsPracticeData.ts: Authentic IELTS reading passages, listening transcripts, and rubrics.',
+          'src/data/multiExamMockTestsData.ts: Standardized test patterns for PTE, TOEFL, OET, DET, and Cambridge English.',
+          'src/data/ageCohortsData.ts: Age-cohort developmental curricula, essay templates, and cue cards.'
+        ]
+      },
+      {
+        heading: '3. Production Enterprise Database Architecture (Docker Stack)',
+        text: 'For server-side multi-node deployments, EduBridge is backed by an enterprise open-source containerized stack:',
+        steps: [
+          'PostgreSQL 17: Relational source-of-truth database storing user schemas, test attempts, and school rosters.',
+          'Redis 7: High-throughput memory cache powering real-time leaderboard calculations and active session tokens.',
+          'MinIO: S3-compatible object storage storing audio listening files, PDF resumes, and achievement certificates.'
+        ],
+        tip: 'All client-side JSON data can be exported to a single backup file or reset via the System Telemetry & Maintenance tab in the Admin Portal.'
       }
     ]
   }
