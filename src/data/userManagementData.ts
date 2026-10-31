@@ -365,6 +365,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'student',
     summary: 'Master your credentials, profile preferences, daily study goals, and offline learning capabilities.',
     keywords: ['login', 'account', 'profile', 'password', 'dob', 'preferences', 'streak', 'xp'],
+    screenshotUrl: '/assets/guide/dashboard_learning_arena.jpg',
+    screenshotCaption: 'Interactive EduBridge Dashboard with Daily Study Progress, Unit Learning Tree, Arena, and League Leaderboard.',
     imagePlaceholder: {
       title: 'EduBridge Dashboard Architecture',
       caption: 'Visual overview of language trees, exam simulators, and AI mentorship.',
@@ -374,17 +376,155 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     contentSections: [
       {
         heading: '1. User Authentication & Profile Security',
-        text: 'EduBridge uses self-hosted credentials stored in secure local JSON databases. Each user maintains an individual profile containing their date of birth, preferred language, and learning target goals.',
+        text: 'EduBridge uses self-hosted credentials stored in secure local JSON databases. Each user maintains an individual profile containing their date of birth, preferred language, target career, and study goals.',
         steps: [
           'Log in using your registered email and password.',
-          'Open "My Profile & Preferences" to update your target exam and daily XP goals.',
-          'Your study progress is automatically backed up locally.'
+          'Open "My Profile & Preferences" to update your target exam, daily XP goals, and age-tailored pacing.',
+          'Your study progress and vocabulary mastery are automatically synchronized and backed up locally.'
         ]
       },
       {
-        heading: '2. Daily Streak & XP Mechanics',
-        text: 'Learning retention thrives on daily consistency. Complete at least one exercise or practice set daily to preserve your flame streak counter.',
-        tip: 'Hitting your daily XP goal (e.g., 100 XP) triggers multi-stage celebratory fireworks and reinforces your Ruby League standing!'
+        heading: '2. Daily Streak & XP Momentum',
+        text: 'Daily consistency forms the backbone of intellectual retention. Complete at least one exercise or test daily to preserve your streak counter.',
+        tip: 'Hitting your daily XP goal (e.g., 100 XP) triggers celebratory fireworks once per day and cements your league standing!'
+      }
+    ]
+  },
+  {
+    id: 'guide_question_solver',
+    title: 'AI-Powered Universal Question Solver',
+    category: 'AI Problem Solving',
+    icon: 'BrainCircuit',
+    minRole: 'student',
+    summary: 'Ask academic and real-world questions using Keyboard, Digital Pen, Voice Speech, or Image OCR with step-by-step verified explanations and Answer Palette.',
+    keywords: ['solver', 'math', 'physics', 'chemistry', 'biology', 'handwriting', 'ocr', 'voice', 'palette', 'explanation'],
+    screenshotUrl: '/assets/guide/solver_multimodal_overview.jpg',
+    screenshotCaption: 'Interactive Digital Classroom Workspace with Formula Quick Palette, Handwriting Canvas, Multilingual Voice, and Verified Step-by-Step Breakdown.',
+    contentSections: [
+      {
+        heading: '1. Multimodal Question Input Methods',
+        text: 'EduBridge functions as an intelligent digital classroom providing 4 distinct input methods with maximum workspace area:',
+        steps: [
+          'Keyboard Editor: Type equations, scientific notation, and prompts with the formula quick palette (powers, roots, fractions, Greek letters, chemical formulas).',
+          'Digital Pen Canvas: Use your mouse, laptop touchpad, or touchscreen stylus as a digital pen to handwrite formulas and equations.',
+          'Multilingual Voice Speech: Click the microphone to verbally dictate questions in any of 12 supported languages with live transcription.',
+          'Image / Diagram OCR: Upload photos or captures of diagrams, printed worksheets, or handwritten problems for visual text extraction.'
+        ]
+      },
+      {
+        heading: '2. Two-Column Workspace: Persistent Explanation & Answer Palette',
+        text: 'The interface is ergonomically organized into two focused columns: the comprehensive step-by-step solution remains anchored on the left workspace, while the verified final answer, core formulas, voice narration, and common mistakes appear in the right Answer Palette.',
+        tip: 'If a question lacks necessary parameters (e.g. asking to solve an unspecified quadratic), the AI tutor prompts a helpful clarification question rather than guessing.'
+      }
+    ]
+  },
+  {
+    id: 'guide_essay_writer',
+    title: 'AI Essay Generation & Document Export',
+    category: 'AI Problem Solving',
+    icon: 'FileText',
+    minRole: 'student',
+    summary: 'Generate full-text complete academic essays with structured paragraphs, verified reasoning steps, and instant PDF/DOC export download.',
+    keywords: ['essay', 'composition', 'writing', 'paragraphs', 'export', 'pdf', 'doc', 'palette'],
+    screenshotUrl: '/assets/guide/solver_essay_export.jpg',
+    screenshotCaption: 'Complete Text Essay Generator delivering structured paragraphs in the Answer Palette with Instant PDF and Word Document Export.',
+    contentSections: [
+      {
+        heading: '1. Generating Comprehensive Full-Length Essays',
+        text: 'When you ask EduBridge to write an essay (e.g. "write an essay on my friend" or Task 2 topics), the solver produces a complete, full-text academic composition with an engaging introduction, body paragraphs with evidence, and a cohesive conclusion.',
+        steps: [
+          'Enter your essay prompt or topic in the Universal Question Solver.',
+          'Click "Solve Question" to generate the structured essay.',
+          'The complete essay is presented directly inside the dedicated Answer Palette.',
+          'Step-by-step writing architecture breakdown remains visible on the left workspace.'
+        ]
+      },
+      {
+        heading: '2. One-Click PDF and Document Export',
+        text: 'For extended compositions and study references, click the "Download PDF File" or "Download Word Doc" buttons to export formatted study materials directly to your device for offline reading or school submission.',
+        tip: 'Exported PDFs include formatted headers, word count metrics, and analytical rubrics suitable for academic review.'
+      }
+    ]
+  },
+  {
+    id: 'guide_streak_heatmap',
+    title: 'Streak Correction & Study Habit Heatmap',
+    category: 'Study Habits & Analytics',
+    icon: 'Flame',
+    minRole: 'student',
+    summary: 'First-day streak correctly marked as Closed (not Expired), Habit Shield protection, and collapsible interactive monthly study habit heatmap.',
+    keywords: ['streak', 'closed', 'heatmap', 'calendar', 'collapse', 'habit shield', 'badges', 'xp'],
+    screenshotUrl: '/assets/guide/streak_habit_heatmap.jpg',
+    screenshotCaption: '1-Day Streak marked as Closed, Active Momentum Banner, Habit Shield Freezes, and Collapsible Monthly Heatmap.',
+    contentSections: [
+      {
+        heading: '1. Corrected First-Day Streak Status ("Closed")',
+        text: 'To ensure accurate habit tracking, a newly created streak day transitions to "Closed" upon completion rather than "Expired", preserving your initial study day momentum across reloads and timezones.',
+        steps: [
+          'Day 1 of a new streak is explicitly tagged as "Closed" with green verification.',
+          'Subsequent study days advance your continuous flame momentum counter.',
+          'Habit Shields (Freeze Ready) protect your streak if you miss a study session.'
+        ]
+      },
+      {
+        heading: '2. Collapsible Monthly Study Heatmap',
+        text: 'The 31-day activity calendar defaults to a clean, collapsed state to maximize screen space for learning. Users can toggle "Expand Month Calendar" anytime to view their day-by-day XP distribution and study intensity.',
+        tip: 'Click any calendar square in the expanded heatmap to inspect the exact lessons, XP earned, and completion timestamps for that day!'
+      }
+    ]
+  },
+  {
+    id: 'guide_persona_voice',
+    title: 'Persona Voice Options & Speech Synthesis',
+    category: 'Speech & Audio',
+    icon: 'Volume2',
+    minRole: 'student',
+    summary: 'Select and customize your preferred voice persona (Man, Woman, Boy, Girl) seamlessly across all speech reading and listening features.',
+    keywords: ['voice', 'persona', 'man', 'woman', 'boy', 'girl', 'tts', 'audio', 'cadence', 'pitch'],
+    screenshotUrl: '/assets/guide/user_preferences_interface.jpg',
+    screenshotCaption: 'Active Voice Persona & Cadence: Select between Man, Woman, Boy, and Girl voices with synchronized playback across all modules.',
+    contentSections: [
+      {
+        heading: '1. Voice Persona Timbre & Pacing',
+        text: 'EduBridge provides 4 distinct persona voices tailored to learner preferences and developmental age:',
+        steps: [
+          '👨 Man: Deep, articulate, confident adult male cadence (pitch 0.88, rate 0.98).',
+          '👩 Woman: Warm, expressive, natural adult female cadence (pitch 1.08, rate 0.98).',
+          '👦 Boy: Energetic, curious, youthful boy timbre (pitch 1.25, rate 1.04).',
+          '👧 Girl: Cheerful, bright, sweet youthful girl timbre (pitch 1.35, rate 1.04).'
+        ]
+      },
+      {
+        heading: '2. Ubiquitous Voice Controls Across the Application',
+        text: 'The Voice Persona selector is visible and accessible wherever audio is available: in the Universal Question Solver voice explanation bar, in Exam Prep listening simulations, in interactive lesson vocabulary audio, and in User Preferences.',
+        tip: 'Selecting a voice persona updates your setting globally across all modules and saves it to your account profile.'
+      }
+    ]
+  },
+  {
+    id: 'guide_preferences_simplification',
+    title: 'User Preferences & Kid-Friendly Interface',
+    category: 'Platform Basics',
+    icon: 'Sliders',
+    minRole: 'student',
+    summary: 'Tailor visual complexity by age cohort, toggle child-friendly mode, customize module visibility, and configure persona voices.',
+    keywords: ['preferences', 'kid mode', 'simplified', 'dob', 'age cohort', 'visible modules', 'voice persona'],
+    screenshotUrl: '/assets/guide/user_preferences_interface.jpg',
+    screenshotCaption: 'Preferences Interface: Child-Friendly Mode toggle, Module Visibility switches, and Persona Voice Selection (Man, Woman, Boy, Girl).',
+    contentSections: [
+      {
+        heading: '1. Child-Friendly Mode for Young Learners',
+        text: 'For early learners (Ages 5-8 and 9-14), EduBridge provides a simplified interface mode that replaces technical menus with large, friendly buttons, phonics soundboards, and illustrated word builders.',
+        steps: [
+          'Open "My Profile & Preferences" from the top navigation.',
+          'Toggle "Simple Child-Friendly Mode" on or off.',
+          'Young learners see playful visual cues, while advanced learners access calculus, timed mock exams, and career roadmaps.'
+        ]
+      },
+      {
+        heading: '2. Modular Visibility Customizer',
+        text: 'Every student and parent has complete control over which modules appear in the navigation bar. You can individually enable or disable Cohorts, Question Solver, Language Trees, Exam Prep, Vocabulary Quizzes, AI Tutor, and Leaderboards.',
+        tip: 'Disabling a module hides its navigation tab without deleting your saved progress or XP history.'
       }
     ]
   },
@@ -416,28 +556,34 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
   },
   {
     id: 'guide_exam_prep',
-    title: 'Standardized Exam Simulator (IELTS & PTE)',
+    title: 'Standardized Exam Prep & Practice Tests Hub',
     category: 'Exam Prep',
     icon: 'Award',
     minRole: 'student',
-    summary: 'E2Language-inspired timed mock tests, band score prediction, and rubric analytics across all 4 modules.',
-    keywords: ['ielts', 'pte', 'toefl', 'oet', 'mock', 'reading', 'writing', 'speaking', 'listening', 'band'],
+    summary: 'Practice Tests Hub with 1,100+ tests across PTE, TOEFL, OET, DET, Cambridge English & IELTS, plus timed mock exams and instant rubric analytics.',
+    keywords: ['ielts', 'pte', 'toefl', 'oet', 'det', 'cambridge', 'mock', 'reading', 'writing', 'speaking', 'listening', 'practice hub'],
+    screenshotUrl: '/assets/guide/standardized_test_prep.jpg',
+    screenshotCaption: 'Standardized Test Prep with Practice Tests Hub (1,100+ Tests across PTE, TOEFL, OET, DET, Cambridge & IELTS), Passages, Answers, and Explanations.',
     imagePlaceholder: {
-      title: 'IELTS / PTE Timed Exam Simulator',
-      caption: 'Test-day countdown timer, essay word counter, and band score evaluation report.',
-      badge: 'E2Language Style',
+      title: 'Standardized Test Simulator & Practice Hub',
+      caption: 'Practice Tests Hub with 1,100+ sets, audio transcripts, countdown clock, and rubric score prediction.',
+      badge: 'Multi-Exam Simulator',
       accentColor: 'from-amber-600 to-orange-700'
     },
     contentSections: [
       {
-        heading: '1. Launching Timed Mock Tests',
-        text: 'Simulate official test-day conditions with automated countdown timing across Reading, Writing, Speaking, and Listening.',
+        heading: '1. Practice Tests Hub (1,100+ Authentic Tests)',
+        text: 'Access over 1,100 verified practice tests spanning IELTS Academic, General Training, PTE, TOEFL, OET, DET, and Cambridge English. Tests include authentic academic reading excerpts, Piper audio transcripts, multiple-choice questions, and detailed paragraph-referenced explanations.',
         steps: [
-          'Select your target exam (IELTS, PTE, TOEFL, OET, DET).',
-          'Click "Launch Timed Mock Test" to initiate the countdown clock.',
-          'Compose essays using the built-in word counter.',
-          'Click "Submit & Predict Band Score" for instant rubric feedback.'
+          'Choose your target exam from the exam selector pills (PTE, TOEFL, OET, DET, Cambridge, IELTS).',
+          'Switch between Reading, Listening, Writing, and Speaking modules.',
+          'Solve questions and click "Submit Practice Answer" for instant validation, audio feedback, and analytical reasoning.'
         ]
+      },
+      {
+        heading: '2. Official Timed Mock Exam Simulator',
+        text: 'Experience authentic test-day pacing with section-by-section countdown timers, essay word counters, and automatic band score prediction rubrics.',
+        tip: 'All practice tests and mock simulations are cached offline, allowing study sessions anywhere without internet connectivity.'
       }
     ]
   },

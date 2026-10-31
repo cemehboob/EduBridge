@@ -65,6 +65,7 @@ import {
 } from '../../data/ageCohortsData';
 import { AIService } from '../../services/aiService';
 import { sound } from '../../utils/audio';
+import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
 
 interface UniversalLearningArenaProps {
   initialCohort?: AgeCohortId;
@@ -340,14 +341,17 @@ export const UniversalLearningArena: React.FC<UniversalLearningArenaProps> = ({
           </div>
         </div>
 
-        {/* Universal Voice button tailored for this cohort */}
-        <button
-          onClick={() => speakTextWithCohort(`${currentCohort.name}. ${currentCohort.description}`)}
-          className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all flex items-center gap-2 self-start sm:self-auto shrink-0"
-        >
-          <Volume2 className="w-4 h-4 text-indigo-600" />
-          <span>Read Cohort Voice Guide</span>
-        </button>
+        {/* Universal Voice button and persona selector tailored for this cohort */}
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
+          <VoicePersonaSelector compact={true} />
+          <button
+            onClick={() => speakTextWithCohort(`${currentCohort.name}. ${currentCohort.description}`)}
+            className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+          >
+            <Volume2 className="w-4 h-4 text-indigo-600" />
+            <span>Read Cohort Voice Guide</span>
+          </button>
+        </div>
       </div>
 
       {/* ========================================================================= */}

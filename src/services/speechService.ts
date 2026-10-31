@@ -7,6 +7,9 @@
  * and active step audio highlighting.
  */
 
+import { VoicePersona } from '../types';
+import { StorageService } from './storage';
+
 export interface SpeechLanguage {
   code: string;
   name: string;
@@ -130,15 +133,24 @@ export class SpeechService {
     }
   }
 
+  public static getPersona(): VoicePersona {
+    return StorageService.getVoicePersona();
+  }
+
+  public static setPersona(persona: VoicePersona): void {
+    StorageService.saveVoicePersona(persona);
+  }
+
   /**
-   * Speak a text string with text-to-speech
+   * Speak a text string with text-to-speech and persona voice tuning
    */
   public static speak(
     text: string,
     langCode: string = 'en-US',
     onStart?: () => void,
     onEnd?: () => void,
-    onBoundary?: (charIndex: number) => void
+    onBoundary?: (charIndex: number) => void,
+    overridePersona?: VoicePersona
   ): void {
     if (!this.synth) return;
 
@@ -149,14 +161,56 @@ export class SpeechService {
 
     const utterance = new SpeechSynthesisUtterance(naturalText);
     utterance.lang = langCode;
-    utterance.rate = 0.95; // comfortable educational cadence
-    utterance.pitch = 1.0;
+
+    const persona = overridePersona || this.getPersona();
+    let targetPitch = 1.0;
+    let targetRate = 0.95;
+
+    if (persona === 'man') {
+      targetPitch = 0.88;
+      targetRate = 0.95;
+    } else if (persona === 'woman') {
+      targetPitch = 1.08;
+      targetRate = 0.95;
+    } else if (persona === 'boy') {
+      targetPitch = 1.25;
+      targetRate = 1.02;
+    } else if (persona === 'girl') {
+      targetPitch = 1.35;
+      targetRate = 1.02;
+    }
+
+    utterance.pitch = targetPitch;
+    utterance.rate = targetRate;
 
     // Pick a natural voice if available
     const voices = this.synth.getVoices();
-    const matchingVoice = voices.find(
-      (v) => v.lang.startsWith(langCode.slice(0, 2)) && (v.name.includes('Natural') || v.name.includes('Google') || v.default)
-    );
+    let matchingVoice: SpeechSynthesisVoice | undefined;
+
+    if (persona === 'man' || persona === 'boy') {
+      matchingVoice = voices.find(
+        (v) =>
+          v.lang.startsWith(langCode.slice(0, 2)) &&
+          (/male|david|george|daniel|guy|tom|james|alex/i.test(v.name) ||
+            v.name.includes('Male'))
+      );
+    } else {
+      matchingVoice = voices.find(
+        (v) =>
+          v.lang.startsWith(langCode.slice(0, 2)) &&
+          (/female|samantha|karen|jenny|victoria|zira|fiona/i.test(v.name) ||
+            v.name.includes('Female'))
+      );
+    }
+
+    if (!matchingVoice) {
+      matchingVoice = voices.find(
+        (v) =>
+          v.lang.startsWith(langCode.slice(0, 2)) &&
+          (v.name.includes('Natural') || v.name.includes('Google') || v.default)
+      );
+    }
+
     if (matchingVoice) {
       utterance.voice = matchingVoice;
     }

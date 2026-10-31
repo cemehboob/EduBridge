@@ -1,4 +1,5 @@
-import { OllamaModelKey, TutorMode, ChatMessage } from '../types';
+import { OllamaModelKey, TutorMode, ChatMessage, VoicePersona } from '../types';
+import { StorageService } from './storage';
 
 export interface AIServiceResponse {
   content: string;
@@ -138,10 +139,23 @@ export const AIService = {
     }
   },
 
+  getPersona(): VoicePersona {
+    return StorageService.getVoicePersona();
+  },
+
+  setPersona(persona: VoicePersona): void {
+    StorageService.saveVoicePersona(persona);
+  },
+
   /**
-   * Text-to-Speech playback using Web Speech Synthesis API
+   * Text-to-Speech playback using Web Speech Synthesis API with Voice Persona support
    */
-  speakText(text: string, voiceRate: number = 1.0, voicePitch: number = 1.0): boolean {
+  speakText(
+    text: string,
+    voiceRate: number = 1.0,
+    voicePitch: number = 1.0,
+    overridePersona?: VoicePersona
+  ): boolean {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return false;
     }
@@ -155,17 +169,58 @@ export const AIService = {
         .trim();
 
       const utterance = new SpeechSynthesisUtterance(clean);
-      utterance.rate = voiceRate;
-      utterance.pitch = voicePitch;
+      const persona = overridePersona || this.getPersona();
 
-      // Prefer a natural English voice if available
+      // Persona calibration defaults
+      let targetRate = voiceRate;
+      let targetPitch = voicePitch;
+
+      if (persona === 'man') {
+        targetPitch = 0.88;
+        targetRate = Math.min(voiceRate, 0.98);
+      } else if (persona === 'woman') {
+        targetPitch = 1.08;
+        targetRate = Math.min(voiceRate, 0.98);
+      } else if (persona === 'boy') {
+        targetPitch = 1.25;
+        targetRate = 1.04;
+      } else if (persona === 'girl') {
+        targetPitch = 1.35;
+        targetRate = 1.04;
+      }
+
+      utterance.rate = targetRate;
+      utterance.pitch = targetPitch;
+
       const voices = window.speechSynthesis.getVoices();
-      const naturalVoice = voices.find(
-        (v) => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Premium'))
-      ) || voices.find((v) => v.lang.startsWith('en'));
+      let matchedVoice: SpeechSynthesisVoice | undefined;
 
-      if (naturalVoice) {
-        utterance.voice = naturalVoice;
+      if (persona === 'man' || persona === 'boy') {
+        matchedVoice = voices.find(
+          (v) =>
+            v.lang.startsWith('en') &&
+            (/male|david|george|daniel|guy|tom|james|alex/i.test(v.name) ||
+              v.name.includes('UK English Male') ||
+              v.name.includes('US English Male'))
+        );
+      } else {
+        matchedVoice = voices.find(
+          (v) =>
+            v.lang.startsWith('en') &&
+            (/female|samantha|karen|jenny|victoria|zira|fiona/i.test(v.name) ||
+              v.name.includes('US English Female') ||
+              v.name.includes('Natural'))
+        );
+      }
+
+      if (!matchedVoice) {
+        matchedVoice =
+          voices.find((v) => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google'))) ||
+          voices.find((v) => v.lang.startsWith('en'));
+      }
+
+      if (matchedVoice) {
+        utterance.voice = matchedVoice;
       }
 
       window.speechSynthesis.speak(utterance);

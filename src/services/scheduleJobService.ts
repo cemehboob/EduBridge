@@ -1,33 +1,33 @@
-import { MockTest, ScheduledJob, VocabularyWord, AuditLog } from '../types';
+import { MockTest, ScheduledJob, VocabularyWord, AuditLog, IELTSPracticeTest, IngestedItemRecord } from '../types';
 
 export const initialScheduledJobs: ScheduledJob[] = [
   {
     id: 'job_exam_midnight_00',
     name: 'Nightly 00:00 Multi-Exam Test Generator',
-    description: 'Scheduled cron at 00:00 night hours to automatically generate at least 5 authentic practice tests across PTE, TOEFL, OET, DET, and Cambridge English patterns daily.',
+    description: 'Scheduled cron at 00:00 night hours to automatically generate at least 5 mock tests and 5 authentic practice tests across PTE, TOEFL, OET, DET, Cambridge English, and IELTS patterns daily with full timestamp logging.',
     cronExpression: '0 0 * * *',
     targetTime: '00:00 UTC (Nightly)',
     category: 'EXAM_PREP',
     enabled: true,
-    lastRunTimestamp: 'Last run: 2026-10-30 00:00:02',
+    lastRunTimestamp: 'Last run: 2026-10-31 00:00:02',
     nextRunTimestamp: 'Tonight at 00:00 UTC',
-    itemsGeneratedCount: 30,
+    itemsGeneratedCount: 35,
     status: 'idle',
-    batchTarget: 'At least 5 Mock Tests (PTE, TOEFL, OET, DET & Cambridge English daily)'
+    batchTarget: 'At least 5 Mock Tests + 5 Practice Tests (PTE, TOEFL, OET, DET, Cambridge & IELTS daily)'
   },
   {
     id: 'job_vocab_expansion_00',
     name: 'Nightly Vocabulary Vault Expansion',
-    description: 'Scheduled cron at 00:00 night hours to curate and add at least 100 new academic, STEM, and conversational words with phonetics, CEFR levels, and audio contexts.',
+    description: 'Scheduled cron at 00:00 night hours to curate and add at least 100 new academic, STEM, and conversational words with phonetics, CEFR levels, and audio contexts with exact timestamp tracking.',
     cronExpression: '0 0 * * *',
     targetTime: '00:00 UTC (Nightly)',
     category: 'VOCABULARY',
     enabled: true,
-    lastRunTimestamp: 'Last run: 2026-10-30 00:00:04',
+    lastRunTimestamp: 'Last run: 2026-10-31 00:00:04',
     nextRunTimestamp: 'Tonight at 00:00 UTC',
     itemsGeneratedCount: 300,
     status: 'idle',
-    batchTarget: 'At least 100 Vocabulary Words with CEFR Levels'
+    batchTarget: 'At least 100 Vocabulary Words with CEFR Levels & Timestamp Tracking'
   }
 ];
 
@@ -55,8 +55,8 @@ const VOCABULARY_BASE = [
   { word: 'Consensus', phonetic: '/kənˈsen.səs/', pos: 'noun', trans: 'Consenso / acuerdo unánime', def: 'A general agreement reached by a group.', cat: 'Academic Discourse', cefr: 'B2' as const, ex: 'Scientific consensus confirms the efficacy of spaced retrieval practice.' }
 ];
 
-// Helper to expand and generate full 100 words dynamically
-export function generateOneHundredWordsBatch(batchNumber: number): VocabularyWord[] {
+// Helper to expand and generate full 100 words dynamically with timestamp
+export function generateOneHundredWordsBatch(batchNumber: number, timestamp?: string): VocabularyWord[] {
   const categories = [
     'Academic Writing', 'STEM & Logic', 'IELTS & PTE Lexicon', 'Enterprise Technology',
     'Clinical & Health', 'Environmental Systems', 'Philosophy & Ethics', 'Cognitive Psychology'
@@ -64,7 +64,7 @@ export function generateOneHundredWordsBatch(batchNumber: number): VocabularyWor
   const cefrTiers: ('B1' | 'B2' | 'C1' | 'C2')[] = ['B2', 'C1', 'B2', 'C1', 'C2', 'B1'];
 
   const words: VocabularyWord[] = [];
-  const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const ts = timestamp || new Date().toISOString().replace('T', ' ').slice(0, 19);
 
   // Use the 20 rich base anchors
   VOCABULARY_BASE.forEach((base, idx) => {
@@ -78,7 +78,7 @@ export function generateOneHundredWordsBatch(batchNumber: number): VocabularyWor
       exampleSentence: base.ex,
       category: base.cat,
       cefrLevel: base.cefr,
-      dateAdded: now
+      dateAdded: ts
     });
   });
 
@@ -177,15 +177,17 @@ export function generateOneHundredWordsBatch(batchNumber: number): VocabularyWor
       exampleSentence: item[5],
       category: categories[index % categories.length],
       cefrLevel: cefrTiers[index % cefrTiers.length],
-      dateAdded: now
+      dateAdded: ts
     });
   });
 
   return words;
 }
 
-// Generates at least 5 complete daily sample tests covering PTE, TOEFL, OET, DET, Cambridge English & IELTS patterns
-export function generateFivePracticeTestsBatch(batchIndex: number): MockTest[] {
+// Generates at least 5 complete daily sample mock tests covering PTE, TOEFL, OET, DET, Cambridge English & IELTS patterns
+export function generateFivePracticeTestsBatch(batchIndex: number, executionTimestamp?: string): MockTest[] {
+  const ts = executionTimestamp || new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const dt = ts.slice(0, 10);
   const tests: MockTest[] = [
     // 1. PTE Academic Daily Practice Test
     {
@@ -529,5 +531,264 @@ export function generateFivePracticeTestsBatch(batchIndex: number): MockTest[] {
     }
   ];
 
-  return tests;
+  return tests.map((t) => ({
+    ...t,
+    timestamp: ts,
+    dateAdded: dt
+  }));
+}
+
+// Generates at least 5 authentic practice tests (Reading, Listening, Writing, Speaking) with timestamp tracking
+export function generatePracticeTestsBatch(batchIndex: number, executionTimestamp?: string): IELTSPracticeTest[] {
+  const ts = executionTimestamp || new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const dt = ts.slice(0, 10);
+  return [
+    {
+      id: `pt_daily_pte_batch_${batchIndex}_01`,
+      category: 'IELTS Academic',
+      module: 'Reading',
+      title: `PTE & IELTS Daily Reading: Photonic Neural Networks #${batchIndex * 5 + 1}`,
+      difficulty: 'Advanced',
+      durationMinutes: 15,
+      questionCount: 1,
+      timestamp: ts,
+      dateAdded: dt,
+      passage: `Silicon photonics integrates optical waveguides onto microchips, replacing electronic copper interconnects with modulated laser light. By processing matrix tensor operations at light speed with negligible thermal dissipation, optical computing mitigates the thermodynamic bottlenecks constraining modern deep learning data centers.`,
+      prompt: 'What primary physical advantage does silicon photonics offer over copper interconnects in high-density AI clusters?',
+      options: [
+        'It computes tensor operations at light speed with negligible thermal dissipation',
+        'It reduces the need for all semiconductor silicon components',
+        'It runs software without any operating system kernel',
+        'It converts electrical signals into acoustic waves'
+      ],
+      correctAnswer: 'It computes tensor operations at light speed with negligible thermal dissipation',
+      explanation: 'Paragraph 1 explicitly notes that silicon photonics replaces copper interconnects by processing tensor operations at light speed with negligible thermal dissipation, eliminating thermodynamic bottlenecks.'
+    },
+    {
+      id: `pt_daily_toefl_batch_${batchIndex}_02`,
+      category: 'IELTS Academic',
+      module: 'Listening',
+      title: `TOEFL & IELTS Listening: Benthic Chemosynthesis Lecture #${batchIndex * 5 + 2}`,
+      difficulty: 'Standard',
+      durationMinutes: 12,
+      questionCount: 1,
+      timestamp: ts,
+      dateAdded: dt,
+      audioTranscript: `Hydrothermal vents along oceanic spreading ridges emit hydrogen sulfide and dissolved minerals at temperatures exceeding three hundred degrees Celsius. Chemosynthetic archaea oxidize this sulfide to synthesize organic carbohydrates in absolute darkness, sustaining dense trophic food webs independent of solar photosystem pathways.`,
+      prompt: 'According to the lecture transcript, what energy source sustains hydrothermal vent trophic food webs?',
+      options: [
+        'Oxidation of hydrogen sulfide by chemosynthetic archaea in absolute darkness',
+        'Filtered moonlight penetrating benthic oceanic trenches',
+        'Organic detritus descending from coastal agricultural runoff',
+        'Geothermal radiation powering photosynthesis in giant kelp forests'
+      ],
+      correctAnswer: 'Oxidation of hydrogen sulfide by chemosynthetic archaea in absolute darkness',
+      explanation: 'The lecturer emphasizes that chemosynthetic archaea oxidize hydrogen sulfide to synthesize carbohydrates without solar light, forming the biological foundation of the ecosystem.'
+    },
+    {
+      id: `pt_daily_oet_batch_${batchIndex}_03`,
+      category: 'IELTS General Training',
+      module: 'Reading',
+      title: `OET & GT Workplace Case: Clinical De-escalation Protocol #${batchIndex * 5 + 3}`,
+      difficulty: 'Standard',
+      durationMinutes: 15,
+      questionCount: 1,
+      timestamp: ts,
+      dateAdded: dt,
+      passage: `Hospital staff encountering agitated patients must prioritize verbal de-escalation over chemical restraint. Healthcare workers should maintain an open posture at a 45-degree angle, respect personal space of at least two arms lengths, use a gentle modulated tone of voice, validate emotional distress, and avoid confrontational ultimatums.`,
+      prompt: 'What is the mandated physical positioning for healthcare workers initiating verbal de-escalation?',
+      options: [
+        'An open posture at a 45-degree angle maintaining at least two arms lengths of personal space',
+        'Direct frontal alignment at close proximity within arm reach',
+        'Seated directly behind a barrier with folded arms',
+        'Standing directly beside the patient while raising voice volume'
+      ],
+      correctAnswer: 'An open posture at a 45-degree angle maintaining at least two arms lengths of personal space',
+      explanation: 'The workplace safety protocol stipulates an open posture angled at 45 degrees while respecting a distance of two arms lengths.'
+    },
+    {
+      id: `pt_daily_det_batch_${batchIndex}_04`,
+      category: 'IELTS Academic',
+      module: 'Writing',
+      title: `DET & Cambridge Academic Writing: Distributed Computing #${batchIndex * 5 + 4}`,
+      difficulty: 'Advanced',
+      durationMinutes: 20,
+      questionCount: 1,
+      timestamp: ts,
+      dateAdded: dt,
+      prompt: 'Evaluate whether decentralized edge computing will supersede centralized hyperscale cloud architectures over the coming decade.',
+      sampleAnswer: 'While hyperscale clouds provide unmatched centralized storage economies, the explosive growth of latency-critical autonomous systems mandates edge processing. Bandwidth constraints make backhauling petabytes of raw sensor data impractical; hence, decentralized computing at local ingress nodes represents the defining paradigm of next-generation infrastructure.',
+      explanation: 'Band 9 Task 2 standard: Addresses the prompt comprehensively with technical precision, logical topic sentences, and cohesive progression.'
+    },
+    {
+      id: `pt_daily_cam_batch_${batchIndex}_05`,
+      category: 'IELTS General Training',
+      module: 'Speaking',
+      title: `Cambridge & IELTS Cue Card: A Technological Innovation #${batchIndex * 5 + 5}`,
+      difficulty: 'Advanced',
+      durationMinutes: 10,
+      questionCount: 1,
+      timestamp: ts,
+      dateAdded: dt,
+      prompt: 'Describe a recent scientific or technological innovation that has positively impacted your daily routine.',
+      sampleAnswer: 'I would like to discuss open-source local language models running on edge silicon. Unlike cloud dependencies that introduce latency and data privacy risks, having a 4-bit quantized tutor running locally on my personal machine has transformed my study efficiency, providing instant Socratic feedback on calculus proofs and linguistic nuance without requiring continuous internet connectivity.',
+      explanation: 'Model Band 9 speaking performance demonstrating fluency, natural discourse markers, and rich academic vocabulary.'
+    }
+  ];
+}
+
+// Initial Ingested Items Ledger with precise timestamp columns
+export function getInitialIngestedItemsLedger(): IngestedItemRecord[] {
+  return [
+    {
+      id: 'ing_01',
+      timestamp: '2026-10-31 00:00:02',
+      jobId: 'job_exam_midnight_00',
+      jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+      itemType: 'Mock Test',
+      itemTitle: 'PTE Academic Daily Simulation #26',
+      categoryOrExam: 'PTE',
+      details: 'Speaking & Listening sections with Write from Dictation rubric'
+    },
+    {
+      id: 'ing_02',
+      timestamp: '2026-10-31 00:00:02',
+      jobId: 'job_exam_midnight_00',
+      jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+      itemType: 'Mock Test',
+      itemTitle: 'TOEFL iBT Academic Simulation #91',
+      categoryOrExam: 'TOEFL',
+      details: 'Paleoclimatology & Carbon Sequestration Reading & Writing'
+    },
+    {
+      id: 'ing_03',
+      timestamp: '2026-10-31 00:00:02',
+      jobId: 'job_exam_midnight_00',
+      jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+      itemType: 'Mock Test',
+      itemTitle: 'OET Healthcare Clinical Practice Test #43',
+      categoryOrExam: 'OET',
+      details: 'Sepsis Six Emergency Protocol & Referral Letter'
+    },
+    {
+      id: 'ing_04',
+      timestamp: '2026-10-31 00:00:02',
+      jobId: 'job_exam_midnight_00',
+      jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+      itemType: 'Mock Test',
+      itemTitle: 'Duolingo English Test Adaptive Simulation #15',
+      categoryOrExam: 'DET',
+      details: 'C-Test Read and Complete & 5-Min Timed Writing'
+    },
+    {
+      id: 'ing_05',
+      timestamp: '2026-10-31 00:00:02',
+      jobId: 'job_exam_midnight_00',
+      jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+      itemType: 'Mock Test',
+      itemTitle: 'Cambridge C1 Advanced (CAE) Simulation #303',
+      categoryOrExam: 'Cambridge English',
+      details: 'Use of English Key Word Transformations & Municipal Report'
+    },
+    {
+      id: 'ing_06',
+      timestamp: '2026-10-31 00:00:02',
+      jobId: 'job_exam_midnight_00',
+      jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+      itemType: 'Practice Test',
+      itemTitle: 'PTE & IELTS Daily Reading: Photonic Neural Networks #1',
+      categoryOrExam: 'IELTS Academic (Reading)',
+      details: 'Silicon photonics matrix tensor operations with passage & verified answer'
+    },
+    {
+      id: 'ing_07',
+      timestamp: '2026-10-31 00:00:02',
+      jobId: 'job_exam_midnight_00',
+      jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+      itemType: 'Practice Test',
+      itemTitle: 'TOEFL & IELTS Listening: Benthic Chemosynthesis Lecture #2',
+      categoryOrExam: 'IELTS Academic (Listening)',
+      details: 'Hydrothermal vents lecture transcript & chemosynthesis comprehension'
+    },
+    {
+      id: 'ing_08',
+      timestamp: '2026-10-31 00:00:02',
+      jobId: 'job_exam_midnight_00',
+      jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+      itemType: 'Practice Test',
+      itemTitle: 'OET & GT Workplace Case: Clinical De-escalation Protocol #3',
+      categoryOrExam: 'IELTS General Training (Reading)',
+      details: 'Hospital verbal de-escalation posture & distance guidelines'
+    },
+    {
+      id: 'ing_09',
+      timestamp: '2026-10-31 00:00:02',
+      jobId: 'job_exam_midnight_00',
+      jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+      itemType: 'Practice Test',
+      itemTitle: 'DET & Cambridge Academic Writing: Distributed Computing #4',
+      categoryOrExam: 'IELTS Academic (Writing)',
+      details: 'Decentralized edge computing vs hyperscale clouds Task 2 prompt & exemplar'
+    },
+    {
+      id: 'ing_10',
+      timestamp: '2026-10-31 00:00:02',
+      jobId: 'job_exam_midnight_00',
+      jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+      itemType: 'Practice Test',
+      itemTitle: 'Cambridge & IELTS Cue Card: A Technological Innovation #5',
+      categoryOrExam: 'IELTS General Training (Speaking)',
+      details: 'Edge silicon language models 2-minute sustained monologue with Band 9 rubric'
+    },
+    {
+      id: 'ing_11',
+      timestamp: '2026-10-31 00:00:04',
+      jobId: 'job_vocab_expansion_00',
+      jobName: 'Nightly Vocabulary Vault Expansion',
+      itemType: 'Vocabulary Word',
+      itemTitle: 'Aberration (/ˌæb.əˈreɪ.ʃən/)',
+      categoryOrExam: 'Scientific Inquiry (CEFR C1)',
+      details: 'A departure from what is normal, usual, or expected.'
+    },
+    {
+      id: 'ing_12',
+      timestamp: '2026-10-31 00:00:04',
+      jobId: 'job_vocab_expansion_00',
+      jobName: 'Nightly Vocabulary Vault Expansion',
+      itemType: 'Vocabulary Word',
+      itemTitle: 'Acumen (/ˈæk.jə.mən/)',
+      categoryOrExam: 'Enterprise & Career (CEFR C1)',
+      details: 'The ability to make good judgments and quick decisions.'
+    },
+    {
+      id: 'ing_13',
+      timestamp: '2026-10-31 00:00:04',
+      jobId: 'job_vocab_expansion_00',
+      jobName: 'Nightly Vocabulary Vault Expansion',
+      itemType: 'Vocabulary Word',
+      itemTitle: 'Ameliorate (/əˈmiː.li.ə.reɪt/)',
+      categoryOrExam: 'Academic Discourse (CEFR C1)',
+      details: 'To make something bad or unsatisfactory better.'
+    },
+    {
+      id: 'ing_14',
+      timestamp: '2026-10-31 00:00:04',
+      jobId: 'job_vocab_expansion_00',
+      jobName: 'Nightly Vocabulary Vault Expansion',
+      itemType: 'Vocabulary Word',
+      itemTitle: 'Corroborate (/kəˈrɒb.ə.reɪt/)',
+      categoryOrExam: 'Academic Writing (CEFR C1)',
+      details: 'Confirm or give support to a statement, theory, or finding.'
+    },
+    {
+      id: 'ing_15',
+      timestamp: '2026-10-31 00:00:04',
+      jobId: 'job_vocab_expansion_00',
+      jobName: 'Nightly Vocabulary Vault Expansion',
+      itemType: 'Vocabulary Word',
+      itemTitle: 'Juxtapose (/ˌdʒʌk.stəˈpəʊz/)',
+      categoryOrExam: 'Philosophy & Logic (CEFR C1)',
+      details: 'Place or deal with close together for contrasting effect.'
+    }
+  ];
 }

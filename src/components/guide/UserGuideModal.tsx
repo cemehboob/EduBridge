@@ -226,8 +226,30 @@ export const UserGuideModal: React.FC<UserGuideModalProps> = ({
                   </p>
                 </div>
 
-                {/* Picture / Diagram Showcase Card */}
-                {activeArticle.imagePlaceholder && (
+                {/* Real Live Application Screenshot Showcase */}
+                {activeArticle.screenshotUrl ? (
+                  <div className="rounded-3xl border border-slate-200 overflow-hidden shadow-md bg-slate-950 group">
+                    <div className="relative overflow-hidden bg-slate-900 flex items-center justify-center p-2">
+                      <img
+                        src={activeArticle.screenshotUrl}
+                        alt={activeArticle.title}
+                        className="w-full h-auto max-h-[440px] object-contain rounded-2xl shadow-inner transition-transform duration-300 group-hover:scale-101"
+                      />
+                      <div className="absolute top-4 left-4 bg-slate-900/85 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-white text-[11px] font-black flex items-center gap-1.5 shadow-sm">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Live EduBridge Interface Screenshot</span>
+                      </div>
+                    </div>
+                    {activeArticle.screenshotCaption && (
+                      <div className="p-3.5 bg-slate-900 text-slate-300 text-xs flex items-center justify-between border-t border-slate-800">
+                        <span className="font-medium">{activeArticle.screenshotCaption}</span>
+                        <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+                          Verified UI
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : activeArticle.imagePlaceholder ? (
                   <div className="rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
                     <div className={`p-6 sm:p-8 bg-gradient-to-br ${activeArticle.imagePlaceholder.accentColor} text-white space-y-3 relative overflow-hidden`}>
                       <div className="flex items-center justify-between">
@@ -247,7 +269,7 @@ export const UserGuideModal: React.FC<UserGuideModalProps> = ({
                       </div>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {/* Content Sections */}
                 <div className="space-y-6">

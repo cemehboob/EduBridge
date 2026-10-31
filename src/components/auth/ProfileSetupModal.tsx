@@ -19,9 +19,10 @@ import {
   Check,
   Layout
 } from 'lucide-react';
-import { UserAccount, AgeCohortId, FontScale, VisibleModulesConfig } from '../../types';
+import { UserAccount, AgeCohortId, FontScale, VisibleModulesConfig, VoicePersona } from '../../types';
 import { sound } from '../../utils/audio';
 import { calculateAge, calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
+import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
 
 interface ProfileSetupModalProps {
   isOpen: boolean;
@@ -72,6 +73,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const [targetBand, setTargetBand] = useState(user.preferences.targetBand || '8.0 Band');
   const [targetCareer, setTargetCareer] = useState(user.preferences.targetCareer || 'AI & Machine Learning Engineer');
   const [dailyGoalXp, setDailyGoalXp] = useState(user.preferences.dailyGoalXp);
+  const [personaVoice, setPersonaVoice] = useState<VoicePersona>(user.preferences.personaVoice || 'woman');
   const [isSaved, setIsSaved] = useState(false);
 
   if (!isOpen) return null;
@@ -106,7 +108,8 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
         educationLevel: calculatedEdu,
         fontScale,
         simplifiedInterface,
-        visibleModules
+        visibleModules,
+        personaVoice
       }
     };
 
@@ -311,6 +314,15 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
                   <option value="xlarge">Extra Large (A++ - Senior &amp; Low-Vision)</option>
                 </select>
               </div>
+            </div>
+
+            {/* Voice Persona Options */}
+            <div className="pt-2 border-t border-slate-100">
+              <VoicePersonaSelector
+                compact={false}
+                showPreviewButton={true}
+                onPersonaChange={(p) => setPersonaVoice(p)}
+              />
             </div>
           </div>
 

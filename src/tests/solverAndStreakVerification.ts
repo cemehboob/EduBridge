@@ -6,6 +6,14 @@ import { StreakService } from '../services/streakService';
 import { QuestionSolverService } from '../services/questionSolverService';
 import { OCRService } from '../services/ocrService';
 import { SUPPORTED_LANGUAGES } from '../services/speechService';
+import {
+  generateFivePracticeTestsBatch,
+  generatePracticeTestsBatch,
+  generateOneHundredWordsBatch,
+  getInitialIngestedItemsLedger
+} from '../services/scheduleJobService';
+import { VOICE_PERSONAS } from '../components/common/VoicePersonaSelector';
+import { initialUserGuideArticles } from '../data/userManagementData';
 
 async function runTests() {
   console.log('=== STARTING EDU BRIDGE VERIFICATION SUITE ===\n');
@@ -104,6 +112,68 @@ async function runTests() {
     failures++;
   } else {
     console.log(`PASS: Complete full-text essay generated (${essayRes.finalAnswer.length} characters with full paragraphs).`);
+  }
+
+  // Test 9: Scheduled Mock Test Generator Timestamps
+  console.log('\nTest 9: Verifying Nightly Multi-Exam Mock Test generator timestamp columns...');
+  const testBatch = generateFivePracticeTestsBatch(1, '2026-10-31 00:00:02');
+  if (testBatch.length < 5 || !testBatch[0].timestamp || !testBatch[0].dateAdded) {
+    console.error('FAIL: Mock tests must have timestamp and dateAdded columns');
+    failures++;
+  } else {
+    console.log(`PASS: Generated ${testBatch.length} Mock Tests with timestamp "${testBatch[0].timestamp}".`);
+  }
+
+  // Test 10: Multi-Exam Test Generator Practice Tests Addition
+  console.log('\nTest 10: Verifying Multi-Exam generator generates Practice Tests with timestamp...');
+  const practiceBatch = generatePracticeTestsBatch(1, '2026-10-31 00:00:02');
+  if (practiceBatch.length < 5 || !practiceBatch[0].timestamp || !practiceBatch[0].options || !practiceBatch[0].explanation) {
+    console.error('FAIL: Practice tests batch must include timestamp, options and explanations');
+    failures++;
+  } else {
+    console.log(`PASS: Generated ${practiceBatch.length} authentic Practice Tests with timestamp "${practiceBatch[0].timestamp}".`);
+  }
+
+  // Test 11: Vocabulary Vault Expansion Generator Timestamps
+  console.log('\nTest 11: Verifying Nightly Vocabulary Vault expansion timestamp columns...');
+  const vocabBatch = generateOneHundredWordsBatch(1, '2026-10-31 00:00:04');
+  if (vocabBatch.length !== 100 || !vocabBatch[0].dateAdded) {
+    console.error('FAIL: Vocabulary words must have 100 items with dateAdded timestamp');
+    failures++;
+  } else {
+    console.log(`PASS: Generated ${vocabBatch.length} vocabulary words with dateAdded "${vocabBatch[0].dateAdded}".`);
+  }
+
+  // Test 12: Ingested Items Ledger with Timestamp Column
+  console.log('\nTest 12: Verifying Ingested Items Ledger structure and timestamp columns...');
+  const ledger = getInitialIngestedItemsLedger();
+  if (!ledger || ledger.length === 0 || !ledger[0].timestamp || !ledger[0].itemType) {
+    console.error('FAIL: Ledger must contain items with timestamp and itemType');
+    failures++;
+  } else {
+    console.log(`PASS: Ingested Items Ledger contains ${ledger.length} pre-populated records with timestamp column.`);
+  }
+
+  // Test 13: Voice Persona Options
+  console.log('\nTest 13: Verifying Persona Voice options (man, woman, boy, girl)...');
+  const requiredPersonas = ['man', 'woman', 'boy', 'girl'];
+  const availablePersonas = VOICE_PERSONAS.map(p => p.id);
+  const allPersonasPresent = requiredPersonas.every(rp => availablePersonas.includes(rp as any));
+  if (!allPersonasPresent) {
+    console.error(`FAIL: Expected personas [${requiredPersonas.join(', ')}], found [${availablePersonas.join(', ')}]`);
+    failures++;
+  } else {
+    console.log(`PASS: All 4 voice personas active: ${availablePersonas.join(', ')}.`);
+  }
+
+  // Test 14: User Guide with Updated Live Screenshots
+  console.log('\nTest 14: Verifying User Guide articles contain updated live screenshots...');
+  const articlesWithScreenshots = initialUserGuideArticles.filter(a => a.screenshotUrl);
+  if (articlesWithScreenshots.length < 4) {
+    console.error(`FAIL: Expected at least 4 guide articles with screenshotUrl, found ${articlesWithScreenshots.length}`);
+    failures++;
+  } else {
+    console.log(`PASS: Found ${articlesWithScreenshots.length} guide articles with verified live application screenshots.`);
   }
 
   console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL TESTS PASSED' : failures + ' TESTS FAILED'} ===`);

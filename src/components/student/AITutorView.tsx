@@ -19,6 +19,7 @@ import {
 import { OllamaModelKey, TutorMode, ChatMessage, OllamaModelInfo } from '../../types';
 import { AIService } from '../../services/aiService';
 import { sound } from '../../utils/audio';
+import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
 
 interface AITutorViewProps {
   models: OllamaModelInfo[];
@@ -139,9 +140,12 @@ export const AITutorView: React.FC<AITutorViewProps> = ({
             </h2>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-            <span>Local Cluster Status: Online ({currentModelInfo.vram} VRAM)</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <VoicePersonaSelector compact={true} />
+            <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span>Local Cluster: Online ({currentModelInfo.vram} VRAM)</span>
+            </div>
           </div>
         </div>
 

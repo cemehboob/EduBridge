@@ -288,3 +288,4 @@ The system utilizes an enormous floating barrier, hundreds of meters long, that 
 What I find extraordinarily impressive about this initiative is its dual strategy of prevention and cure. Beyond cleaning offshore marine gyres, they developed automated solar-powered catamarans called "Interceptors" stationed at the mouths of the world's most polluting rivers, intercepting plastic waste before it ever reaches the ocean. It stands as a brilliant testament to how youthful visionary engineering can address seemingly insurmountable global crises.`
   }
 ];
+

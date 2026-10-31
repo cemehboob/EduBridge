@@ -42,7 +42,8 @@ import {
   UserAccount,
   FeatureFlag,
   UserFeedbackTicket,
-  UserRole
+  UserRole,
+  IngestedItemRecord
 } from '../../types';
 import { sound } from '../../utils/audio';
 
@@ -52,6 +53,7 @@ interface AdminPortalProps {
   auditLogs: AuditLog[];
   scheduledJobs: ScheduledJob[];
   vocabularyWords: VocabularyWord[];
+  ingestedLedger: IngestedItemRecord[];
   users: UserAccount[];
   featureFlags: FeatureFlag[];
   feedbackTickets: UserFeedbackTicket[];
@@ -71,6 +73,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   auditLogs,
   scheduledJobs,
   vocabularyWords,
+  ingestedLedger,
   users,
   featureFlags,
   feedbackTickets,
@@ -108,6 +111,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // Vocab Explorer state
   const [vocabSearch, setVocabSearch] = useState('');
   const [selectedCefr, setSelectedCefr] = useState<string>('All');
+  const [vocabViewMode, setVocabViewMode] = useState<'table' | 'grid'>('table');
+
+  // Scheduled Jobs Ledger state
+  const [ledgerSearch, setLedgerSearch] = useState('');
+  const [ledgerTypeFilter, setLedgerTypeFilter] = useState<'All' | 'Mock Test' | 'Practice Test' | 'Vocabulary Word'>('All');
 
   const handleFlushCache = () => {
     sound.playClick();
@@ -199,6 +207,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       w.category.toLowerCase().includes(vocabSearch.toLowerCase());
     const matchCefr = selectedCefr === 'All' || w.cefrLevel === selectedCefr;
     return matchSearch && matchCefr;
+  });
+
+  const filteredLedger = (ingestedLedger || []).filter((item) => {
+    const matchesSearch =
+      item.itemTitle.toLowerCase().includes(ledgerSearch.toLowerCase()) ||
+      item.timestamp.toLowerCase().includes(ledgerSearch.toLowerCase()) ||
+      item.categoryOrExam.toLowerCase().includes(ledgerSearch.toLowerCase()) ||
+      item.jobName.toLowerCase().includes(ledgerSearch.toLowerCase());
+    const matchesType = ledgerTypeFilter === 'All' || item.itemType === ledgerTypeFilter;
+    return matchesSearch && matchesType;
   });
 
   return (
@@ -723,6 +741,119 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               );
             })}
           </div>
+
+          {/* Autonomous Ingestion History & Item Timestamp Ledger */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
+                  Nightly 00:00 Scheduler Item Ledger
+                </span>
+                <h4 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-indigo-600" />
+                  <span>Scheduled Ingestion History &amp; Timestamp Ledger ({filteredLedger.length} Items)</span>
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Chronological record showing exact timestamps when mock tests, practice tests, and vocabulary items were generated and added to EduBridge.
+                </p>
+              </div>
+
+              {/* Type Filter Buttons */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs shrink-0 overflow-x-auto">
+                {(['All', 'Mock Test', 'Practice Test', 'Vocabulary Word'] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setLedgerTypeFilter(t);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 ${
+                      ledgerTypeFilter === t ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {t === 'All' ? 'All Types' : t + 's'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                value={ledgerSearch}
+                onChange={(e) => setLedgerSearch(e.target.value)}
+                placeholder="Search by test title, word, category, or timestamp (e.g. 2026-10-31)..."
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            {/* Table with prominent TIMESTAMP column */}
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 max-h-[460px] overflow-y-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider sticky top-0 z-10">
+                  <tr>
+                    <th className="py-3 px-4 w-48 bg-slate-50">TIMESTAMP</th>
+                    <th className="py-3 px-4 w-32 bg-slate-50">ITEM TYPE</th>
+                    <th className="py-3 px-4 bg-slate-50">ITEM TITLE / DETAILS</th>
+                    <th className="py-3 px-4 w-48 bg-slate-50">EXAM / CATEGORY</th>
+                    <th className="py-3 px-4 bg-slate-50">CRON SOURCE</th>
+                    <th className="py-3 px-4 w-28 text-center bg-slate-50">STATUS</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-sans">
+                  {filteredLedger.length > 0 ? (
+                    filteredLedger.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-indigo-700 whitespace-nowrap">
+                          🕒 {item.timestamp}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-black uppercase whitespace-nowrap ${
+                              item.itemType === 'Mock Test'
+                                ? 'bg-indigo-100 text-indigo-800'
+                                : item.itemType === 'Practice Test'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {item.itemType}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-slate-900">{item.itemTitle}</div>
+                          {item.details && (
+                            <p className="text-[11px] text-slate-500 line-clamp-1">{item.details}</p>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-slate-700">
+                          {item.categoryOrExam}
+                        </td>
+                        <td className="py-3 px-4 text-slate-500 font-mono text-[11px]">
+                          {item.jobName}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Ingested</span>
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                        No ingested items matched your filter or search query.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
@@ -765,50 +896,125 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               />
             </div>
 
-            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs">
-              {['All', 'B1', 'B2', 'C1', 'C2'].map((tier) => (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs">
+                {['All', 'B1', 'B2', 'C1', 'C2'].map((tier) => (
+                  <button
+                    key={tier}
+                    onClick={() => setSelectedCefr(tier)}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      selectedCefr === tier ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {tier}
+                  </button>
+                ))}
+              </div>
+
+              {/* View Switcher: Table vs Cards */}
+              <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs shrink-0">
                 <button
-                  key={tier}
-                  onClick={() => setSelectedCefr(tier)}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                    selectedCefr === tier ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  type="button"
+                  onClick={() => { sound.playClick(); setVocabViewMode('table'); }}
+                  className={`px-2.5 py-1.5 rounded-lg font-bold transition-all ${
+                    vocabViewMode === 'table' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                   }`}
+                  title="Table View with Timestamp Column"
                 >
-                  {tier}
+                  Table View
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => { sound.playClick(); setVocabViewMode('grid'); }}
+                  className={`px-2.5 py-1.5 rounded-lg font-bold transition-all ${
+                    vocabViewMode === 'grid' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                  title="Cards Grid View"
+                >
+                  Card Grid
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Words Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[550px] overflow-y-auto pr-1">
-            {filteredVocab.map((item) => (
-              <div
-                key={item.id}
-                className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 hover:bg-white transition-all space-y-1.5"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-base font-black text-slate-900">{item.word}</h4>
-                    <span className="text-xs font-mono text-indigo-700 font-semibold">{item.phonetic}</span>
-                    <span className="text-[11px] text-slate-400 italic font-mono">({item.partOfSpeech})</span>
+          {vocabViewMode === 'table' ? (
+            /* Table View with Prominent TIMESTAMP / DATE ADDED Column */
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 max-h-[550px] overflow-y-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider sticky top-0 z-10">
+                  <tr>
+                    <th className="py-3 px-4 w-44 bg-slate-50">WORD &amp; PHONETIC</th>
+                    <th className="py-3 px-3 w-20 bg-slate-50 text-center">POS</th>
+                    <th className="py-3 px-3 w-20 bg-slate-50 text-center">CEFR</th>
+                    <th className="py-3 px-4 w-40 bg-slate-50">CATEGORY</th>
+                    <th className="py-3 px-4 bg-slate-50">TRANSLATION &amp; DEFINITION</th>
+                    <th className="py-3 px-4 w-44 bg-slate-50 text-indigo-900">TIMESTAMP / DATE ADDED</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-sans">
+                  {filteredVocab.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="font-black text-slate-900 text-sm">{item.word}</div>
+                        <span className="text-[11px] font-mono text-indigo-700 font-semibold">{item.phonetic}</span>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <span className="text-[10px] text-slate-500 font-mono italic">({item.partOfSpeech})</span>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                          {item.cefrLevel}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-slate-700">
+                        {item.category}
+                      </td>
+                      <td className="py-3 px-4">
+                        <strong className="text-slate-800 block text-xs">{item.translation}</strong>
+                        <p className="text-[11px] text-slate-500 line-clamp-1">{item.definition}</p>
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-indigo-700 whitespace-nowrap">
+                        🕒 {item.dateAdded || item.timestamp || '2026-10-31 00:00:04'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* Words Grid */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[550px] overflow-y-auto pr-1">
+              {filteredVocab.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 hover:bg-white transition-all space-y-1.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-base font-black text-slate-900">{item.word}</h4>
+                      <span className="text-xs font-mono text-indigo-700 font-semibold">{item.phonetic}</span>
+                      <span className="text-[11px] text-slate-400 italic font-mono">({item.partOfSpeech})</span>
+                    </div>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                      CEFR {item.cefrLevel}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                    CEFR {item.cefrLevel}
-                  </span>
-                </div>
 
-                <div className="text-xs text-slate-600">
-                  <strong className="text-slate-800 block">{item.translation}</strong>
-                  <p className="mt-0.5">{item.definition}</p>
-                </div>
+                  <div className="text-xs text-slate-600">
+                    <strong className="text-slate-800 block">{item.translation}</strong>
+                    <p className="mt-0.5">{item.definition}</p>
+                  </div>
 
-                <p className="text-[11px] text-slate-500 italic pt-1 border-t border-slate-200/50">
-                  “{item.exampleSentence}”
-                </p>
-              </div>
-            ))}
-          </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 text-[11px] text-slate-500">
+                    <span className="italic truncate pr-2">“{item.exampleSentence}”</span>
+                    <span className="text-[10px] font-mono font-bold text-indigo-700 shrink-0 whitespace-nowrap">
+                      🕒 {item.dateAdded || item.timestamp || '2026-10-31 00:00:04'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

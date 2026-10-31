@@ -42,6 +42,7 @@ export interface UserProfile {
   educationLevel?: string;
   simplifiedInterface?: boolean;
   visibleModules?: VisibleModulesConfig;
+  personaVoice?: VoicePersona;
 }
 
 export interface VisibleModulesConfig {
@@ -97,6 +98,19 @@ export interface Unit {
 }
 
 // Exam Preparation Module (E2Language style)
+export type VoicePersona = 'man' | 'woman' | 'boy' | 'girl';
+
+export interface IngestedItemRecord {
+  id: string;
+  timestamp: string;
+  jobId: string;
+  jobName: string;
+  itemType: 'Mock Test' | 'Practice Test' | 'Vocabulary Word';
+  itemTitle: string;
+  categoryOrExam: string;
+  details?: string;
+}
+
 export type ExamType = 'IELTS Academic' | 'IELTS General Training' | 'IELTS' | 'PTE' | 'TOEFL' | 'OET' | 'DET' | 'Cambridge English';
 
 export interface IELTSPracticeTest {
@@ -115,6 +129,8 @@ export interface IELTSPracticeTest {
   sampleAnswer?: string;
   explanation?: string;
   completed?: boolean;
+  dateAdded?: string;
+  timestamp?: string;
 }
 
 export interface ExamSection {
@@ -138,6 +154,8 @@ export interface MockTest {
   totalDurationMin: number;
   targetBandRequirement: string;
   sections: ExamSection[];
+  dateAdded?: string;
+  timestamp?: string;
   questions: {
     id: string;
     section: 'Listening' | 'Reading' | 'Writing' | 'Speaking';
@@ -365,6 +383,7 @@ export interface VocabularyWord {
   cefrLevel: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
   category: string;
   dateAdded: string;
+  timestamp?: string;
   synonyms?: string[];
   antonyms?: string[];
 }
@@ -395,6 +414,7 @@ export interface UserAccount {
     fontScale?: FontScale;
     simplifiedInterface?: boolean;
     visibleModules?: VisibleModulesConfig;
+    personaVoice?: VoicePersona;
   };
   profileStats: {
     currentStreak: number;
@@ -448,7 +468,9 @@ export interface UserGuideArticle {
   minRole: UserRole; // 'student', 'parent', 'teacher', 'admin'
   summary: string;
   keywords: string[];
-  imagePlaceholder: {
+  screenshotUrl?: string;
+  screenshotCaption?: string;
+  imagePlaceholder?: {
     title: string;
     caption: string;
     badge: string;

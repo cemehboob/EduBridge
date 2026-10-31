@@ -56,6 +56,7 @@ import {
   SpeechService,
   SUPPORTED_LANGUAGES
 } from '../../services/speechService';
+import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
 import { sound } from '../../utils/audio';
 
 interface QuestionSolverViewProps {
@@ -366,8 +367,9 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
             </p>
           </div>
 
-          {/* Voice Language Selector */}
+          {/* Voice Language & Persona Selector */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <VoicePersonaSelector compact={true} className="bg-slate-800/80 border-slate-700 text-white" />
             <div className="flex items-center gap-2 bg-slate-800/80 backdrop-blur-md px-3 py-2 rounded-2xl border border-slate-700 text-xs">
               <Languages className="w-4 h-4 text-indigo-400" />
               <select
@@ -486,6 +488,9 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                     <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                       Speak in your preferred language ({SUPPORTED_LANGUAGES.find((l) => l.code === speechLanguage)?.name}). Speech is transcribed into the box below.
                     </p>
+                    <div className="flex justify-center pt-3">
+                      <VoicePersonaSelector compact={true} />
+                    </div>
                   </div>
 
                   {voiceError && (
@@ -877,7 +882,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                 </div>
 
                 {/* Multilingual Voice Explanation Controls (TTS) */}
-                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 flex items-center justify-between gap-3">
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Volume2 className={`w-4 h-4 ${isSpeaking ? 'text-indigo-600 animate-pulse' : 'text-slate-500'}`} />
                     <span className="text-xs font-black text-slate-800">
@@ -885,7 +890,8 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <VoicePersonaSelector compact={true} onPersonaChange={() => { if (isSpeaking) handlePlayVoiceResponse(); }} />
                     {!isSpeaking ? (
                       <button
                         type="button"
@@ -896,7 +902,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                         <span>{isPaused ? 'Resume' : 'Listen'}</span>
                       </button>
                     ) : (
-                      <>
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={handlePauseVoice}
@@ -913,7 +919,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                         >
                           <Square className="w-3 h-3 fill-rose-600" />
                         </button>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>

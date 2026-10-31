@@ -26,6 +26,8 @@ import {
 import { ExamType, MockTest, ExamAttempt, IELTSPracticeTest, Band9EssayTemplate, UserProfile, AgeCohortId } from '../../types';
 import { IELTSPracticeService } from '../../services/ieltsPracticeService';
 import { AIService } from '../../services/aiService';
+import { StorageService } from '../../services/storage';
+import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
 import { tfngExercises, band9EssayTemplates, cueCardItems, ageCohorts } from '../../data/ageCohortsData';
 import { sound } from '../../utils/audio';
 import { calculateCohortFromDob } from '../../utils/userProfile';
@@ -114,8 +116,12 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
   const [cueTimer, setCueTimer] = useState(60);
   const [cueNotes, setCueNotes] = useState('');
   
-  // Practice tests state (1,100+ catalog)
-  const [practiceTests] = useState<IELTSPracticeTest[]>(() => IELTSPracticeService.getPracticeTests());
+  // Practice tests state (1,100+ catalog + dynamic nightly additions)
+  const [practiceTests] = useState<IELTSPracticeTest[]>(() => {
+    const base = IELTSPracticeService.getPracticeTests();
+    const stored = StorageService.getPracticeTests();
+    return [...stored, ...base];
+  });
   const [selectedPracticeModule, setSelectedPracticeModule] = useState<'Listening' | 'Reading' | 'Writing' | 'Speaking'>('Reading');
   const [activePracticeItem, setActivePracticeItem] = useState<IELTSPracticeTest | null>(null);
   const [practiceUserAnswer, setPracticeUserAnswer] = useState('');
@@ -633,18 +639,21 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
                 )}
 
                 {activePracticeItem.audioTranscript && (
-                  <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center justify-between">
+                  <div className="p-4 bg-white rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-bold text-slate-800">Audio Listening Simulation (Piper Engine)</p>
                       <p className="text-xs text-slate-500 italic">Click play to listen to audio passage</p>
                     </div>
-                    <button
-                      onClick={() => handlePlayAudio(activePracticeItem.audioTranscript!)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5"
-                    >
-                      <Volume2 className="w-4 h-4" />
-                      <span>Listen</span>
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <VoicePersonaSelector compact={true} />
+                      <button
+                        onClick={() => handlePlayAudio(activePracticeItem.audioTranscript!)}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                        <span>Listen</span>
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -734,7 +743,12 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
                         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                           {test.difficulty}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">{test.durationMinutes} min</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-400 font-mono" title="Ingested Timestamp">
+                            🕒 {test.timestamp ? test.timestamp.slice(0, 16) : (test.dateAdded || '2026-10-31')}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">{test.durationMinutes} min</span>
+                        </div>
                       </div>
                       <h4 className="font-black text-slate-900 group-hover:text-emerald-700 text-sm">{test.title}</h4>
                       <p className="text-xs text-slate-500 line-clamp-2">{test.prompt}</p>

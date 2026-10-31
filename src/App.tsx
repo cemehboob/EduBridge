@@ -43,7 +43,8 @@ import { FeedbackModal } from './components/feedback/FeedbackModal';
 import { UserGuideModal } from './components/guide/UserGuideModal';
 import { ResourceVaultModal } from './components/cohorts/ResourceVaultModal';
 import { triggerCelebration } from './utils/celebration';
-import { generateFivePracticeTestsBatch, generateOneHundredWordsBatch } from './services/scheduleJobService';
+import { generateFivePracticeTestsBatch, generateOneHundredWordsBatch, generatePracticeTestsBatch } from './services/scheduleJobService';
+import { IngestedItemRecord } from './types';
 
 export default function App() {
   // Global ecosystem state with offline persistence
@@ -100,6 +101,7 @@ export default function App() {
   const [auditLogs, setAuditLogs] = useState(() => StorageService.getAuditLogs());
   const [scheduledJobs, setScheduledJobs] = useState(() => StorageService.getScheduledJobs());
   const [vocabularyWords, setVocabularyWords] = useState(() => StorageService.getVocabularyWords());
+  const [ingestedLedger, setIngestedLedger] = useState<IngestedItemRecord[]>(() => StorageService.getIngestedItemsLedger());
 
   // Interactive Exercise runner state
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
@@ -322,17 +324,52 @@ export default function App() {
     const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
     if (jobId === 'job_exam_midnight_00') {
-      // Generate at least 5 complete daily practice tests covering PTE, TOEFL, OET, DET, and Cambridge English
-      const newTests = generateFivePracticeTestsBatch(Math.floor(mockTests.length / 5) + 1);
-      const updatedTests = [...mockTests, ...newTests];
+      // Generate at least 5 complete daily mock tests covering PTE, TOEFL, OET, DET, and Cambridge English
+      const newMockTests = generateFivePracticeTestsBatch(Math.floor(mockTests.length / 5) + 1, timestamp);
+      const updatedTests = [...mockTests, ...newMockTests];
       setMockTests(updatedTests);
       StorageService.saveMockTests(updatedTests);
 
+      // Secondly: Multi-exam test generator adds practice tests as well!
+      const newPracticeTests = generatePracticeTestsBatch(Math.floor(mockTests.length / 5) + 1, timestamp);
+      const existingPracticeTests = StorageService.getPracticeTests();
+      const updatedPracticeTests = [...newPracticeTests, ...existingPracticeTests];
+      StorageService.savePracticeTests(updatedPracticeTests);
+
+      // Record items into the Ingested Items Ledger with timestamp columns
+      const currentLedger = StorageService.getIngestedItemsLedger();
+      const newLedgerRecords: IngestedItemRecord[] = [
+        ...newMockTests.map((t, idx) => ({
+          id: `ing_mock_${Date.now()}_${idx}`,
+          timestamp,
+          jobId: 'job_exam_midnight_00',
+          jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+          itemType: 'Mock Test' as const,
+          itemTitle: t.title,
+          categoryOrExam: t.exam,
+          details: `${t.sections.length} Sections (${t.sections.map((s) => s.name).join(', ')}) · ${t.totalDurationMin} min`
+        })),
+        ...newPracticeTests.map((pt, idx) => ({
+          id: `ing_pt_${Date.now()}_${idx}`,
+          timestamp,
+          jobId: 'job_exam_midnight_00',
+          jobName: 'Nightly 00:00 Multi-Exam Test Generator',
+          itemType: 'Practice Test' as const,
+          itemTitle: pt.title,
+          categoryOrExam: `${pt.category} (${pt.module})`,
+          details: `${pt.difficulty} · ${pt.durationMinutes} min · Verified Answers & Explanations`
+        }))
+      ];
+      const updatedLedger = [...newLedgerRecords, ...currentLedger];
+      setIngestedLedger(updatedLedger);
+      StorageService.saveIngestedItemsLedger(updatedLedger);
+
+      const totalNewItems = newMockTests.length + newPracticeTests.length;
       const updatedJobs = scheduledJobs.map((j) =>
         j.id === jobId
           ? {
               ...j,
-              itemsGeneratedCount: j.itemsGeneratedCount + newTests.length,
+              itemsGeneratedCount: j.itemsGeneratedCount + totalNewItems,
               lastRunTimestamp: `Last executed: ${timestamp}`,
               status: 'completed' as const
             }
@@ -345,7 +382,7 @@ export default function App() {
         id: `log_${Date.now()}`,
         timestamp,
         user: 'cron_worker_00',
-        action: `CRON_SCHEDULE_EXECUTE: Added ${newTests.length} practice tests across PTE, TOEFL, OET, DET & Cambridge English`,
+        action: `CRON_SCHEDULE_EXECUTE: Added ${newMockTests.length} mock tests and ${newPracticeTests.length} practice tests across PTE, TOEFL, OET, DET & Cambridge English`,
         category: 'EXAM_EVAL',
         status: 'SUCCESS'
       };
@@ -354,10 +391,26 @@ export default function App() {
       StorageService.saveAuditLogs(updatedLogs);
     } else if (jobId === 'job_vocab_expansion_00') {
       // Generate at least 100 rich vocabulary words with phonetics and CEFR levels
-      const newWords = generateOneHundredWordsBatch(Math.floor(vocabularyWords.length / 100) + 1);
+      const newWords = generateOneHundredWordsBatch(Math.floor(vocabularyWords.length / 100) + 1, timestamp);
       const updatedWords = [...vocabularyWords, ...newWords];
       setVocabularyWords(updatedWords);
       StorageService.saveVocabularyWords(updatedWords);
+
+      // Record items into the Ingested Items Ledger with timestamp columns
+      const currentLedger = StorageService.getIngestedItemsLedger();
+      const newLedgerRecords: IngestedItemRecord[] = newWords.slice(0, 10).map((w, idx) => ({
+        id: `ing_word_${Date.now()}_${idx}`,
+        timestamp,
+        jobId: 'job_vocab_expansion_00',
+        jobName: 'Nightly Vocabulary Vault Expansion',
+        itemType: 'Vocabulary Word' as const,
+        itemTitle: `${w.word} (${w.phonetic})`,
+        categoryOrExam: `${w.category} (CEFR ${w.cefrLevel})`,
+        details: w.definition
+      }));
+      const updatedLedger = [...newLedgerRecords, ...currentLedger];
+      setIngestedLedger(updatedLedger);
+      StorageService.saveIngestedItemsLedger(updatedLedger);
 
       const updatedJobs = scheduledJobs.map((j) =>
         j.id === jobId
@@ -732,6 +785,7 @@ export default function App() {
               auditLogs={auditLogs}
               scheduledJobs={scheduledJobs}
               vocabularyWords={vocabularyWords}
+              ingestedLedger={ingestedLedger}
               users={users}
               featureFlags={featureFlags}
               feedbackTickets={feedbackTickets}

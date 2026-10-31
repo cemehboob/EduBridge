@@ -21,7 +21,10 @@ import {
   UserFeedbackTicket,
   UserGuideArticle,
   FontScale,
-  AgeCohortId
+  AgeCohortId,
+  IELTSPracticeTest,
+  IngestedItemRecord,
+  VoicePersona
 } from '../types';
 import {
   initialProfile,
@@ -39,7 +42,7 @@ import {
   initialDailyTasks,
   initialRevisions
 } from '../data/initialData';
-import { initialScheduledJobs, generateOneHundredWordsBatch } from './scheduleJobService';
+import { initialScheduledJobs, generateOneHundredWordsBatch, getInitialIngestedItemsLedger } from './scheduleJobService';
 import { initialUsers, initialFeatureFlags, initialFeedbackTickets, initialUserGuideArticles } from '../data/userManagementData';
 import { userAccountToProfile, calculateCohortFromDob } from '../utils/userProfile';
 
@@ -68,6 +71,9 @@ const KEYS = {
   USER_GUIDE: 'edubridge_user_guide_v1',
   FONT_SCALE: 'edubridge_font_scale_v1',
   ACTIVE_COHORT: 'edubridge_active_cohort_v1',
+  PRACTICE_TESTS: 'edubridge_practice_tests_v1',
+  INGESTED_LEDGER: 'edubridge_ingested_ledger_v1',
+  VOICE_PERSONA: 'edubridge_voice_persona_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp'
 };
 
@@ -181,6 +187,38 @@ export const StorageService = {
 
   getVocabularyWords: (): VocabularyWord[] => safeGet<VocabularyWord[]>(KEYS.VOCABULARY_WORDS, generateOneHundredWordsBatch(1)),
   saveVocabularyWords: (w: VocabularyWord[]): void => safeSet(KEYS.VOCABULARY_WORDS, w),
+
+  getPracticeTests: (): IELTSPracticeTest[] => safeGet<IELTSPracticeTest[]>(KEYS.PRACTICE_TESTS, []),
+  savePracticeTests: (tests: IELTSPracticeTest[]): void => safeSet(KEYS.PRACTICE_TESTS, tests),
+
+  getIngestedItemsLedger: (): IngestedItemRecord[] => safeGet<IngestedItemRecord[]>(KEYS.INGESTED_LEDGER, getInitialIngestedItemsLedger()),
+  saveIngestedItemsLedger: (ledger: IngestedItemRecord[]): void => safeSet(KEYS.INGESTED_LEDGER, ledger),
+
+  getVoicePersona: (): VoicePersona => {
+    const active = StorageService.getActiveUser();
+    if (active?.preferences?.personaVoice) return active.preferences.personaVoice;
+    try {
+      const raw = localStorage.getItem(KEYS.VOICE_PERSONA) as VoicePersona | null;
+      if (raw && ['man', 'woman', 'boy', 'girl'].includes(raw)) return raw;
+    } catch {}
+    return 'woman';
+  },
+  saveVoicePersona: (persona: VoicePersona): void => {
+    try {
+      localStorage.setItem(KEYS.VOICE_PERSONA, persona);
+    } catch {}
+    const active = StorageService.getActiveUser();
+    if (active) {
+      active.preferences = {
+        ...active.preferences,
+        personaVoice: persona
+      };
+      StorageService.saveUsers(StorageService.getUsers().map((u) => (u.id === active.id ? active : u)));
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('edubridge:persona-changed', { detail: { persona } }));
+    }
+  },
 
   // User Management stored in JSON
   getUsers: (): UserAccount[] => safeGet<UserAccount[]>(KEYS.USERS, initialUsers),
