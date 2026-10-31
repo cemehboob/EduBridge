@@ -490,39 +490,43 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
             <Award className="w-4 h-4" />
             <span>Timed Mock Exams</span>
           </button>
-          <button
-            onClick={() => { sound.playClick(); setActiveTabMode('tfng'); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
-              activeTabMode === 'tfng'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <CheckSquare className="w-4 h-4" />
-            <span>True/False/Not Given Simulator</span>
-          </button>
-          <button
-            onClick={() => { sound.playClick(); setActiveTabMode('task2'); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
-              activeTabMode === 'task2'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            <span>Band 9 Essay Injector</span>
-          </button>
-          <button
-            onClick={() => { sound.playClick(); setActiveTabMode('cuecard'); }}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
-              activeTabMode === 'cuecard'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <Mic className="w-4 h-4" />
-            <span>Speaking Cue Card Timer</span>
-          </button>
+          {!profile?.simplifiedInterface && userCohort !== 'early' && userCohort !== 'junior' && (
+            <>
+              <button
+                onClick={() => { sound.playClick(); setActiveTabMode('tfng'); }}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+                  activeTabMode === 'tfng'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <CheckSquare className="w-4 h-4" />
+                <span>True/False/Not Given Simulator</span>
+              </button>
+              <button
+                onClick={() => { sound.playClick(); setActiveTabMode('task2'); }}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+                  activeTabMode === 'task2'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>Band 9 Essay Injector</span>
+              </button>
+              <button
+                onClick={() => { sound.playClick(); setActiveTabMode('cuecard'); }}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+                  activeTabMode === 'cuecard'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <Mic className="w-4 h-4" />
+                <span>Speaking Cue Card Timer</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 

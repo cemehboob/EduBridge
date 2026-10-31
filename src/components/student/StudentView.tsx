@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { triggerCelebration } from '../../utils/celebration';
 import {
   TreePine,
@@ -73,6 +73,7 @@ interface StudentViewProps {
   onUpdateResume: (updated: ResumeData) => void;
   onOpenResourceVault: () => void;
   onCelebrate?: (type: 'daily_goal' | 'streak') => void;
+  onToggleSimplifiedInterface?: (simplified: boolean) => void;
 }
 
 export const StudentView: React.FC<StudentViewProps> = ({
@@ -95,10 +96,19 @@ export const StudentView: React.FC<StudentViewProps> = ({
   onAddTask,
   onUpdateResume,
   onOpenResourceVault,
-  onCelebrate
+  onCelebrate,
+  onToggleSimplifiedInterface
 }) => {
-  const defaultTab: StudentTab =
-    profile.ageCohort === 'early' || profile.ageCohort === 'senior' ? 'cohorts' : 'language';
+  const isKidMode = profile.simplifiedInterface !== undefined
+    ? profile.simplifiedInterface
+    : (profile.ageCohort === 'early' || profile.ageCohort === 'junior');
+
+  const visibleConfig = profile.visibleModules || {};
+
+  const defaultTab: StudentTab = isKidMode
+    ? (profile.ageCohort === 'early' ? 'cohorts' : 'language')
+    : (profile.ageCohort === 'early' || profile.ageCohort === 'senior' ? 'cohorts' : 'language');
+  
   const [activeTab, setActiveTab] = useState<StudentTab>(defaultTab);
   const [tutorInitialPrompt, setTutorInitialPrompt] = useState<string | undefined>(undefined);
   const [isBadgeGridExpanded, setIsBadgeGridExpanded] = useState(false);
@@ -107,23 +117,96 @@ export const StudentView: React.FC<StudentViewProps> = ({
   const badges = BadgeService.computeBadges(profile, vocabularyWords, units, mockTests, 3);
   const unlockedBadgesCount = badges.filter((b) => b.unlocked).length;
 
-  const tabs: { id: StudentTab; label: string; icon: React.ReactNode; badge?: string }[] = [
-    { id: 'cohorts', label: 'Universal Arena (5–100+)', icon: <Sparkles className="w-4 h-4 text-amber-500" />, badge: '5 Cohorts' },
+  const allTabs: { id: StudentTab; label: string; icon: React.ReactNode; badge?: string; isKidDefault?: boolean }[] = [
+    {
+      id: 'cohorts',
+      label: isKidMode ? '🧸 Story & Phonics Arena' : 'Universal Arena (5–100+)',
+      icon: <Sparkles className="w-4 h-4 text-amber-500" />,
+      badge: isKidMode ? 'Stories' : '5 Cohorts',
+      isKidDefault: profile.ageCohort === 'early' || !profile.targetExam
+    },
     {
       id: 'language',
-      label: profile.targetExam ? `${profile.targetExam} Tree` : 'Language Trees',
-      icon: <TreePine className="w-4 h-4" />,
-      badge: profile.targetBand || undefined
+      label: isKidMode
+        ? '🌳 Lesson Journey'
+        : (profile.targetExam ? `${profile.targetExam} Tree` : 'Language Trees'),
+      icon: <TreePine className="w-4 h-4 text-emerald-500" />,
+      badge: profile.targetBand || undefined,
+      isKidDefault: true
     },
-    { id: 'exam', label: 'Exam Prep (IELTS/PTE)', icon: <Award className="w-4 h-4" /> },
-    { id: 'vocab_quiz', label: 'Vocab Quiz', icon: <Brain className="w-4 h-4" />, badge: `${vocabularyWords.length} Words` },
-    { id: 'academic', label: 'STEM Academics', icon: <BookOpen className="w-4 h-4" /> },
-    { id: 'tutor', label: 'AI Mentor Bridge', icon: <Bot className="w-4 h-4" />, badge: '4 Models' },
-    { id: 'planner', label: 'Study Planner', icon: <Calendar className="w-4 h-4" /> },
-    { id: 'career', label: 'Career & Portfolio', icon: <Briefcase className="w-4 h-4" /> },
-    { id: 'leaderboard', label: 'Leaderboard & XP', icon: <Trophy className="w-4 h-4" /> },
-    { id: 'badges', label: 'Badges & Honors', icon: <Medal className="w-4 h-4" />, badge: `${unlockedBadgesCount}/${badges.length}` }
+    {
+      id: 'vocab_quiz',
+      label: isKidMode ? '⭐ Fun Word Quiz' : 'Vocab Quiz',
+      icon: <Brain className="w-4 h-4 text-indigo-500" />,
+      badge: isKidMode ? 'Stars' : `${vocabularyWords.length} Words`,
+      isKidDefault: true
+    },
+    {
+      id: 'exam',
+      label: isKidMode ? '🎯 Junior Practice Tests' : 'Exam Prep (IELTS/PTE)',
+      icon: <Award className="w-4 h-4 text-rose-500" />,
+      badge: isKidMode ? 'Junior' : undefined,
+      isKidDefault: profile.ageCohort === 'junior' || profile.ageCohort === 'early'
+    },
+    {
+      id: 'badges',
+      label: isKidMode ? '🏆 My Stars & Badges' : 'Badges & Honors',
+      icon: <Medal className="w-4 h-4 text-amber-500" />,
+      badge: `${unlockedBadgesCount}/${badges.length}`,
+      isKidDefault: true
+    },
+    {
+      id: 'tutor',
+      label: isKidMode ? '🤖 AI Study Buddy' : 'AI Mentor Bridge',
+      icon: <Bot className="w-4 h-4 text-blue-500" />,
+      badge: isKidMode ? 'Ask AI' : '4 Models',
+      isKidDefault: false
+    },
+    {
+      id: 'academic',
+      label: isKidMode ? '🔬 Science & Math Fun' : 'STEM Academics',
+      icon: <BookOpen className="w-4 h-4 text-purple-500" />,
+      isKidDefault: false
+    },
+    {
+      id: 'leaderboard',
+      label: isKidMode ? '🏅 Friends & Rankings' : 'Leaderboard & XP',
+      icon: <Trophy className="w-4 h-4 text-yellow-500" />,
+      isKidDefault: false
+    },
+    {
+      id: 'planner',
+      label: isKidMode ? '📅 Daily Schedule' : 'Study Planner',
+      icon: <Calendar className="w-4 h-4 text-teal-500" />,
+      isKidDefault: false
+    },
+    {
+      id: 'career',
+      label: isKidMode ? '💼 Future Dreams' : 'Career & Portfolio',
+      icon: <Briefcase className="w-4 h-4 text-slate-500" />,
+      isKidDefault: false
+    }
   ];
+
+  // Filter tabs according to simplified mode and user's visibleModules preferences
+  const visibleTabs = allTabs.filter((t) => {
+    // If explicitly disabled in user preferences, hide
+    if (visibleConfig[t.id] === false) return false;
+    // If explicitly enabled in user preferences, show
+    if (visibleConfig[t.id] === true) return true;
+    // In simplified kid-friendly mode, show kid defaults
+    if (isKidMode) {
+      return t.isKidDefault;
+    }
+    return true;
+  });
+
+  // Guarantee activeTab is valid among visibleTabs
+  useEffect(() => {
+    if (!visibleTabs.some((t) => t.id === activeTab) && visibleTabs.length > 0) {
+      setActiveTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs.length, isKidMode, profile.id]);
 
 
   const handleConsultAIFromAcademic = (topicTitle: string, formula?: string) => {
@@ -147,9 +230,9 @@ export const StudentView: React.FC<StudentViewProps> = ({
       
       {/* Student Sub-Navigation Bar */}
       <div className="border-b border-slate-200 bg-white shadow-2xs">
-        <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-          <nav aria-label="Student Learning Navigation" className="flex space-x-2 sm:space-x-4 overflow-x-auto py-2.5">
-            {tabs.map((tab) => {
+        <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex flex-col md:flex-row md:items-center justify-between gap-2 py-2">
+          <nav aria-label="Student Learning Navigation" className="flex space-x-2 sm:space-x-3 overflow-x-auto py-1">
+            {visibleTabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
@@ -160,7 +243,9 @@ export const StudentView: React.FC<StudentViewProps> = ({
                   }}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-xs'
+                      ? isKidMode
+                        ? 'bg-amber-500 text-white shadow-xs'
+                        : 'bg-indigo-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
@@ -168,7 +253,9 @@ export const StudentView: React.FC<StudentViewProps> = ({
                   <span>{tab.label}</span>
                   {tab.badge && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${
-                      isActive ? 'bg-indigo-800 text-indigo-100' : 'bg-slate-200 text-slate-700'
+                      isActive 
+                        ? (isKidMode ? 'bg-amber-700 text-amber-100' : 'bg-indigo-800 text-indigo-100')
+                        : 'bg-slate-200 text-slate-700'
                     }`}>
                       {tab.badge}
                     </span>
@@ -177,6 +264,27 @@ export const StudentView: React.FC<StudentViewProps> = ({
               );
             })}
           </nav>
+
+          {/* Quick Simplicity Mode Toggle in Navigation */}
+          {onToggleSimplifiedInterface && (
+            <div className="flex items-center gap-2 self-end md:self-auto shrink-0 pb-1 md:pb-0">
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  onToggleSimplifiedInterface(!isKidMode);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all border flex items-center gap-1.5 ${
+                  isKidMode
+                    ? 'bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+                title={isKidMode ? 'Switch to full interface view' : 'Switch to simple kid-friendly interface'}
+              >
+                <span>{isKidMode ? '🧸 Mode: Simple' : '⚙️ Mode: Full'}</span>
+                <span className="text-[10px] underline text-indigo-600 font-bold">Change</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

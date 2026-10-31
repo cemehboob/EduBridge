@@ -13,9 +13,13 @@ import {
   Shield,
   Save,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles,
+  Sliders,
+  Check,
+  Layout
 } from 'lucide-react';
-import { UserAccount, AgeCohortId, FontScale } from '../../types';
+import { UserAccount, AgeCohortId, FontScale, VisibleModulesConfig } from '../../types';
 import { sound } from '../../utils/audio';
 import { calculateAge, calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 
@@ -44,6 +48,24 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const [fontScale, setFontScale] = useState<FontScale>(
     user.preferences.fontScale || 'standard'
   );
+  const [simplifiedInterface, setSimplifiedInterface] = useState<boolean>(
+    user.preferences.simplifiedInterface !== undefined
+      ? user.preferences.simplifiedInterface
+      : (ageCohort === 'early' || ageCohort === 'junior')
+  );
+  const [visibleModules, setVisibleModules] = useState<Required<VisibleModulesConfig>>({
+    cohorts: user.preferences.visibleModules?.cohorts ?? true,
+    language: user.preferences.visibleModules?.language ?? true,
+    exam: user.preferences.visibleModules?.exam ?? (ageCohort !== 'early'),
+    vocab_quiz: user.preferences.visibleModules?.vocab_quiz ?? true,
+    academic: user.preferences.visibleModules?.academic ?? (ageCohort !== 'early'),
+    tutor: user.preferences.visibleModules?.tutor ?? true,
+    planner: user.preferences.visibleModules?.planner ?? (ageCohort !== 'early' && ageCohort !== 'junior'),
+    career: user.preferences.visibleModules?.career ?? (ageCohort !== 'early' && ageCohort !== 'junior'),
+    leaderboard: user.preferences.visibleModules?.leaderboard ?? true,
+    badges: user.preferences.visibleModules?.badges ?? true
+  });
+  const [showModuleCustomizer, setShowModuleCustomizer] = useState(false);
   const [prefLanguage, setPrefLanguage] = useState(user.preferences.preferredLanguage);
   const [targetExam, setTargetExam] = useState(user.preferences.targetExam || 'IELTS Academic');
   const [targetBand, setTargetBand] = useState(user.preferences.targetBand || '8.0 Band');
@@ -81,7 +103,9 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
         dailyGoalXp,
         ageCohort,
         educationLevel: calculatedEdu,
-        fontScale
+        fontScale,
+        simplifiedInterface,
+        visibleModules
       }
     };
 
@@ -257,7 +281,13 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
                 <label className="font-bold text-slate-700 block mb-1">Developmental Stage Cohort</label>
                 <select
                   value={ageCohort}
-                  onChange={(e) => setAgeCohort(e.target.value as AgeCohortId)}
+                  onChange={(e) => {
+                    const nextCohort = e.target.value as AgeCohortId;
+                    setAgeCohort(nextCohort);
+                    if (nextCohort === 'early' || nextCohort === 'junior') {
+                      setSimplifiedInterface(true);
+                    }
+                  }}
                   className="w-full p-2 rounded-xl border border-slate-300 text-xs font-semibold"
                 >
                   <option value="early">🧸 Little Explorers (Ages 5–8 Phonics)</option>
@@ -280,6 +310,112 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
                   <option value="xlarge">Extra Large (A++ - Senior &amp; Low-Vision)</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          {/* Interface Mode & Menu Visibility Controls */}
+          <div className="pt-2 border-t border-slate-100 space-y-3">
+            <span className="font-black text-slate-900 uppercase tracking-wider block text-[11px] flex items-center justify-between">
+              <span>Display Simplicity &amp; Menu Controls</span>
+              <span className="text-[10px] text-indigo-600 font-bold lowercase">age &amp; preference tailored</span>
+            </span>
+
+            {/* Simplified Kid-Friendly Mode Toggle */}
+            <div 
+              onClick={() => {
+                sound.playClick();
+                setSimplifiedInterface(!simplifiedInterface);
+              }}
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                simplifiedInterface 
+                  ? 'bg-amber-50/80 border-amber-300 shadow-2xs' 
+                  : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                  simplifiedInterface ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-900">
+                      {simplifiedInterface ? '🧸 Simple Child-Friendly Mode Active' : '⚙️ Standard Full Interface Active'}
+                    </span>
+                    {(ageCohort === 'early' || ageCohort === 'junior') && (
+                      <span className="text-[9px] font-black px-1.5 py-0.2 bg-amber-200 text-amber-900 rounded">
+                        Recommended for You
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {simplifiedInterface 
+                      ? 'Streamlines navigation into large, easy-to-use learning buttons without complex technical menus.'
+                      : 'Enables all modules including full exam prep, calculus, study planner, and career roadmaps.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className={`w-11 h-6 flex items-center rounded-full p-1 duration-200 shrink-0 ${
+                simplifiedInterface ? 'bg-amber-500 justify-end' : 'bg-slate-300 justify-start'
+              }`}>
+                <div className="bg-white w-4 h-4 rounded-full shadow-md transform" />
+              </div>
+            </div>
+
+            {/* Customize Visible Modules Dropdown */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setShowModuleCustomizer(!showModuleCustomizer);
+                }}
+                className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <Layout className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Enable / Disable Menu Options ({Object.values(visibleModules).filter(Boolean).length}/10 Active)</span>
+                </div>
+                <span className="text-slate-400 font-mono text-[11px]">{showModuleCustomizer ? '▲ Hide' : '▼ Customize'}</span>
+              </button>
+
+              {showModuleCustomizer && (
+                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {[
+                    { key: 'cohorts', label: '🧸 Story & Phonics Arena' },
+                    { key: 'language', label: '🌳 Language Learning Tree' },
+                    { key: 'vocab_quiz', label: '🧠 Vocabulary Quiz Hub' },
+                    { key: 'exam', label: '🎯 Practice Tests & Simulators' },
+                    { key: 'academic', label: '🔬 STEM Academics (Math/Sci)' },
+                    { key: 'tutor', label: '🤖 AI Mentor & Tutor Chat' },
+                    { key: 'planner', label: '📅 Daily Study Planner' },
+                    { key: 'career', label: '💼 Career & Resume Hub' },
+                    { key: 'leaderboard', label: '🏆 Leaderboards & League' },
+                    { key: 'badges', label: '🏅 Badges & Honors' }
+                  ].map(({ key, label }) => {
+                    const isEnabled = visibleModules[key as keyof VisibleModulesConfig];
+                    return (
+                      <label 
+                        key={key} 
+                        className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-indigo-300 transition-all"
+                      >
+                        <span className="font-semibold text-slate-800 text-[11px]">{label}</span>
+                        <input
+                          type="checkbox"
+                          checked={isEnabled}
+                          onChange={() => {
+                            sound.playClick();
+                            setVisibleModules(prev => ({ ...prev, [key]: !prev[key as keyof VisibleModulesConfig] }));
+                          }}
+                          className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

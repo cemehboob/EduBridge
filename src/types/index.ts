@@ -40,6 +40,21 @@ export interface UserProfile {
   dateOfBirth?: string;
   ageCohort?: AgeCohortId;
   educationLevel?: string;
+  simplifiedInterface?: boolean;
+  visibleModules?: VisibleModulesConfig;
+}
+
+export interface VisibleModulesConfig {
+  cohorts?: boolean;
+  language?: boolean;
+  exam?: boolean;
+  vocab_quiz?: boolean;
+  academic?: boolean;
+  tutor?: boolean;
+  planner?: boolean;
+  career?: boolean;
+  leaderboard?: boolean;
+  badges?: boolean;
 }
 
 // Language Module
@@ -376,6 +391,8 @@ export interface UserAccount {
     ageCohort?: AgeCohortId;
     educationLevel?: string;
     fontScale?: FontScale;
+    simplifiedInterface?: boolean;
+    visibleModules?: VisibleModulesConfig;
   };
   profileStats: {
     currentStreak: number;

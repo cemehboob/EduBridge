@@ -61,7 +61,11 @@ export function userAccountToProfile(user: UserAccount): UserProfile {
     preferredLanguage: user.preferences.preferredLanguage,
     dateOfBirth: user.dateOfBirth,
     ageCohort: cohort,
-    educationLevel: educationLevel
+    educationLevel: educationLevel,
+    simplifiedInterface: user.preferences.simplifiedInterface !== undefined
+      ? user.preferences.simplifiedInterface
+      : (cohort === 'early' || cohort === 'junior'),
+    visibleModules: user.preferences.visibleModules
   };
 }
 

@@ -481,6 +481,21 @@ export default function App() {
     }
   };
 
+  const handleToggleSimplifiedInterface = (simplified: boolean) => {
+    if (currentUser) {
+      const updatedUser: UserAccount = {
+        ...currentUser,
+        preferences: {
+          ...currentUser.preferences,
+          simplifiedInterface: simplified
+        }
+      };
+      handleUpdateCurrentUser(updatedUser);
+    } else {
+      setProfile((prev) => ({ ...prev, simplifiedInterface: simplified }));
+    }
+  };
+
   const handleToggleUserStatus = (userId: string) => {
     const updated = users.map((u) => {
       if (u.id === userId) {
@@ -680,6 +695,7 @@ export default function App() {
                   : `Day ${profile.currentStreak} completed. Your habit consistency is world-class!`
               });
             }}
+            onToggleSimplifiedInterface={handleToggleSimplifiedInterface}
           />
         )}
 

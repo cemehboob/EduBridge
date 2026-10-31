@@ -23,7 +23,8 @@ export const initialUsers: UserAccount[] = [
       emailNotifications: true,
       ageCohort: 'academy',
       educationLevel: 'High School & College Prep (Ages 15–24)',
-      fontScale: 'standard'
+      fontScale: 'standard',
+      simplifiedInterface: false
     },
     profileStats: {
       currentStreak: 14,
@@ -57,7 +58,8 @@ export const initialUsers: UserAccount[] = [
       emailNotifications: false,
       ageCohort: 'early',
       educationLevel: 'Early Primary & Phonics (Ages 5–8)',
-      fontScale: 'large'
+      fontScale: 'large',
+      simplifiedInterface: true
     },
     profileStats: {
       currentStreak: 8,
@@ -91,7 +93,8 @@ export const initialUsers: UserAccount[] = [
       emailNotifications: true,
       ageCohort: 'junior',
       educationLevel: 'Elementary & Middle School (Ages 9–14)',
-      fontScale: 'standard'
+      fontScale: 'standard',
+      simplifiedInterface: true
     },
     profileStats: {
       currentStreak: 19,
