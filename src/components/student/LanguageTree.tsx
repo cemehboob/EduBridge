@@ -11,25 +11,34 @@ import {
   ChevronRight,
   Flame,
   PartyPopper,
-  Globe
+  Globe,
+  ShieldCheck,
+  FileCheck2
 } from 'lucide-react';
 import { Unit, Lesson, UserProfile } from '../../types';
 import { sound } from '../../utils/audio';
 import { ieltsAcademicUnits } from '../../data/ieltsUnitsData';
+import { StorageService } from '../../services/storage';
+import { VerifiedTestConductionModal } from '../common/VerifiedTestConductionModal';
 
 interface LanguageTreeProps {
   units: Unit[];
+  ieltsUnits?: Unit[];
   profile: UserProfile;
   onStartLesson: (lesson: Lesson) => void;
   onCelebrate?: (type: 'daily_goal' | 'streak') => void;
+  onMarkLessonCompleted?: (lesson: Lesson, score?: number) => void;
 }
 
 export const LanguageTree: React.FC<LanguageTreeProps> = ({
   units,
+  ieltsUnits,
   profile,
   onStartLesson,
-  onCelebrate
+  onCelebrate,
+  onMarkLessonCompleted
 }) => {
+  const [isConductionModalOpen, setIsConductionModalOpen] = useState(false);
   const isGoalReached = profile.todayXp >= profile.dailyGoalXp;
   const dailyProgress = Math.min(100, Math.round((profile.todayXp / profile.dailyGoalXp) * 100));
 
@@ -48,7 +57,8 @@ export const LanguageTree: React.FC<LanguageTreeProps> = ({
     setActiveTrack(prefersIelts ? 'ielts' : 'spanish');
   }, [profile.targetExam, profile.preferredLanguage, prefersIelts]);
 
-  const displayedUnits = activeTrack === 'ielts' ? ieltsAcademicUnits : units;
+  const currentIeltsUnits = ieltsUnits && ieltsUnits.length > 0 ? ieltsUnits : StorageService.getIeltsUnits();
+  const displayedUnits = activeTrack === 'ielts' ? currentIeltsUnits : units;
 
   const handleCelebrateGoal = () => {
     sound.playClick();
@@ -196,13 +206,27 @@ export const LanguageTree: React.FC<LanguageTreeProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 shrink-0">
-            <Award className="w-4 h-4 text-indigo-600" />
-            <span>
-              {activeTrack === 'ielts'
-                ? `Target Band: ${profile.targetBand || '8.0 Band'} • C1/C2 Rubric`
-                : 'CEFR Level B2 Path'}
-            </span>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                sound.playClick();
+                setIsConductionModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-xl border border-emerald-300 transition-all shadow-2xs cursor-pointer active:scale-95"
+              title="View cryptographically verified audit records for all tests and lessons conducted by you"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Verified Conduction Ledger</span>
+            </button>
+
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
+              <Award className="w-4 h-4 text-indigo-600" />
+              <span>
+                {activeTrack === 'ielts'
+                  ? `Target Band: ${profile.targetBand || '8.0 Band'} • C1/C2 Rubric`
+                  : 'CEFR Level B2 Path'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -294,9 +318,32 @@ export const LanguageTree: React.FC<LanguageTreeProps> = ({
                           </div>
 
                           {/* Lesson Title label */}
-                          <div className="mt-2 text-center max-w-[200px]">
+                          <div className="mt-2 text-center max-w-[200px] flex flex-col items-center">
                             <p className="text-xs font-bold text-slate-800 line-clamp-1">{lesson.title}</p>
                             <p className="text-[11px] text-slate-400 line-clamp-1">{lesson.description}</p>
+                            
+                            {/* Verification & Conduction Status Pill */}
+                            <div className="mt-1 flex items-center gap-1">
+                              {lesson.completed ? (
+                                <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>Conducted ({lesson.score || 100}%)</span>
+                                </span>
+                              ) : onMarkLessonCompleted ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    sound.playClick();
+                                    onMarkLessonCompleted(lesson, 95);
+                                  }}
+                                  className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1 transition-all cursor-pointer"
+                                  title="Mark this lesson conducted and record verification timestamp"
+                                >
+                                  <CheckCircle2 className="w-3 h-3 text-indigo-600" />
+                                  <span>Mark Conducted</span>
+                                </button>
+                              ) : null}
+                            </div>
                           </div>
 
                         </div>
@@ -334,6 +381,13 @@ export const LanguageTree: React.FC<LanguageTreeProps> = ({
           );
         })}
       </div>
+
+      {/* Verified Conduction Ledger Modal */}
+      <VerifiedTestConductionModal
+        isOpen={isConductionModalOpen}
+        onClose={() => setIsConductionModalOpen(false)}
+        studentName={profile.name}
+      />
 
     </div>
   );

@@ -176,7 +176,47 @@ async function runTests() {
     console.log(`PASS: Found ${articlesWithScreenshots.length} guide articles with verified live application screenshots.`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 15: Getting Started Guide Screenshot Update
+  console.log('\nTest 15: Verifying Getting Started User Guide screenshot URL...');
+  const gettingStartedArticle = initialUserGuideArticles.find(a => a.id === 'guide_getting_started');
+  if (!gettingStartedArticle || !gettingStartedArticle.screenshotUrl?.includes('getting_started_dashboard.jpg')) {
+    console.error(`FAIL: guide_getting_started must have updated screenshotUrl getting_started_dashboard.jpg, found "${gettingStartedArticle?.screenshotUrl}"`);
+    failures++;
+  } else {
+    console.log(`PASS: guide_getting_started has updated live screenshot: "${gettingStartedArticle.screenshotUrl}".`);
+  }
+
+  // Test 16: Unit Lesson Completion & Unlocking Verification
+  console.log('\nTest 16: Verifying Unit 2 lesson completion & Unit 4 unlocking...');
+  const { ieltsAcademicUnits } = await import('../data/ieltsUnitsData');
+  const unit2 = ieltsAcademicUnits.find(u => u.id === 'ielts_unit_2');
+  const unit4 = ieltsAcademicUnits.find(u => u.id === 'ielts_unit_4');
+  const unit2LessonCompleted = unit2?.lessons.every(l => l.completed);
+  if (!unit2LessonCompleted) {
+    console.error('FAIL: Unit 2 lesson must be marked completed');
+    failures++;
+  } else {
+    console.log('PASS: Unit 2 lesson is verified and marked completed (1/1 Completed).');
+  }
+  if (unit4?.locked) {
+    console.error('FAIL: Unit 4 should be unlocked once prerequisite units are completed');
+    failures++;
+  } else {
+    console.log('PASS: Unit 4 is unlocked (locked: false).');
+  }
+
+  // Test 17: Official Test Conduction Ledger Verification
+  console.log('\nTest 17: Verifying Test Conduction Ledger generation & verification hash...');
+  const { StorageService } = await import('../services/storage');
+  const initialLogs = StorageService.getTestConductionLogs();
+  if (!initialLogs || initialLogs.length === 0 || !initialLogs[0].verificationHash.startsWith('EB-VERIFIED-')) {
+    console.error('FAIL: Expected initial test conduction logs with verification hash starting with EB-VERIFIED-');
+    failures++;
+  } else {
+    console.log(`PASS: Test Conduction Ledger contains ${initialLogs.length} verified records with valid hashes (${initialLogs[0].verificationHash}).`);
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 17 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

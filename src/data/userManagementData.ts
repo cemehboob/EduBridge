@@ -365,8 +365,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'student',
     summary: 'Master your credentials, profile preferences, daily study goals, and offline learning capabilities.',
     keywords: ['login', 'account', 'profile', 'password', 'dob', 'preferences', 'streak', 'xp'],
-    screenshotUrl: '/assets/guide/dashboard_learning_arena.jpg',
-    screenshotCaption: 'Interactive EduBridge Dashboard with Daily Study Progress, Unit Learning Tree, Arena, and League Leaderboard.',
+    screenshotUrl: '/assets/guide/getting_started_dashboard.jpg',
+    screenshotCaption: 'Getting Started with EduBridge: Student Learning Dashboard with Daily Study Target, Day 1 Streak Habit, Verified Conduction Ledger, and Course Track Units.',
     imagePlaceholder: {
       title: 'EduBridge Dashboard Architecture',
       caption: 'Visual overview of language trees, exam simulators, and AI mentorship.',

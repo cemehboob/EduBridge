@@ -24,8 +24,10 @@ import {
   AgeCohortId,
   IELTSPracticeTest,
   IngestedItemRecord,
-  VoicePersona
+  VoicePersona,
+  TestConductionRecord
 } from '../types';
+import { ieltsAcademicUnits } from '../data/ieltsUnitsData';
 import {
   initialProfile,
   initialUnits,
@@ -74,11 +76,14 @@ const KEYS = {
   PRACTICE_TESTS: 'edubridge_practice_tests_v1',
   INGESTED_LEDGER: 'edubridge_ingested_ledger_v1',
   VOICE_PERSONA: 'edubridge_voice_persona_v1',
+  IELTS_UNITS: 'edubridge_ielts_units_v1',
+  TEST_CONDUCTION_LOGS: 'edubridge_test_conduction_logs_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp'
 };
 
 function safeGet<T>(key: string, fallback: T): T {
   try {
+    if (typeof localStorage === 'undefined') return fallback;
     const raw = localStorage.getItem(key);
     if (!raw) return fallback;
     return JSON.parse(raw);
@@ -90,12 +95,84 @@ function safeGet<T>(key: string, fallback: T): T {
 
 function safeSet<T>(key: string, value: T): void {
   try {
+    if (typeof localStorage === 'undefined') return;
     localStorage.setItem(key, JSON.stringify(value));
     localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
   } catch (e) {
     console.error(`[EduBridge Storage] Failed to save key ${key}:`, e);
   }
 }
+
+export const initialTestConductionLogs: TestConductionRecord[] = [
+  {
+    id: 'tc_init_01',
+    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+    userEmail: 'alex.chen@edubridge.edu',
+    userName: 'Alex Chen',
+    userRole: 'student',
+    cohort: 'academy',
+    testType: 'LESSON_UNIT',
+    testId: 'ielts_lesson_2_1',
+    testTitle: 'Academic Writing Task 1: Describing Surges, Declines & Fluctuations',
+    category: 'IELTS Academic Track (Band 8.0+)',
+    score: '96%',
+    xpEarned: 30,
+    status: 'COMPLETED',
+    verificationHash: 'EB-VERIFIED-7A89F1',
+    details: 'Completed Task 1 trend identification and vocabulary exercises.'
+  },
+  {
+    id: 'tc_init_02',
+    timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
+    userEmail: 'alex.chen@edubridge.edu',
+    userName: 'Alex Chen',
+    userRole: 'student',
+    cohort: 'academy',
+    testType: 'LESSON_UNIT',
+    testId: 'ielts_lesson_3_1',
+    testTitle: 'Academic Writing Task 2: Formulating Nuanced Thesis Statements',
+    category: 'IELTS Academic Track (Band 8.0+)',
+    score: '94%',
+    xpEarned: 35,
+    status: 'COMPLETED',
+    verificationHash: 'EB-VERIFIED-5F11A4',
+    details: 'Constructed cohesive thesis and counter-argument framework.'
+  },
+  {
+    id: 'tc_init_03',
+    timestamp: new Date(Date.now() - 3600000 * 12).toISOString(),
+    userEmail: 'alex.chen@edubridge.edu',
+    userName: 'Alex Chen',
+    userRole: 'student',
+    cohort: 'academy',
+    testType: 'LESSON_UNIT',
+    testId: 'ielts_lesson_1_2',
+    testTitle: 'Formal Verb Collocations & Argument Validation',
+    category: 'IELTS Academic Track (Band 8.0+)',
+    score: '95%',
+    xpEarned: 35,
+    status: 'COMPLETED',
+    verificationHash: 'EB-VERIFIED-3B42C9',
+    details: 'Passed verbal collocations and pronunciation oral drill.'
+  },
+  {
+    id: 'tc_init_04',
+    timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
+    userEmail: 'alex.chen@edubridge.edu',
+    userName: 'Alex Chen',
+    userRole: 'student',
+    cohort: 'academy',
+    testType: 'PRACTICE_TEST',
+    testId: 'ielts_acad_reading_1',
+    testTitle: 'IELTS Academic Reading Practice Test #1',
+    category: 'IELTS Academic',
+    score: '100% (Correct)',
+    xpEarned: 25,
+    status: 'COMPLETED',
+    verificationHash: 'EB-VERIFIED-9E11F4',
+    details: 'Skimming and empirical inference validated against authentic rubric.'
+  }
+];
 
 export const StorageService = {
   getProfile: (): UserProfile => {
@@ -115,8 +192,59 @@ export const StorageService = {
     }
   },
 
-  getUnits: (): Unit[] => safeGet<Unit[]>(KEYS.UNITS, initialUnits),
+  getUnits: (): Unit[] => {
+    const units = safeGet<Unit[]>(KEYS.UNITS, initialUnits);
+    return units.map((u, idx, arr) => {
+      if (idx > 0 && arr[idx - 1].lessons.every((l) => l.completed)) {
+        return { ...u, locked: false };
+      }
+      return u;
+    });
+  },
   saveUnits: (u: Unit[]): void => safeSet(KEYS.UNITS, u),
+
+  getIeltsUnits: (): Unit[] => {
+    const units = safeGet<Unit[]>(KEYS.IELTS_UNITS, ieltsAcademicUnits);
+    return units.map((u, idx, arr) => {
+      if (idx > 0 && arr[idx - 1].lessons.every((l) => l.completed)) {
+        return { ...u, locked: false };
+      }
+      return u;
+    });
+  },
+  saveIeltsUnits: (u: Unit[]): void => safeSet(KEYS.IELTS_UNITS, u),
+
+  getTestConductionLogs: (): TestConductionRecord[] => {
+    return safeGet<TestConductionRecord[]>(KEYS.TEST_CONDUCTION_LOGS, initialTestConductionLogs);
+  },
+  saveTestConductionLogs: (logs: TestConductionRecord[]): void => safeSet(KEYS.TEST_CONDUCTION_LOGS, logs),
+  recordTestConduction: (data: Omit<TestConductionRecord, 'id' | 'timestamp' | 'verificationHash'>): TestConductionRecord => {
+    const timestamp = new Date().toISOString();
+    const hash = 'EB-VERIFIED-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const record: TestConductionRecord = {
+      ...data,
+      id: `tc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      timestamp,
+      verificationHash: hash
+    };
+    const existing = StorageService.getTestConductionLogs();
+    const updated = [record, ...existing];
+    StorageService.saveTestConductionLogs(updated);
+
+    // Also add to system audit logs so it appears in Admin Portal
+    const auditRecord: AuditLog = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+      timestamp,
+      user: data.userName || data.userEmail || 'Student',
+      action: `CONDUCTED_${data.testType}: ${data.testTitle} (${data.score || 'Completed'}) [${hash}]`,
+      category: 'EXAM_EVAL',
+      status: 'SUCCESS'
+    };
+    const currentAudit = StorageService.getAuditLogs();
+    StorageService.saveAuditLogs([auditRecord, ...currentAudit]);
+
+    return record;
+  },
 
   getMockTests: (): MockTest[] => {
     const existing = safeGet<MockTest[]>(KEYS.MOCK_TESTS, mockTests);
@@ -301,6 +429,8 @@ export const StorageService = {
     const backup = {
       profile: StorageService.getProfile(),
       units: StorageService.getUnits(),
+      ieltsUnits: StorageService.getIeltsUnits(),
+      testConductionLogs: StorageService.getTestConductionLogs(),
       mockTests: StorageService.getMockTests(),
       academics: StorageService.getAcademicTopics(),
       careers: StorageService.getCareerRoadmaps(),
@@ -319,6 +449,8 @@ export const StorageService = {
       const parsed = JSON.parse(jsonStr);
       if (parsed.profile) StorageService.saveProfile(parsed.profile);
       if (parsed.units) StorageService.saveUnits(parsed.units);
+      if (parsed.ieltsUnits) StorageService.saveIeltsUnits(parsed.ieltsUnits);
+      if (parsed.testConductionLogs) StorageService.saveTestConductionLogs(parsed.testConductionLogs);
       if (parsed.mockTests) StorageService.saveMockTests(parsed.mockTests);
       if (parsed.academics) StorageService.saveAcademicTopics(parsed.academics);
       if (parsed.careers) StorageService.saveCareerRoadmaps(parsed.careers);

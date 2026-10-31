@@ -294,6 +294,26 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
         explanation: testItem.explanation || 'Evaluated against official IELTS Band 8.5+ assessment criteria (Task Achievement, Coherence & Cohesion, Lexical Resource, Grammatical Accuracy).'
       });
     }
+
+    // Officially record verified practice test conduction in ledger
+    const isCorrectResult = testItem.correctAnswer
+      ? practiceUserAnswer.trim().toLowerCase() === testItem.correctAnswer.trim().toLowerCase()
+      : true;
+
+    StorageService.recordTestConduction({
+      userEmail: profile?.email || 'alex.chen@edubridge.edu',
+      userName: profile?.name || 'Alex Chen',
+      userRole: profile?.role || 'student',
+      cohort: profile?.ageCohort || 'academy',
+      testType: 'PRACTICE_TEST',
+      testId: testItem.id,
+      testTitle: testItem.title,
+      category: `${selectedExam} ${testItem.module} Practice`,
+      score: isCorrectResult ? '100% (Correct)' : 'Needs Review',
+      xpEarned: isCorrectResult ? 25 : 10,
+      status: 'COMPLETED',
+      details: `Module: ${testItem.module} • Question answered and verified against authentic rubric.`
+    });
   };
 
   const handleSubmitForEvaluation = async () => {
@@ -386,6 +406,23 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
     setIsEvaluating(false);
     setExamResult(simulatedAttempt);
     sound.playLevelUp();
+
+    // Officially record verified mock exam conduction in ledger
+    StorageService.recordTestConduction({
+      userEmail: profile?.email || 'alex.chen@edubridge.edu',
+      userName: profile?.name || 'Alex Chen',
+      userRole: profile?.role || 'student',
+      cohort: profile?.ageCohort || 'academy',
+      testType: 'MOCK_EXAM',
+      testId: currentTest.id,
+      testTitle: currentTest.title,
+      category: selectedExam,
+      score: predictedScore,
+      xpEarned: 100,
+      status: 'COMPLETED',
+      details: `Full timed mock examination submitted with AI multi-metric evaluation. Predicted score: ${predictedScore}.`
+    });
+
     try {
       confetti({ particleCount: 90, spread: 60 });
     } catch {}

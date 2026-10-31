@@ -86,6 +86,7 @@ export default function App() {
     subtitle: string;
   } | null>(null);
   const [units, setUnits] = useState(() => StorageService.getUnits());
+  const [ieltsUnits, setIeltsUnits] = useState(() => StorageService.getIeltsUnits());
   const [mockTests, setMockTests] = useState(() => StorageService.getMockTests());
   const [academicTopics, setAcademicTopics] = useState(() => StorageService.getAcademicTopics());
   const [ollamaModels, setOllamaModels] = useState(() => StorageService.getOllamaModels());
@@ -137,6 +138,7 @@ export default function App() {
   const refreshAllStateFromStorage = () => {
     setProfile(StorageService.getProfile());
     setUnits(StorageService.getUnits());
+    setIeltsUnits(StorageService.getIeltsUnits());
     setMockTests(StorageService.getMockTests());
     setAcademicTopics(StorageService.getAcademicTopics());
     setCareerRoadmaps(StorageService.getCareerRoadmaps());
@@ -154,16 +156,69 @@ export default function App() {
   const handleCompleteLesson = (xpEarned: number, score: number) => {
     if (!activeLesson) return;
 
-    // Update lesson status in units
-    const updatedUnits = units.map((u) => ({
-      ...u,
-      lessons: u.lessons.map((l) =>
-        l.id === activeLesson.id ? { ...l, completed: true, score } : l
-      )
-    }));
+    const isIelts =
+      activeLesson.id.startsWith('ielts_') ||
+      ieltsUnits.some((u) => u.lessons.some((l) => l.id === activeLesson.id));
 
-    setUnits(updatedUnits);
-    StorageService.saveUnits(updatedUnits);
+    if (isIelts) {
+      const updatedIelts = ieltsUnits.map((u) => {
+        const hasLesson = u.lessons.some((l) => l.id === activeLesson.id);
+        if (!hasLesson) return u;
+        return {
+          ...u,
+          lessons: u.lessons.map((l) =>
+            l.id === activeLesson.id ? { ...l, completed: true, score } : l
+          )
+        };
+      });
+
+      const finalIelts = updatedIelts.map((u, idx, arr) => {
+        if (idx > 0 && arr[idx - 1].lessons.every((l) => l.completed)) {
+          return { ...u, locked: false };
+        }
+        return u;
+      });
+
+      setIeltsUnits(finalIelts);
+      StorageService.saveIeltsUnits(finalIelts);
+    } else {
+      const updatedUnits = units.map((u) => {
+        const hasLesson = u.lessons.some((l) => l.id === activeLesson.id);
+        if (!hasLesson) return u;
+        return {
+          ...u,
+          lessons: u.lessons.map((l) =>
+            l.id === activeLesson.id ? { ...l, completed: true, score } : l
+          )
+        };
+      });
+
+      const finalUnits = updatedUnits.map((u, idx, arr) => {
+        if (idx > 0 && arr[idx - 1].lessons.every((l) => l.completed)) {
+          return { ...u, locked: false };
+        }
+        return u;
+      });
+
+      setUnits(finalUnits);
+      StorageService.saveUnits(finalUnits);
+    }
+
+    // Officially record verified test conduction log
+    StorageService.recordTestConduction({
+      userEmail: profile.email,
+      userName: profile.name,
+      userRole: profile.role,
+      cohort: profile.ageCohort || 'academy',
+      testType: 'LESSON_UNIT',
+      testId: activeLesson.id,
+      testTitle: activeLesson.title,
+      category: isIelts ? 'IELTS Academic Track (Band 8.0+)' : 'Spanish Language Track',
+      score: `${score}%`,
+      xpEarned,
+      status: 'COMPLETED',
+      details: `Completed interactive exercises with ${score}% proficiency.`
+    });
 
     // Update profile XP & streak
     const wasGoalReachedBefore = profile.todayXp >= profile.dailyGoalXp;
@@ -216,6 +271,13 @@ export default function App() {
         subtitle: `Awesome work completing "${activeLesson.title}"! Your daily habit momentum continues to grow.`
       });
     }
+  };
+
+  const handleMarkLessonCompleted = (lesson: Lesson, score = 95) => {
+    setActiveLesson(lesson);
+    setTimeout(() => {
+      handleCompleteLesson(lesson.xpReward, score);
+    }, 40);
   };
 
   // Chat messages handler
@@ -721,6 +783,7 @@ export default function App() {
             key={currentUser?.id || 'guest'}
             profile={profile}
             units={units}
+            ieltsUnits={ieltsUnits}
             mockTests={mockTests}
             academicTopics={academicTopics}
             ollamaModels={ollamaModels}
@@ -738,6 +801,7 @@ export default function App() {
             onAddTask={handleAddTask}
             onUpdateResume={handleUpdateResume}
             onOpenResourceVault={() => setIsResourceVaultOpen(true)}
+            onMarkLessonCompleted={handleMarkLessonCompleted}
             onCelebrate={(type) => {
               if (type === 'daily_goal') {
                 const todayKey = 'edubridge_daily_goal_celebrated_' + new Date().toISOString().slice(0, 10);

@@ -356,6 +356,26 @@ export interface AuditLog {
   status: 'SUCCESS' | 'INFO' | 'WARN';
 }
 
+export type TestConductionType = 'LESSON_UNIT' | 'MOCK_EXAM' | 'PRACTICE_TEST' | 'VOCAB_QUIZ' | 'QUESTION_SOLVER';
+
+export interface TestConductionRecord {
+  id: string;
+  timestamp: string;
+  userEmail: string;
+  userName: string;
+  userRole: string;
+  cohort?: string;
+  testType: TestConductionType;
+  testId: string;
+  testTitle: string;
+  category: string;
+  score?: number | string;
+  xpEarned?: number;
+  status: 'COMPLETED' | 'PASSED' | 'SUBMITTED';
+  verificationHash: string;
+  details?: string;
+}
+
 export interface ScheduledJob {
   id: string;
   name: string;

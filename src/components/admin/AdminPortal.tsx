@@ -31,6 +31,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Shield,
+  ShieldCheck,
   Calendar
 } from 'lucide-react';
 import {
@@ -43,9 +44,11 @@ import {
   FeatureFlag,
   UserFeedbackTicket,
   UserRole,
-  IngestedItemRecord
+  IngestedItemRecord,
+  TestConductionRecord
 } from '../../types';
 import { sound } from '../../utils/audio';
+import { StorageService } from '../../services/storage';
 
 interface AdminPortalProps {
   models: OllamaModelInfo[];
@@ -107,6 +110,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [replyTicketId, setReplyTicketId] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
   const [replyStatus, setReplyStatus] = useState<'Resolved' | 'Investigating'>('Resolved');
+  const [auditSubTab, setAuditSubTab] = useState<'conduction' | 'system'>('conduction');
 
   // Vocab Explorer state
   const [vocabSearch, setVocabSearch] = useState('');
@@ -1133,35 +1137,129 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
       {/* 7. Audit Logs Tab */}
       {activeAdminTab === 'audit' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Security &amp; Inference Audit Trail</h3>
-              <p className="text-xs text-slate-500">Immutable ledger of platform actions, model calls, and cron events.</p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Institutional Audit &amp; Conduction Ledgers</h3>
+              <p className="text-xs text-slate-500">Official cryptographic verification records confirming student test attempts and system actions.</p>
             </div>
-            <span className="text-xs font-mono text-slate-500">{auditLogs.length} Events Logged</span>
-          </div>
-
-          <div className="space-y-2">
-            {auditLogs.map((log) => (
-              <div
-                key={log.id}
-                className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono"
+            
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+              <button
+                onClick={() => setAuditSubTab('conduction')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                  auditSubTab === 'conduction'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    log.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {log.status}
-                  </span>
-                  <span className="text-slate-500">{log.timestamp}</span>
-                  <span className="font-bold text-slate-800">{log.action}</span>
-                </div>
+                <ShieldCheck className="w-4 h-4" />
+                <span>Test Conduction Ledger ({StorageService.getTestConductionLogs().length})</span>
+              </button>
 
-                <span className="text-slate-400 text-[11px] truncate sm:max-w-xs">{log.user}</span>
-              </div>
-            ))}
+              <button
+                onClick={() => setAuditSubTab('system')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                  auditSubTab === 'system'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Activity className="w-4 h-4" />
+                <span>Security Events ({auditLogs.length})</span>
+              </button>
+            </div>
           </div>
+
+          {auditSubTab === 'conduction' ? (
+            <div className="space-y-3">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs text-emerald-800 font-bold">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Tamper-evident log verifying learner test conduction, scores, and completion timestamps.</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider bg-emerald-200/60 px-2 py-0.5 rounded text-emerald-900 font-black">
+                  Cryptographic Proof
+                </span>
+              </div>
+
+              <div className="space-y-2.5 max-h-[500px] overflow-y-auto">
+                {StorageService.getTestConductionLogs().map((record: TestConductionRecord) => (
+                  <div
+                    key={record.id}
+                    className="p-4 bg-slate-50 hover:bg-white rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-all hover:border-indigo-300 hover:shadow-xs"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-[10px] bg-slate-200 text-slate-800 px-2 py-0.5 rounded font-bold">
+                          {record.verificationHash}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          record.testType === 'LESSON_UNIT'
+                            ? 'bg-blue-100 text-blue-800'
+                            : record.testType === 'MOCK_EXAM'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {record.testType.replace('_', ' ')}
+                        </span>
+                        <span className="text-slate-400 text-[11px]">
+                          {new Date(record.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      <span className="font-bold text-slate-900 text-sm block">{record.testTitle}</span>
+                      <div className="text-[11px] text-slate-500 flex items-center gap-2">
+                        <span>User: <strong className="text-slate-700">{record.userName}</strong> ({record.userEmail})</span>
+                        <span>•</span>
+                        <span>Category: <strong className="text-slate-700">{record.category}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1.5 shrink-0">
+                      <span className="font-mono text-sm font-black text-indigo-700">
+                        {record.score || 'Completed'}
+                      </span>
+                      {record.xpEarned && (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                          +{record.xpEarned} XP
+                        </span>
+                      )}
+                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        {record.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {auditLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      log.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {log.status}
+                    </span>
+                    <span className="text-slate-500">{log.timestamp}</span>
+                    <span className="font-bold text-slate-800">{log.action}</span>
+                  </div>
+
+                  <span className="text-slate-400 text-[11px] truncate sm:max-w-xs">{log.user}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

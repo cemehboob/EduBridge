@@ -66,6 +66,7 @@ interface StudentViewProps {
   resume: ResumeData;
   certificates: CertificateItem[];
   vocabularyWords?: VocabularyWord[];
+  ieltsUnits?: Unit[];
   onStartLesson: (lesson: Lesson) => void;
   onSendMessage: (msg: ChatMessage) => void;
   onToggleTask: (taskId: string) => void;
@@ -75,11 +76,13 @@ interface StudentViewProps {
   onOpenResourceVault: () => void;
   onCelebrate?: (type: 'daily_goal' | 'streak') => void;
   onToggleSimplifiedInterface?: (simplified: boolean) => void;
+  onMarkLessonCompleted?: (lesson: Lesson, score?: number) => void;
 }
 
 export const StudentView: React.FC<StudentViewProps> = ({
   profile,
   units,
+  ieltsUnits,
   mockTests,
   academicTopics,
   ollamaModels,
@@ -98,7 +101,8 @@ export const StudentView: React.FC<StudentViewProps> = ({
   onUpdateResume,
   onOpenResourceVault,
   onCelebrate,
-  onToggleSimplifiedInterface
+  onToggleSimplifiedInterface,
+  onMarkLessonCompleted
 }) => {
   const isKidMode = profile.simplifiedInterface !== undefined
     ? profile.simplifiedInterface
@@ -542,9 +546,11 @@ export const StudentView: React.FC<StudentViewProps> = ({
         {activeTab === 'language' && (
           <LanguageTree
             units={units}
+            ieltsUnits={ieltsUnits}
             profile={profile}
             onStartLesson={onStartLesson}
             onCelebrate={onCelebrate}
+            onMarkLessonCompleted={onMarkLessonCompleted}
           />
         )}
 

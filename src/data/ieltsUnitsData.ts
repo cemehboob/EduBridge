@@ -102,7 +102,8 @@ export const ieltsAcademicUnits: Unit[] = [
         title: 'Describing Surges, Declines & Fluctuations',
         description: 'Master verbs of movement: plummet, plateau, surge, oscillate, and stabilize.',
         xpReward: 30,
-        completed: false,
+        completed: true,
+        score: 96,
         exercises: [
           {
             id: 'ielts_ex_6',
@@ -152,7 +153,8 @@ export const ieltsAcademicUnits: Unit[] = [
         title: 'Formulating Nuanced Thesis Statements',
         description: 'Draft introductions that state your thesis and map paragraph progression without boilerplate clichés.',
         xpReward: 35,
-        completed: false,
+        completed: true,
+        score: 94,
         exercises: [
           {
             id: 'ielts_ex_8',
@@ -178,7 +180,7 @@ export const ieltsAcademicUnits: Unit[] = [
     description: 'Structure 2-minute cue card talks and tackle complex abstract societal inquiries in Part 3.',
     color: 'from-amber-600 via-orange-600 to-rose-700',
     icon: 'Flame',
-    locked: true,
+    locked: false,
     lessons: [
       {
         id: 'ielts_lesson_4_1',

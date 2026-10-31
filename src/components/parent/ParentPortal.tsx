@@ -8,11 +8,13 @@ import {
   CheckCircle2,
   HeartHandshake,
   Shield,
+  ShieldCheck,
   Sparkles,
   Send
 } from 'lucide-react';
 import { ChildProgress } from '../../types';
 import { sound } from '../../utils/audio';
+import { StorageService } from '../../services/storage';
 
 interface ParentPortalProps {
   progress: ChildProgress;
@@ -159,6 +161,48 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ progress }) => {
                   <span className="font-semibold text-indigo-700 bg-white px-2.5 py-1 rounded-lg border border-indigo-100">
                     {act.result}
                   </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Verified Test & Lesson Conduction Ledger (Parent Oversight) */}
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-extrabold text-slate-900 text-base">Verified Test Conduction Proof</h3>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                Official Audit
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">
+              Verified proof confirming that tests, assessments, and lessons were authentically conducted by {progress.childName}.
+            </p>
+            <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+              {StorageService.getTestConductionLogs().slice(0, 5).map((log) => (
+                <div key={log.id} className="p-3 bg-slate-50/80 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-slate-600">
+                        {log.verificationHash}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(log.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-800 block">{log.testTitle}</span>
+                    <span className="text-[11px] text-slate-500">{log.category}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-bold text-indigo-700 bg-white px-2.5 py-1 rounded-lg border border-indigo-100 font-mono">
+                      {log.score || 'Conducted'}
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded">
+                      Verified
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
