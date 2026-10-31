@@ -1091,3 +1091,4 @@ export class MathSolverEngine {
     return { integral, workSteps: steps };
   }
 }
+

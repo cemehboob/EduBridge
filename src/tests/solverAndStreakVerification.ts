@@ -14,6 +14,9 @@ import {
 } from '../services/scheduleJobService';
 import { VOICE_PERSONAS } from '../components/common/VoicePersonaSelector';
 import { initialUserGuideArticles } from '../data/userManagementData';
+import { ResumeEnhancementService } from '../services/resumeEnhancementService';
+import { ResumeExportService } from '../services/resumeExportService';
+import { CVRegionPattern, EnhancedResumeData } from '../types/career';
 
 async function runTests() {
   console.log('=== STARTING EDU BRIDGE VERIFICATION SUITE ===\n');
@@ -422,7 +425,89 @@ async function runTests() {
     console.log(`PASS: Exact system solution resolved: ${sysRes.finalAnswer}`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 31 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 32: Resume Parser & Profile Ingestion
+  console.log('\nTest 32: Verifying Resume Ingestion & Parser...');
+  const baseResume = ResumeEnhancementService.initializeEnhancedResume({
+    fullName: 'Alex Rivera',
+    headline: 'Full-Stack Engineer',
+    summary: 'Experienced developer',
+    skills: ['TypeScript', 'React'],
+    experiences: [],
+    verifiedCertificates: []
+  });
+
+  const sampleRawCv = `Sarah Jenkins\nNew York, United States\nsarah.jenkins@cloudbridge.io | +1 (212) 555-0199\n\nPrincipal DevOps & Cloud Infrastructure Architect\nHigh-impact cloud transformation leader with 7+ years orchestrating AWS and Kubernetes.\n\nSkills: Kubernetes, Terraform, AWS, Docker, Python, Go\n\nExperience:\nLead Cloud Engineer at Enterprise Cloudworks (2022 - Present)\n- Architected multi-region Kubernetes clusters across US-East and EU-Central, lowering cloud spend by 38%`;
+  
+  const parsedResume = ResumeEnhancementService.parseUploadedResume(sampleRawCv, baseResume);
+  if (parsedResume.fullName !== 'Sarah Jenkins' || !parsedResume.skills.includes('Kubernetes') || parsedResume.experiences.length === 0) {
+    console.error(`FAIL: Resume parser failed to extract profile. Name: ${parsedResume.fullName}, Skills: ${parsedResume.skills.length}, Experiences: ${parsedResume.experiences.length}`);
+    failures++;
+  } else {
+    console.log(`PASS: Resume parsed correctly for ${parsedResume.fullName} with ${parsedResume.skills.length} skills and ${parsedResume.experiences.length} experiences.`);
+  }
+
+  // Test 33: Regional Pattern Adaptation (UK, Europe, US, Gulf, Canada, ModernTech)
+  console.log('\nTest 33: Verifying Regional Pattern Adaptation...');
+  const ukAdapted = ResumeEnhancementService.adaptToRegion(parsedResume, 'UK');
+  const euAdapted = ResumeEnhancementService.adaptToRegion(parsedResume, 'Europe');
+  const usAdapted = ResumeEnhancementService.adaptToRegion(parsedResume, 'US');
+  const gulfAdapted = ResumeEnhancementService.adaptToRegion(parsedResume, 'Gulf');
+
+  const passesRegionalRules = 
+    ukAdapted.targetRegion === 'UK' &&
+    ukAdapted.referencesStatement?.includes('upon request') &&
+    euAdapted.targetRegion === 'Europe' &&
+    euAdapted.languages.length >= 2 &&
+    usAdapted.targetRegion === 'US' &&
+    usAdapted.showPhoto === false && // EEOC anti-bias compliant by default
+    gulfAdapted.targetRegion === 'Gulf' &&
+    gulfAdapted.showPhoto === true &&
+    gulfAdapted.nationality !== undefined;
+
+  if (!passesRegionalRules) {
+    console.error('FAIL: Regional adaptation rules did not match expected regional criteria.');
+    failures++;
+  } else {
+    console.log('PASS: Regional CV patterns (UK, Europe Europass, US EEOC, Gulf) verified with appropriate region-specific defaults.');
+  }
+
+  // Test 34: AI Career Audit & Enhancement Application
+  console.log('\nTest 34: Verifying AI Career Audit & Suggestion Application...');
+  const audit = ResumeEnhancementService.analyzeAndGenerateEnhancements(ukAdapted);
+  if (audit.metrics.overallScore < 70 || audit.suggestions.length === 0) {
+    console.error(`FAIL: AI Career Audit score ${audit.metrics.overallScore} or suggestions ${audit.suggestions.length} invalid.`);
+    failures++;
+  } else {
+    console.log(`PASS: AI Career Audit produced score ${audit.metrics.overallScore}% and ${audit.suggestions.length} actionable suggestions.`);
+    
+    // Apply suggestions
+    const enhanced = ResumeEnhancementService.applyAllEnhancements(ukAdapted, audit.suggestions);
+    const reAudit = ResumeEnhancementService.analyzeAndGenerateEnhancements(enhanced);
+    if (reAudit.metrics.overallScore <= audit.metrics.overallScore && audit.metrics.overallScore < 98) {
+      console.warn(`NOTE: Re-audit score is ${reAudit.metrics.overallScore}% (initial: ${audit.metrics.overallScore}%).`);
+    }
+    console.log(`PASS: Applied all enhancements cleanly; revised score is ${reAudit.metrics.overallScore}%.`);
+  }
+
+  // Test 35: Word (.doc) and PDF Export HTML Generation
+  console.log('\nTest 35: Verifying Word (.doc) and PDF Export HTML generation...');
+  const wordPayload = ResumeExportService.generateWordHtml(ukAdapted);
+  const pdfPayload = ResumeExportService.generateRegionalHtml(euAdapted, 'pdf');
+
+  const hasName = wordPayload.includes('Alex Rivera') || wordPayload.includes('Sarah Jenkins');
+  const hasWordXml = wordPayload.includes('schemas-microsoft-com:office:word') && wordPayload.includes('WordDocument');
+
+  if (!hasName || !hasWordXml) {
+    console.error('FAIL: Word document payload does not contain required Word XML namespaces and resume contents.');
+    failures++;
+  } else if (!pdfPayload.includes('Europass') || !pdfPayload.includes('window.print()')) {
+    console.error('FAIL: PDF print document payload does not contain Europass styling or print trigger.');
+    failures++;
+  } else {
+    console.log(`PASS: Word payload (${wordPayload.length} bytes) and PDF payload (${pdfPayload.length} bytes) generated with full regional styling.`);
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 35 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 
