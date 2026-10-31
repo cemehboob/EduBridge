@@ -1,0 +1,6 @@
+{
+  "name": "EduBridge",
+  "description": "Enterprise AI-powered educational ecosystem combining language learning, exam preparation (IELTS/PTE), academic mastery, career guidance, and AI mentoring.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
