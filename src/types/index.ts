@@ -17,7 +17,6 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  avatar: string;
   role: UserRole;
   currentStreak: number;
   highestStreak: number;
@@ -75,7 +74,24 @@ export interface Unit {
 }
 
 // Exam Preparation Module (E2Language style)
-export type ExamType = 'IELTS' | 'PTE' | 'TOEFL' | 'OET' | 'DET' | 'Cambridge English';
+export type ExamType = 'IELTS Academic' | 'IELTS General Training' | 'IELTS' | 'PTE' | 'TOEFL' | 'OET' | 'DET' | 'Cambridge English';
+
+export interface IELTSPracticeTest {
+  id: string;
+  category: 'IELTS Academic' | 'IELTS General Training';
+  module: 'Listening' | 'Reading' | 'Writing' | 'Speaking';
+  title: string;
+  difficulty: 'Foundation' | 'Standard' | 'Advanced';
+  durationMinutes: number;
+  questionCount: number;
+  prompt: string;
+  passage?: string;
+  audioTranscript?: string;
+  options?: string[];
+  correctAnswer?: string;
+  sampleAnswer?: string;
+  completed?: boolean;
+}
 
 export interface ExamSection {
   id: string;
@@ -246,7 +262,6 @@ export interface CertificateItem {
 // Parent Portal
 export interface ChildProgress {
   childName: string;
-  avatar: string;
   weeklyHours: number;
   weeklyTargetHours: number;
   xpEarnedThisWeek: number;
@@ -334,7 +349,6 @@ export interface UserAccount {
   email: string;
   password: string; // simulated credentials
   dateOfBirth: string; // e.g. "2002-05-14"
-  avatar: string;
   role: UserRole;
   status: 'active' | 'disabled';
   createdAt: string;

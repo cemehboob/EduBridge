@@ -38,16 +38,14 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ progress }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+    <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-8 pb-12">
       
       {/* Top Banner */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <img
-            src={progress.avatar}
-            alt={progress.childName}
-            className="w-16 h-16 rounded-2xl object-cover ring-4 ring-indigo-100 shadow-sm"
-          />
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-teal-500 text-white font-black text-xl flex items-center justify-center ring-4 ring-indigo-100 shadow-sm">
+            {progress.childName.slice(0, 2).toUpperCase()}
+          </div>
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600">
               <Users className="w-4 h-4" />

@@ -107,7 +107,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       email: regEmail.trim().toLowerCase(),
       password: regPassword,
       dateOfBirth: regDob,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       role: regRole,
       status: 'active',
       createdAt: new Date().toISOString().split('T')[0],
@@ -262,7 +261,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       className="p-2.5 rounded-xl border border-slate-200 hover:border-indigo-400 bg-slate-50 hover:bg-white text-left transition-all"
                     >
                       <div className="flex items-center gap-2">
-                        <img src={u.avatar} alt={u.name} className="w-6 h-6 rounded-full object-cover" />
+                        <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-black text-[10px] flex items-center justify-center">
+                          {u.name.slice(0, 2).toUpperCase()}
+                        </div>
                         <div className="truncate">
                           <p className="text-xs font-bold text-slate-900 truncate">{u.name}</p>
                           <p className="text-[10px] text-indigo-600 font-semibold uppercase">{u.role}</p>

@@ -1,3 +1,8 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState } from 'react';
 import {
   Trophy,
@@ -23,7 +28,6 @@ import { triggerCelebration } from '../../utils/celebration';
 interface LeaderboardUser {
   rank: number;
   name: string;
-  avatar: string;
   xp: number;
   streak: number;
   league: 'Diamond' | 'Ruby' | 'Sapphire' | 'Gold' | 'Silver' | 'Bronze';
@@ -48,7 +52,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 1,
       name: 'Elena Rostova',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
       xp: 4890,
       streak: 34,
       league: 'Ruby',
@@ -62,7 +65,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 2,
       name: 'Taro Takahashi',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
       xp: 4210,
       streak: 22,
       league: 'Ruby',
@@ -76,7 +78,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 3,
       name: `${profile.name} (You)`,
-      avatar: profile.avatar,
       xp: profile.xp,
       streak: profile.currentStreak,
       league: profile.league,
@@ -90,7 +91,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 4,
       name: 'Marcus Sterling',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
       xp: 3250,
       streak: 12,
       league: 'Ruby',
@@ -104,7 +104,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 5,
       name: 'Sofia Chen',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
       xp: 3100,
       streak: 19,
       league: 'Ruby',
@@ -118,7 +117,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 6,
       name: 'Devon Vance',
-      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=80',
       xp: 2890,
       streak: 9,
       league: 'Ruby',
@@ -132,7 +130,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 7,
       name: 'Amina Al-Mansoor',
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&auto=format&fit=crop&q=80',
       xp: 2600,
       streak: 15,
       league: 'Ruby',
@@ -146,40 +143,37 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 8,
       name: 'Lucas Meyer',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80',
       xp: 2420,
-      streak: 11,
+      streak: 7,
       league: 'Ruby',
       movement: 'up',
       deltaRanks: 1,
       isCurrentUser: false,
       country: 'Germany',
       cohort: 'Cohort Beta',
-      topBadge: 'Relativity Analyst'
+      topBadge: 'Full-Stack Builder'
     }
   ];
 
   const globalAllTimeUsers: LeaderboardUser[] = [
     {
       rank: 1,
-      name: 'Dr. Kenji Sato',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=80',
-      xp: 42800,
-      streak: 182,
+      name: 'Taro Takahashi',
+      xp: 44200,
+      streak: 120,
       league: 'Diamond',
       movement: 'same',
       deltaRanks: 0,
       isCurrentUser: false,
       country: 'Japan',
-      cohort: 'Alumni Fellow',
-      topBadge: 'Legendary Pioneer'
+      cohort: 'Cohort Alpha',
+      topBadge: 'Legendary Scholar'
     },
     {
       rank: 2,
       name: 'Elena Rostova',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
       xp: 38900,
-      streak: 34,
+      streak: 94,
       league: 'Diamond',
       movement: 'same',
       deltaRanks: 0,
@@ -191,8 +185,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 3,
       name: `${profile.name} (You)`,
-      avatar: profile.avatar,
-      xp: 31420,
+      xp: profile.xp + 28000,
       streak: profile.currentStreak,
       league: 'Diamond',
       movement: 'up',
@@ -205,30 +198,28 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 4,
       name: 'Liam O’Connor',
-      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=80',
       xp: 28150,
       streak: 84,
-      league: 'Ruby',
+      league: 'Diamond',
       movement: 'down',
       deltaRanks: 1,
       isCurrentUser: false,
       country: 'Ireland',
-      cohort: 'Cohort Beta',
-      topBadge: 'PTE Master'
+      cohort: 'Cohort Alpha',
+      topBadge: 'STEM Master'
     },
     {
       rank: 5,
-      name: 'Chen Wei',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
+      name: 'Amina Al-Mansoor',
       xp: 26400,
-      streak: 65,
-      league: 'Ruby',
+      streak: 76,
+      league: 'Diamond',
       movement: 'up',
       deltaRanks: 1,
       isCurrentUser: false,
-      country: 'Singapore',
-      cohort: 'Cohort Alpha',
-      topBadge: 'Algorithmic Proof'
+      country: 'UAE',
+      cohort: 'Cohort Gamma',
+      topBadge: 'Polyglot Elite'
     }
   ];
 
@@ -236,7 +227,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     {
       rank: 1,
       name: 'Taro Takahashi',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
       xp: 4210,
       streak: 22,
       league: 'Ruby',
@@ -249,26 +239,11 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     },
     {
       rank: 2,
-      name: `${profile.name} (You)`,
-      avatar: profile.avatar,
-      xp: profile.xp,
-      streak: profile.currentStreak,
-      league: profile.league,
-      movement: 'up',
-      deltaRanks: 1,
-      isCurrentUser: true,
-      country: 'Global',
-      cohort: 'Cohort Alpha',
-      topBadge: 'Band 8 Visionary'
-    },
-    {
-      rank: 3,
       name: 'Marcus Sterling',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
       xp: 3250,
       streak: 12,
       league: 'Ruby',
-      movement: 'down',
+      movement: 'up',
       deltaRanks: 1,
       isCurrentUser: false,
       country: 'UK',
@@ -276,68 +251,50 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
       topBadge: 'IELTS Scholar'
     },
     {
+      rank: 3,
+      name: `${profile.name} (You)`,
+      xp: profile.xp,
+      streak: profile.currentStreak,
+      league: profile.league,
+      movement: 'up',
+      deltaRanks: 2,
+      isCurrentUser: true,
+      country: 'Global',
+      cohort: 'Cohort Alpha',
+      topBadge: 'Band 8 Visionary'
+    },
+    {
       rank: 4,
       name: 'Sofia Chen',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
       xp: 3100,
       streak: 19,
       league: 'Ruby',
-      movement: 'same',
-      deltaRanks: 0,
+      movement: 'up',
+      deltaRanks: 3,
       isCurrentUser: false,
       country: 'Canada',
       cohort: 'Cohort Alpha',
       topBadge: 'Phonetic Master'
-    },
-    {
-      rank: 5,
-      name: 'Jordan Blake',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80',
-      xp: 2750,
-      streak: 8,
-      league: 'Sapphire',
-      movement: 'up',
-      deltaRanks: 2,
-      isCurrentUser: false,
-      country: 'USA',
-      cohort: 'Cohort Alpha',
-      topBadge: 'STEM Pioneer'
     }
   ];
 
   const classAllTimeUsers: LeaderboardUser[] = [
     {
       rank: 1,
-      name: `${profile.name} (You)`,
-      avatar: profile.avatar,
-      xp: 31420,
-      streak: profile.currentStreak,
-      league: 'Diamond',
-      movement: 'same',
-      deltaRanks: 0,
-      isCurrentUser: true,
-      country: 'Global',
-      cohort: 'Cohort Alpha',
-      topBadge: 'Cohort Champion'
-    },
-    {
-      rank: 2,
       name: 'Taro Takahashi',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
-      xp: 29800,
-      streak: 22,
-      league: 'Ruby',
+      xp: 44200,
+      streak: 120,
+      league: 'Diamond',
       movement: 'same',
       deltaRanks: 0,
       isCurrentUser: false,
       country: 'Japan',
       cohort: 'Cohort Alpha',
-      topBadge: 'Calculus Ace'
+      topBadge: 'Legendary Scholar'
     },
     {
-      rank: 3,
+      rank: 2,
       name: 'Marcus Sterling',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
       xp: 24300,
       streak: 12,
       league: 'Ruby',
@@ -349,9 +306,21 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
       topBadge: 'IELTS Scholar'
     },
     {
+      rank: 3,
+      name: `${profile.name} (You)`,
+      xp: profile.xp + 28000,
+      streak: profile.currentStreak,
+      league: 'Diamond',
+      movement: 'up',
+      deltaRanks: 2,
+      isCurrentUser: true,
+      country: 'Global',
+      cohort: 'Cohort Alpha',
+      topBadge: 'Band 8 Visionary'
+    },
+    {
       rank: 4,
       name: 'Sofia Chen',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
       xp: 22100,
       streak: 19,
       league: 'Ruby',
@@ -364,7 +333,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
     }
   ];
 
-  // Pick dataset according to active tab selections
   const activeDataset: LeaderboardUser[] =
     scope === 'global'
       ? timeframe === 'weekly'
@@ -377,7 +345,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
   const currentUserData = activeDataset.find((u) => u.isCurrentUser) || activeDataset[2];
   const topThree = activeDataset.slice(0, 3);
 
-  // XP needed to overtake the user ahead
   const aheadUser = currentUserData.rank > 1 ? activeDataset[currentUserData.rank - 2] : null;
   const xpDifference = aheadUser ? Math.max(0, aheadUser.xp - currentUserData.xp + 10) : 0;
 
@@ -387,7 +354,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-16">
+    <div className="w-full max-w-[1720px] mx-auto space-y-8 pb-16">
       
       {/* Top Banner & Control Tabs */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs space-y-5">
@@ -405,7 +372,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
             </p>
           </div>
 
-          {/* Scope Selector: Global vs Class */}
           <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200 self-start sm:self-auto">
             <button
               onClick={() => {
@@ -433,23 +399,23 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
               }`}
             >
               <GraduationCap className="w-3.5 h-3.5" />
-              <span>Cohort Alpha</span>
+              <span>Cohort / Class</span>
             </button>
           </div>
         </div>
 
-        {/* Timeframe Switcher Tabs: Weekly vs All-Time */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+        {/* Tabbed Interface: Weekly vs All-Time */}
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
                 sound.playClick();
                 setTimeframe('weekly');
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
                 timeframe === 'weekly'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               Weekly Tournament
@@ -459,35 +425,61 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
                 sound.playClick();
                 setTimeframe('all-time');
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
                 timeframe === 'all-time'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              All-Time Hall of Fame
+              All-Time Legends
             </button>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-            <Clock className="w-3.5 h-3.5 text-indigo-600" />
-            <span>{timeframe === 'weekly' ? 'Resets Sunday at 00:00 UTC' : 'Cumulative Lifetime XP'}</span>
+          <div className="hidden md:flex items-center gap-2 text-xs text-slate-500">
+            <Clock className="w-4 h-4 text-indigo-600" />
+            <span>Tournament resets in <strong>3 days, 14 hours</strong></span>
           </div>
         </div>
       </div>
 
-      {/* Podium Highlight: Top 3 Scholars */}
+      {/* Current User Status Banner */}
+      <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-teal-400 text-white font-black text-xl flex items-center justify-center ring-4 ring-indigo-400/30 shadow-lg">
+            {profile.name.slice(0, 2).toUpperCase()}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold text-indigo-300 uppercase tracking-wider">
+              <span>Your Standing</span>
+              <span>·</span>
+              <span>{currentUserData.league} League</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black">Rank #{currentUserData.rank} in {scope === 'global' ? 'Global League' : 'Cohort Alpha'}</h3>
+            <p className="text-xs text-slate-300 mt-0.5">
+              {xpDifference > 0 ? `Only ${xpDifference.toLocaleString()} XP needed to overtake rank #${currentUserData.rank - 1}!` : 'You hold a podium finish position!'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleCelebrateStanding}
+          className="px-6 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-black text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 active:scale-95 shrink-0"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Celebrate Standing 🎉</span>
+        </button>
+      </div>
+
+      {/* Top 3 Podium Showcase */}
       {topThree.length >= 3 && (
         <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-3xl mx-auto pt-2">
           
           {/* Rank 2 (Silver) */}
           <div className="flex flex-col items-center justify-end text-center space-y-2">
             <div className="relative">
-              <img
-                src={topThree[1].avatar}
-                alt={topThree[1].name}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover ring-4 ring-slate-300 shadow-md"
-              />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-300 text-slate-800 font-black text-sm flex items-center justify-center ring-4 ring-slate-300 shadow-md">
+                {topThree[1].name.slice(0, 2).toUpperCase()}
+              </div>
               <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-300 text-slate-800 font-black text-xs flex items-center justify-center border-2 border-white shadow-xs">
                 2
               </span>
@@ -506,11 +498,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
           <div className="flex flex-col items-center justify-end text-center space-y-2">
             <div className="relative">
               <Crown className="w-7 h-7 text-amber-500 mx-auto -mb-1 animate-bounce" />
-              <img
-                src={topThree[0].avatar}
-                alt={topThree[0].name}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover ring-4 ring-amber-400 shadow-lg"
-              />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-400 text-slate-900 font-black text-lg flex items-center justify-center ring-4 ring-amber-400 shadow-lg">
+                {topThree[0].name.slice(0, 2).toUpperCase()}
+              </div>
               <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-amber-400 text-slate-900 font-black text-xs flex items-center justify-center border-2 border-white shadow-sm">
                 1
               </span>
@@ -530,11 +520,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
           {/* Rank 3 (Bronze) */}
           <div className="flex flex-col items-center justify-end text-center space-y-2">
             <div className="relative">
-              <img
-                src={topThree[2].avatar}
-                alt={topThree[2].name}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover ring-4 ring-amber-700/60 shadow-md"
-              />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-700 text-white font-black text-sm flex items-center justify-center ring-4 ring-amber-700/60 shadow-md">
+                {topThree[2].name.slice(0, 2).toUpperCase()}
+              </div>
               <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-700 text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-xs">
                 3
               </span>
@@ -555,182 +543,99 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
       {/* Main Leaderboard Table List */}
       <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
         
-        {/* Table Sub-Header */}
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
           <div className="flex items-center gap-4">
             <span className="w-8 text-center">Rank</span>
-            <span>Learner</span>
+            <span>Scholar &amp; Cohort</span>
           </div>
-          <div className="flex items-center gap-6 sm:gap-12">
+          <div className="flex items-center gap-8">
             <span className="hidden sm:inline">Streak</span>
-            <span className="hidden sm:inline">League</span>
-            <span className="w-20 text-right">XP Earned</span>
+            <span>XP Accumulated</span>
           </div>
         </div>
 
-        {/* Rows */}
         <div className="divide-y divide-slate-100">
-          {activeDataset.map((user, idx) => {
-            const isPromotionZone = user.rank <= 3 && timeframe === 'weekly';
-            const isDemotionZone = user.rank > 7 && timeframe === 'weekly';
+          {activeDataset.map((user) => (
+            <div
+              key={user.rank}
+              className={`px-4 sm:px-6 py-3.5 flex items-center justify-between transition-colors ${
+                user.isCurrentUser
+                  ? 'bg-indigo-50/80 hover:bg-indigo-50 border-l-4 border-indigo-600'
+                  : 'hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-8 flex flex-col items-center justify-center shrink-0">
+                  <span className={`font-mono font-black text-sm ${
+                    user.rank === 1 ? 'text-amber-500 text-base' :
+                    user.rank === 2 ? 'text-slate-400 text-base' :
+                    user.rank === 3 ? 'text-amber-700 text-base' :
+                    'text-slate-600'
+                  }`}>
+                    #{user.rank}
+                  </span>
+                  <span className="text-[10px] font-mono flex items-center gap-0.5">
+                    {user.movement === 'up' && (
+                      <span className="text-emerald-600 flex items-center">
+                        <ArrowUp className="w-2.5 h-2.5" />
+                        {user.deltaRanks}
+                      </span>
+                    )}
+                    {user.movement === 'down' && (
+                      <span className="text-rose-500 flex items-center">
+                        <ArrowDown className="w-2.5 h-2.5" />
+                        {user.deltaRanks}
+                      </span>
+                    )}
+                    {user.movement === 'same' && (
+                      <span className="text-slate-300">
+                        <Minus className="w-2.5 h-2.5" />
+                      </span>
+                    )}
+                  </span>
+                </div>
 
-            return (
-              <React.Fragment key={user.name}>
-                {/* Visual promotion divider after rank 3 */}
-                {idx === 3 && timeframe === 'weekly' && (
-                  <div className="bg-emerald-50/70 px-6 py-1.5 flex items-center justify-between text-[11px] font-bold text-emerald-800 border-y border-emerald-200/80">
-                    <span className="flex items-center gap-1.5">
-                      <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Promotion Zone · Top 3 Advance to Diamond League</span>
+                <div className="relative">
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-teal-500 text-white font-black text-xs flex items-center justify-center ring-2 ${
+                    user.isCurrentUser ? 'ring-indigo-500' : 'ring-slate-200'
+                  }`}>
+                    {user.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  {user.rank === 1 && (
+                    <Crown className="w-3.5 h-3.5 text-amber-500 absolute -top-1 -right-1" />
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-bold ${
+                      user.isCurrentUser ? 'text-indigo-900 font-extrabold' : 'text-slate-900'
+                    }`}>
+                      {user.name}
                     </span>
-                    <span className="text-[10px] font-mono uppercase">Tier 1 Threshold</span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                      {user.country}
+                    </span>
                   </div>
-                )}
-
-                <div
-                  className={`px-4 sm:px-6 py-3.5 flex items-center justify-between transition-colors ${
-                    user.isCurrentUser
-                      ? 'bg-indigo-50/80 hover:bg-indigo-50 border-l-4 border-indigo-600'
-                      : 'hover:bg-slate-50'
-                  }`}
-                >
-                  {/* Left: Rank, Avatar, Name */}
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    {/* Rank number & movement */}
-                    <div className="w-8 flex flex-col items-center justify-center shrink-0">
-                      <span className={`font-mono font-black text-sm ${
-                        user.rank === 1 ? 'text-amber-500 text-base' :
-                        user.rank === 2 ? 'text-slate-400 text-base' :
-                        user.rank === 3 ? 'text-amber-700 text-base' :
-                        'text-slate-600'
-                      }`}>
-                        #{user.rank}
-                      </span>
-                      {/* Movement Icon */}
-                      <span className="text-[10px] font-mono flex items-center gap-0.5">
-                        {user.movement === 'up' && (
-                          <span className="text-emerald-600 flex items-center">
-                            <ArrowUp className="w-2.5 h-2.5" />
-                            {user.deltaRanks}
-                          </span>
-                        )}
-                        {user.movement === 'down' && (
-                          <span className="text-rose-500 flex items-center">
-                            <ArrowDown className="w-2.5 h-2.5" />
-                            {user.deltaRanks}
-                          </span>
-                        )}
-                        {user.movement === 'same' && (
-                          <span className="text-slate-300">
-                            <Minus className="w-2.5 h-2.5" />
-                          </span>
-                        )}
-                      </span>
-                    </div>
-
-                    {/* Avatar */}
-                    <div className="relative">
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className={`w-10 h-10 rounded-full object-cover ring-2 ${
-                          user.isCurrentUser ? 'ring-indigo-500' : 'ring-slate-200'
-                        }`}
-                      />
-                      {user.rank === 1 && (
-                        <Crown className="w-3.5 h-3.5 text-amber-500 absolute -top-1 -right-1" />
-                      )}
-                    </div>
-
-                    {/* Name & Cohort */}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold ${
-                          user.isCurrentUser ? 'text-indigo-900 font-extrabold' : 'text-slate-900'
-                        }`}>
-                          {user.name}
-                        </span>
-                        {user.isCurrentUser && (
-                          <span className="text-[10px] bg-indigo-600 text-white font-black px-1.5 py-0.2 rounded-md">
-                            YOU
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span>{user.cohort}</span>
-                        <span>·</span>
-                        <span>{user.country}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right: Streak, League, XP */}
-                  <div className="flex items-center gap-6 sm:gap-12">
-                    <div className="hidden sm:flex items-center gap-1 text-xs font-bold text-amber-600">
-                      <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                      <span>{user.streak}d</span>
-                    </div>
-
-                    <div className="hidden sm:block">
-                      <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200">
-                        {user.league}
-                      </span>
-                    </div>
-
-                    <div className="w-20 text-right">
-                      <span className="font-mono font-black text-sm text-slate-900 block">
-                        {user.xp.toLocaleString()}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-semibold">XP</span>
-                    </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span>{user.cohort}</span>
+                    <span>·</span>
+                    <span className="text-indigo-600 font-medium">{user.topBadge}</span>
                   </div>
                 </div>
-              </React.Fragment>
-            );
-          })}
-        </div>
+              </div>
 
-      </div>
-
-      {/* User's Sticky Standing & Overtake Card */}
-      <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white rounded-3xl p-5 sm:p-6 border border-indigo-800 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xl shrink-0 shadow-xs">
-            #{currentUserData.rank}
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                Your Current Standings ({scope === 'global' ? 'Global' : 'Cohort Alpha'})
-              </span>
-              <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-bold">
-                Promotion Safe
-              </span>
-              <span className="text-[11px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                <Medal className="w-3 h-3 text-amber-400" />
-                <span>'Top of Leaderboard' Diamond Badge Unlocked</span>
-              </span>
+              <div className="flex items-center gap-8 text-right">
+                <span className="hidden sm:flex items-center gap-1 font-mono font-bold text-amber-600 text-xs">
+                  <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                  <span>{user.streak}d</span>
+                </span>
+                <span className="font-mono font-black text-slate-900 text-sm sm:text-base">
+                  {user.xp.toLocaleString()} <span className="text-xs text-indigo-600 font-bold">XP</span>
+                </span>
+              </div>
             </div>
-            <p className="text-sm font-semibold text-slate-200 mt-0.5">
-              {aheadUser ? (
-                <>
-                  Earn <strong>{xpDifference} more XP</strong> to overtake <strong>{aheadUser.name}</strong> for #{aheadUser.rank}!
-                </>
-              ) : (
-                <>You are currently dominating in <strong>#1 First Place</strong>! Keep the lead!</>
-              )}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 self-end md:self-auto">
-          <button
-            onClick={handleCelebrateStanding}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-black shadow-xs flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Celebrate Rank #{currentUserData.rank} 🎉</span>
-          </button>
+          ))}
         </div>
       </div>
 

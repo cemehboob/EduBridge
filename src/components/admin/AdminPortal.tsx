@@ -141,7 +141,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       email: newUserEmail.trim().toLowerCase(),
       password: newUserPassword.trim(),
       dateOfBirth: newUserDob,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       role: newUserRole,
       status: 'active',
       createdAt: new Date().toISOString().split('T')[0],
@@ -203,7 +202,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+    <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-8 pb-12">
       
       {/* Top Banner */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -343,7 +342,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                       <td className="p-3.5">
                         <div className="flex items-center gap-3">
-                          <img src={u.avatar} alt={u.name} className="w-8 h-8 rounded-full object-cover" />
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-teal-500 text-white font-black text-xs flex items-center justify-center">
+                            {u.name.slice(0, 2).toUpperCase()}
+                          </div>
                           <div>
                             <span className="font-bold text-slate-900 block">{u.name}</span>
                             <span className="text-[11px] text-slate-500 font-mono">{u.email}</span>

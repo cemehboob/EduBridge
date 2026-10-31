@@ -75,7 +75,9 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-2xl object-cover ring-2 ring-indigo-500/30" />
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-teal-500 text-white font-black text-xs flex items-center justify-center ring-2 ring-indigo-500/30">
+              {user.name.slice(0, 2).toUpperCase()}
+            </div>
             <div>
               <h3 className="text-lg font-black text-slate-900">Account Preferences &amp; Profile</h3>
               <p className="text-xs text-slate-500">Stored in EduBridge JSON Repository</p>

@@ -133,7 +133,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
       
       {/* Student Sub-Navigation Bar */}
       <div className="border-b border-slate-200 bg-white shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
           <nav aria-label="Student Learning Navigation" className="flex space-x-2 sm:space-x-4 overflow-x-auto py-2.5">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -168,7 +168,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
       {/* Celebratory Milestone Bar (Visible across all tabs when Goal is Reached) */}
       {profile.todayXp >= profile.dailyGoalXp && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/20 to-orange-500/15 border border-amber-300 flex items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-2.5">
               <PartyPopper className="w-5 h-5 text-amber-600 animate-bounce shrink-0" />
@@ -197,7 +197,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
       )}
 
       {/* Prominent Streak Counter & Monthly Activity Heatmap Dashboard */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-4">
         <StreakCounter
           profile={profile}
           onCelebrate={onCelebrate ? () => onCelebrate('streak') : undefined}
@@ -393,7 +393,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
       </div>
 
       {/* Active Tab View */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         {activeTab === 'language' && (
           <LanguageTree
             units={units}

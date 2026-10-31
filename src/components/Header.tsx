@@ -86,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="flex items-center justify-between h-16 gap-2">
           
           {/* Logo & Tagline */}
@@ -238,11 +238,9 @@ export const Header: React.FC<HeaderProps> = ({
                   className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all text-left cursor-pointer"
                 >
                   <div className="relative">
-                    <img
-                      src={currentUser.avatar}
-                      alt={currentUser.name}
-                      className="w-7 h-7 rounded-full object-cover ring-2 ring-indigo-500/30"
-                    />
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-teal-500 text-white font-black text-[10px] flex items-center justify-center ring-2 ring-indigo-500/30">
+                      {currentUser.name.slice(0, 2).toUpperCase()}
+                    </div>
                     <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full"></span>
                   </div>
                   <div className="hidden sm:block text-left">

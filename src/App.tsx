@@ -378,7 +378,6 @@ export default function App() {
     setProfile((prev) => ({
       ...prev,
       name: user.name,
-      avatar: user.avatar,
       currentStreak: user.profileStats.currentStreak,
       xp: user.profileStats.xp,
       hearts: user.profileStats.hearts,
@@ -412,7 +411,6 @@ export default function App() {
     setProfile((prev) => ({
       ...prev,
       name: newUser.name,
-      avatar: newUser.avatar,
       currentStreak: newUser.profileStats.currentStreak,
       xp: newUser.profileStats.xp,
       hearts: newUser.profileStats.hearts,
@@ -651,13 +649,13 @@ export default function App() {
         )}
 
         {effectiveRole === 'parent' && (
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
             <ParentPortal progress={childProgress} />
           </main>
         )}
 
         {effectiveRole === 'teacher' && (
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
             <TeacherPortal
               assignments={assignments}
               questionBank={questionBank}
@@ -668,7 +666,7 @@ export default function App() {
         )}
 
         {effectiveRole === 'admin' && isUserAdmin && (
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
             <AdminPortal
               models={ollamaModels}
               metrics={systemMetrics}

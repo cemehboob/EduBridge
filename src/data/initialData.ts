@@ -20,7 +20,6 @@ export const initialProfile: UserProfile = {
   id: 'user_edubridge_01',
   name: 'Alex Rivera',
   email: 'alex.rivera@edubridge.org',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   role: 'student',
   currentStreak: 14,
   highestStreak: 21,
@@ -779,7 +778,6 @@ export const sampleCertificates: CertificateItem[] = [
 
 export const sampleChildProgress: ChildProgress = {
   childName: 'Alex Rivera',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   weeklyHours: 18.5,
   weeklyTargetHours: 20.0,
   xpEarnedThisWeek: 840,
