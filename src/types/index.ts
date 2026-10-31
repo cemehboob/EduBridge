@@ -113,6 +113,7 @@ export interface IELTSPracticeTest {
   options?: string[];
   correctAnswer?: string;
   sampleAnswer?: string;
+  explanation?: string;
   completed?: boolean;
 }
 

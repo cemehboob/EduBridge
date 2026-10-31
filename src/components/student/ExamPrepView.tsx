@@ -119,7 +119,11 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
   const [selectedPracticeModule, setSelectedPracticeModule] = useState<'Listening' | 'Reading' | 'Writing' | 'Speaking'>('Reading');
   const [activePracticeItem, setActivePracticeItem] = useState<IELTSPracticeTest | null>(null);
   const [practiceUserAnswer, setPracticeUserAnswer] = useState('');
-  const [practiceFeedback, setPracticeFeedback] = useState<string | null>(null);
+  const [practiceFeedback, setPracticeFeedback] = useState<{
+    isCorrect: boolean;
+    message: string;
+    explanation?: string;
+  } | null>(null);
 
   // Mock test simulator state
   const [activeTest, setActiveTest] = useState<MockTest | null>(null);
@@ -245,11 +249,45 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
   const handleSubmitPracticeAnswer = (testItem: IELTSPracticeTest) => {
     sound.playClick();
     if (!practiceUserAnswer.trim() && testItem.options) {
-      setPracticeFeedback('Please select or enter a valid answer.');
+      setPracticeFeedback({
+        isCorrect: false,
+        message: 'Please select an option before submitting.'
+      });
       return;
     }
-    sound.playSuccess();
-    setPracticeFeedback(`Correct! Excellent performance on ${testItem.title}. Your analytical reasoning matches official IELTS Band 8.5 rubrics.`);
+
+    if (testItem.correctAnswer) {
+      const isCorrect = practiceUserAnswer.trim().toLowerCase() === testItem.correctAnswer.trim().toLowerCase();
+      if (isCorrect) {
+        sound.playSuccess();
+        setPracticeFeedback({
+          isCorrect: true,
+          message: `Correct! Well done on "${testItem.title}".`,
+          explanation: testItem.explanation
+        });
+      } else {
+        sound.playError();
+        setPracticeFeedback({
+          isCorrect: false,
+          message: `Not quite. Correct Answer: "${testItem.correctAnswer}"`,
+          explanation: testItem.explanation
+        });
+      }
+    } else {
+      if (!practiceUserAnswer.trim()) {
+        setPracticeFeedback({
+          isCorrect: false,
+          message: 'Please write or record your response before submitting.'
+        });
+        return;
+      }
+      sound.playSuccess();
+      setPracticeFeedback({
+        isCorrect: true,
+        message: `Response submitted! Great practice effort on "${testItem.title}".`,
+        explanation: testItem.explanation || 'Evaluated against official IELTS Band 8.5+ assessment criteria (Task Achievement, Coherence & Cohesion, Lexical Resource, Grammatical Accuracy).'
+      });
+    }
   };
 
   const handleSubmitForEvaluation = async () => {
@@ -643,8 +681,27 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
                   )}
 
                   {practiceFeedback && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800">
-                      {practiceFeedback}
+                    <div
+                      className={`p-4 rounded-xl border text-xs space-y-2 transition-all ${
+                        practiceFeedback.isCorrect
+                          ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                          : 'bg-rose-50/90 border-rose-300 text-rose-950'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 font-black">
+                        {practiceFeedback.isCorrect ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        )}
+                        <span>{practiceFeedback.message}</span>
+                      </div>
+                      {practiceFeedback.explanation && (
+                        <div className="pt-2 border-t border-slate-200/80 text-slate-700 leading-relaxed">
+                          <span className="font-bold text-slate-900 block mb-0.5">Explanation & Reasoning:</span>
+                          <p>{practiceFeedback.explanation}</p>
+                        </div>
+                      )}
                     </div>
                   )}
 
