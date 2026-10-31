@@ -27,7 +27,8 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
   profile,
   onCelebrate
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Default to collapsed state as requested: user can expand when desired
+  const [isExpanded, setIsExpanded] = useState(false);
   const [selectedDay, setSelectedDay] = useState<StreakDayRecord | null>(null);
 
   // Month & Heatmap Calculations via StreakService (Timezone-safe & Status Verified)
@@ -181,10 +182,11 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
                 sound.playClick();
                 setIsExpanded(!isExpanded);
               }}
-              className="p-2 text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-200/60 transition-colors"
+              className="px-3 py-2 text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-200/60 border border-slate-200 bg-white transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
               title={isExpanded ? 'Collapse Calendar Heatmap' : 'Expand Calendar Heatmap'}
             >
-              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              <span>{isExpanded ? 'Hide Calendar' : 'View Calendar'}</span>
+              {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
             </button>
           </div>
 
