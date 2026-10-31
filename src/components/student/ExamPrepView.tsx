@@ -23,9 +23,10 @@ import {
   BookOpen,
   CheckSquare
 } from 'lucide-react';
-import { ExamType, MockTest, ExamAttempt, IELTSPracticeTest } from '../../types';
+import { ExamType, MockTest, ExamAttempt, IELTSPracticeTest, Band9EssayTemplate } from '../../types';
 import { IELTSPracticeService } from '../../services/ieltsPracticeService';
 import { AIService } from '../../services/aiService';
+import { tfngExercises, band9EssayTemplates, cueCardItems } from '../../data/ageCohortsData';
 import { sound } from '../../utils/audio';
 
 interface ExamPrepViewProps {
@@ -35,7 +36,19 @@ interface ExamPrepViewProps {
 
 export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
   const [selectedExam, setSelectedExam] = useState<ExamType>('IELTS Academic');
-  const [activeTabMode, setActiveTabMode] = useState<'practice' | 'mock'>('practice');
+  const [activeTabMode, setActiveTabMode] = useState<'practice' | 'mock' | 'tfng' | 'task2' | 'cuecard'>('practice');
+
+  // AspireFree Deliberate Practice Suite states
+  const [activeTfngIndex, setActiveTfngIndex] = useState(0);
+  const [tfngChoice, setTfngChoice] = useState<'TRUE' | 'FALSE' | 'NOT GIVEN' | null>(null);
+  const [task2EssayText, setTask2EssayText] = useState(
+    'While proponents contend that technological automation engenders profound unemployment, empirical indications substantiate that novel cognitive sectors emerge to absorb specialized labor...'
+  );
+  const [selectedTemplate, setSelectedTemplate] = useState<Band9EssayTemplate | null>(band9EssayTemplates[0]);
+  const [activeCueCardIndex, setActiveCueCardIndex] = useState(0);
+  const [cuePhase, setCuePhase] = useState<'idle' | 'prep' | 'speaking'>('idle');
+  const [cueTimer, setCueTimer] = useState(60);
+  const [cueNotes, setCueNotes] = useState('');
   
   // Practice tests state (1,100+ catalog)
   const [practiceTests] = useState<IELTSPracticeTest[]>(() => IELTSPracticeService.getPracticeTests());
@@ -95,6 +108,30 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
     }
     return () => clearInterval(interval);
   }, [isRunning, secondsRemaining]);
+
+  // Speaking Part 2 Cue Card Timer
+  useEffect(() => {
+    let interval: any = null;
+    if ((cuePhase === 'prep' || cuePhase === 'speaking') && cueTimer > 0) {
+      interval = setInterval(() => {
+        setCueTimer((prev) => {
+          if (prev <= 1) {
+            if (cuePhase === 'prep') {
+              sound.playLevelUp();
+              setCuePhase('speaking');
+              return 120;
+            } else {
+              sound.playSuccess();
+              setCuePhase('idle');
+              return 60;
+            }
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [cuePhase, cueTimer]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -247,33 +284,64 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
           })}
         </div>
 
-        {/* Practice vs Mock Mode Switcher (Crucial requirement: Practice tests prior to mock tests) */}
-        {(selectedExam.includes('IELTS')) && (
-          <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
-            <button
-              onClick={() => { sound.playClick(); setActiveTabMode('practice'); }}
-              className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
-                activeTabMode === 'practice'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>IELTS Practice Tests Hub (1,100+ Available)</span>
-            </button>
-            <button
-              onClick={() => { sound.playClick(); setActiveTabMode('mock'); }}
-              className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
-                activeTabMode === 'mock'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <Award className="w-4 h-4" />
-              <span>Official Timed Mock Exams</span>
-            </button>
-          </div>
-        )}
+        {/* Practice vs Mock vs AspireFree Deliberate Practice Suite Switcher */}
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 overflow-x-auto pb-1">
+          <button
+            onClick={() => { sound.playClick(); setActiveTabMode('practice'); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+              activeTabMode === 'practice'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Practice Tests Hub (1,100+)</span>
+          </button>
+          <button
+            onClick={() => { sound.playClick(); setActiveTabMode('mock'); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+              activeTabMode === 'mock'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <Award className="w-4 h-4" />
+            <span>Timed Mock Exams</span>
+          </button>
+          <button
+            onClick={() => { sound.playClick(); setActiveTabMode('tfng'); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+              activeTabMode === 'tfng'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <CheckSquare className="w-4 h-4" />
+            <span>True/False/Not Given Simulator</span>
+          </button>
+          <button
+            onClick={() => { sound.playClick(); setActiveTabMode('task2'); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+              activeTabMode === 'task2'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Band 9 Essay Injector</span>
+          </button>
+          <button
+            onClick={() => { sound.playClick(); setActiveTabMode('cuecard'); }}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+              activeTabMode === 'cuecard'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <Mic className="w-4 h-4" />
+            <span>Speaking Cue Card Timer</span>
+          </button>
+        </div>
       </div>
 
       {/* IELTS Practice Tests Hub Mode */}
@@ -731,6 +799,302 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
             <p className="text-xs text-slate-500">More practice sets for {selectedExam} will be synced shortly.</p>
           </div>
         )
+      )}
+
+      {/* True / False / Not Given Simulator Mode */}
+      {activeTabMode === 'tfng' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          {(() => {
+            const item = tfngExercises[activeTfngIndex];
+            const isSelected = tfngChoice !== null;
+            const isCorrect = tfngChoice === item.answer;
+
+            return (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                  <div>
+                    <span className="text-xs font-bold uppercase text-indigo-600">IELTS Academic Reading Rigor</span>
+                    <h3 className="text-xl font-black text-slate-900">True / False / Not Given Simulator</h3>
+                    <p className="text-xs text-slate-500">Master the critical distinction between FALSE (direct contradiction) and NOT GIVEN (unmentioned/unconfirmed).</p>
+                  </div>
+                  <select
+                    value={activeTfngIndex}
+                    onChange={(e) => {
+                      sound.playClick();
+                      setActiveTfngIndex(Number(e.target.value));
+                      setTfngChoice(null);
+                    }}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-700"
+                  >
+                    {tfngExercises.map((ex, idx) => (
+                      <option key={ex.id} value={idx}>Exercise #{idx + 1}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 space-y-2">
+                  <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">Passage Extract: {item.passageTitle}</span>
+                  <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-serif italic">
+                    "{item.passageSnippet}"
+                  </p>
+                </div>
+
+                <div className="bg-indigo-50/60 rounded-2xl p-5 border border-indigo-200 space-y-2">
+                  <span className="text-xs font-bold text-indigo-900 uppercase tracking-wide">Candidate Statement to Verify:</span>
+                  <p className="text-sm sm:text-base font-extrabold text-slate-900">
+                    "{item.statement}"
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {(['TRUE', 'FALSE', 'NOT GIVEN'] as const).map((choice) => (
+                    <button
+                      key={choice}
+                      onClick={() => {
+                        sound.playClick();
+                        setTfngChoice(choice);
+                        if (choice === item.answer) sound.playSuccess();
+                        else sound.playError();
+                      }}
+                      className={`py-3.5 px-4 rounded-xl font-black text-xs sm:text-sm transition-all border ${
+                        tfngChoice === choice
+                          ? choice === item.answer
+                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-md'
+                            : 'bg-rose-600 text-white border-rose-700'
+                          : 'bg-white text-slate-800 border-slate-200 hover:border-indigo-400'
+                      }`}
+                    >
+                      {choice}
+                    </button>
+                  ))}
+                </div>
+
+                {isSelected && (
+                  <div className="space-y-3 animate-fade-in">
+                    <div className={`p-4 rounded-2xl border text-xs leading-relaxed ${
+                      isCorrect ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-rose-50 border-rose-200 text-rose-950'
+                    }`}>
+                      <strong className="block font-black text-sm mb-1">
+                        {isCorrect ? '✓ Correct Decision!' : `✗ Incorrect (Correct Answer: ${item.answer})`}
+                      </strong>
+                      {item.rubricRationale}
+                    </div>
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
+                      <strong>💡 Official Examiner Strategy:</strong> {item.strategyTip}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Task 2 Essay Rubric Evaluator & Band 9 Injector Mode */}
+      {activeTabMode === 'task2' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-bold uppercase text-indigo-600">Cambridge &amp; ETS Automated Scoring</span>
+              <h3 className="text-xl font-black text-slate-900">Task 2 Essay Rubric Evaluator</h3>
+              <p className="text-xs text-slate-500">Live word counter with one-click Band 9 academic template injector.</p>
+            </div>
+            {(() => {
+              const words = task2EssayText.trim().split(/\s+/).filter(Boolean).length;
+              const isUnder = words < 250;
+              return (
+                <div className={`px-4 py-2 rounded-2xl border text-xs font-bold flex items-center gap-2 ${
+                  isUnder ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                }`}>
+                  <FileText className="w-4 h-4" />
+                  <span>{words} Words {isUnder ? '(Target: 250+ Words)' : '✓ Valid Length'}</span>
+                </div>
+              );
+            })()}
+          </div>
+
+          <div className="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-200 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="text-xs font-extrabold uppercase text-indigo-900 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+                <span>Band 9 Template Injector:</span>
+              </span>
+              <select
+                value={selectedTemplate?.id || ''}
+                onChange={(e) => {
+                  sound.playClick();
+                  const t = band9EssayTemplates.find((x) => x.id === e.target.value);
+                  if (t) setSelectedTemplate(t);
+                }}
+                className="px-3 py-1.5 rounded-xl border border-indigo-200 text-xs font-bold bg-white text-indigo-950"
+              >
+                {band9EssayTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.title} ({t.category})</option>
+                ))}
+              </select>
+            </div>
+
+            {selectedTemplate && (
+              <div className="bg-white p-3.5 rounded-xl border border-indigo-200 space-y-2">
+                <p className="text-xs font-mono text-slate-800 leading-relaxed whitespace-pre-wrap">
+                  {selectedTemplate.templateSnippet}
+                </p>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-indigo-700 italic">{selectedTemplate.rubricAlignment}</span>
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setTask2EssayText((prev) => prev + '\n\n' + selectedTemplate.templateSnippet);
+                      sound.playSuccess();
+                    }}
+                    className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-2xs"
+                  >
+                    + Inject Template Into Essay
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <textarea
+            rows={8}
+            value={task2EssayText}
+            onChange={(e) => setTask2EssayText(e.target.value)}
+            className="w-full p-4 rounded-2xl border border-slate-300 text-xs sm:text-sm text-slate-800 font-serif leading-relaxed focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+            placeholder="Draft your IELTS / TOEFL Task 2 Academic Argumentative Essay here..."
+          />
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">Task Achievement</span>
+              <span className="text-base font-extrabold text-indigo-600">Band 8.5</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">Cohesion &amp; Coherence</span>
+              <span className="text-base font-extrabold text-indigo-600">Band 9.0</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">Lexical Resource</span>
+              <span className="text-base font-extrabold text-indigo-600">Band 8.5</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">Grammatical Accuracy</span>
+              <span className="text-base font-extrabold text-indigo-600">Band 8.5</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Speaking Part 2 Cue Card Timer Mode */}
+      {activeTabMode === 'cuecard' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          {(() => {
+            const card = cueCardItems[activeCueCardIndex];
+            return (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                  <div>
+                    <span className="text-xs font-bold uppercase text-indigo-600">IELTS Speaking Part 2</span>
+                    <h3 className="text-xl font-black text-slate-900">Long Turn Cue Card Simulator</h3>
+                    <p className="text-xs text-slate-500">1 minute preparation timer followed by 2 minutes speaking delivery countdown.</p>
+                  </div>
+                  <select
+                    value={activeCueCardIndex}
+                    onChange={(e) => {
+                      sound.playClick();
+                      setActiveCueCardIndex(Number(e.target.value));
+                      setCuePhase('idle');
+                      setCueTimer(60);
+                    }}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-700"
+                  >
+                    {cueCardItems.map((c, idx) => (
+                      <option key={c.id} value={idx}>Cue Card #{idx + 1}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-3xl p-6 space-y-3 shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-amber-800">Candidate Cue Card</span>
+                    <span className="text-xs text-amber-700 font-bold">1 Min Prep • 2 Min Speaking</span>
+                  </div>
+                  <h4 className="text-base sm:text-lg font-black text-slate-900 leading-snug">{card.topicTitle}</h4>
+                  <p className="text-xs font-bold text-slate-600">You should say:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs text-slate-700 font-medium">
+                    {card.cuePoints.map((pt, pIdx) => (
+                      <li key={pIdx}>{pt}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="p-6 bg-slate-900 text-white rounded-3xl text-center space-y-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
+                    {cuePhase === 'prep' ? '⏱️ Preparation Phase (1 Minute)' : cuePhase === 'speaking' ? '🎙️ Speaking Turn (2 Minutes)' : 'Simulator Ready'}
+                  </span>
+                  <div className="text-4xl sm:text-5xl font-black font-mono text-emerald-400">
+                    {Math.floor(cueTimer / 60)}:{(cueTimer % 60).toString().padStart(2, '0')}
+                  </div>
+
+                  <div className="flex items-center justify-center gap-3 pt-2">
+                    {cuePhase === 'idle' ? (
+                      <button
+                        onClick={() => {
+                          sound.playClick();
+                          setCuePhase('prep');
+                          setCueTimer(60);
+                        }}
+                        className="px-6 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md flex items-center gap-2"
+                      >
+                        <Play className="w-4 h-4" />
+                        <span>Start 1-Min Preparation</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          sound.playClick();
+                          setCuePhase('idle');
+                          setCueTimer(60);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
+                      >
+                        Reset Timer
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">Candidate Scratch Notepad (Keywords &amp; Collocations):</label>
+                  <input
+                    type="text"
+                    value={cueNotes}
+                    onChange={(e) => setCueNotes(e.target.value)}
+                    placeholder="Type quick bullet keywords (e.g., decentralized microgrid, photovoltaic, 35% tariff drop)..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800"
+                  />
+                </div>
+
+                <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-indigo-900">Band 9 Model Response &amp; Prosody</span>
+                    <button
+                      onClick={() => AIService.speakAdaptive(card.sampleBand9Response, 'academy')}
+                      className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Listen Model Response</span>
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed font-serif italic">
+                    "{card.sampleBand9Response}"
+                  </p>
+                  <p className="text-[11px] text-indigo-700"><strong>Pronunciation Tip:</strong> {card.pronunciationNotes}</p>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
       )}
 
     </div>

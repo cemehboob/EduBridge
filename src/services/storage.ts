@@ -19,7 +19,9 @@ import {
   UserAccount,
   FeatureFlag,
   UserFeedbackTicket,
-  UserGuideArticle
+  UserGuideArticle,
+  FontScale,
+  AgeCohortId
 } from '../types';
 import {
   initialProfile,
@@ -63,6 +65,8 @@ const KEYS = {
   FEATURE_FLAGS: 'edubridge_feature_flags_v1',
   FEEDBACK_TICKETS: 'edubridge_feedback_tickets_v1',
   USER_GUIDE: 'edubridge_user_guide_v1',
+  FONT_SCALE: 'edubridge_font_scale_v1',
+  ACTIVE_COHORT: 'edubridge_active_cohort_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp'
 };
 
@@ -191,6 +195,12 @@ export const StorageService = {
   getLastSync: (): string => localStorage.getItem(KEYS.LAST_SYNC) || new Date().toISOString(),
 
   // Backup & Restore
+  getFontScale: (): FontScale => safeGet<FontScale>(KEYS.FONT_SCALE, 'standard'),
+  saveFontScale: (scale: FontScale): void => safeSet(KEYS.FONT_SCALE, scale),
+
+  getActiveCohort: (): AgeCohortId => safeGet<AgeCohortId>(KEYS.ACTIVE_COHORT, 'academy'),
+  saveActiveCohort: (cohort: AgeCohortId): void => safeSet(KEYS.ACTIVE_COHORT, cohort),
+
   exportAllData: (): string => {
     const backup = {
       profile: StorageService.getProfile(),

@@ -139,7 +139,7 @@ export const AIService = {
   },
 
   /**
-   * Text-to-Speech playback using Piper simulation / Web Speech Synthesis API
+   * Text-to-Speech playback using Web Speech Synthesis API
    */
   speakText(text: string, voiceRate: number = 1.0, voicePitch: number = 1.0): boolean {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -174,6 +174,38 @@ export const AIService = {
       console.warn('[EduBridge TTS] Speech synthesis error:', e);
       return false;
     }
+  },
+
+  /**
+   * Adaptive pitch & pace reader tailored to developmental age cohorts:
+   * - early (5-8): cheerful, friendly, higher pitch (1.15x pitch, 1.05x rate)
+   * - junior (9-14): animated, engaging (1.05x pitch, 1.0x rate)
+   * - academy (15-24): standard official pace (1.0x pitch, 0.95x rate)
+   * - pro (25-54): confident, articulate (0.98x pitch, 1.0x rate)
+   * - senior (55+): calm, relaxed, crystal-clear 0.82x speech
+   */
+  speakAdaptive(text: string, cohort: 'early' | 'junior' | 'academy' | 'pro' | 'senior'): boolean {
+    switch (cohort) {
+      case 'early':
+        return this.speakText(text, 1.05, 1.2);
+      case 'junior':
+        return this.speakText(text, 1.0, 1.08);
+      case 'academy':
+        return this.speakText(text, 0.95, 1.0);
+      case 'pro':
+        return this.speakText(text, 1.0, 0.98);
+      case 'senior':
+        return this.speakText(text, 0.82, 0.95);
+      default:
+        return this.speakText(text, 1.0, 1.0);
+    }
+  },
+
+  /**
+   * Calm 0.82x clear speech voice narrator for Golden Age learners
+   */
+  speakSeniorClear(text: string): boolean {
+    return this.speakText(text, 0.82, 0.95);
   },
 
   stopSpeaking(): void {

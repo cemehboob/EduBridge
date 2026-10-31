@@ -16,7 +16,8 @@ import {
   UserAccount,
   FeatureFlag,
   UserFeedbackTicket,
-  UserGuideArticle
+  UserGuideArticle,
+  FontScale
 } from './types';
 import { StorageService } from './services/storage';
 import { systemMetrics } from './data/initialData';
@@ -34,6 +35,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { ProfileSetupModal } from './components/auth/ProfileSetupModal';
 import { FeedbackModal } from './components/feedback/FeedbackModal';
 import { UserGuideModal } from './components/guide/UserGuideModal';
+import { ResourceVaultModal } from './components/cohorts/ResourceVaultModal';
 import { triggerCelebration } from './utils/celebration';
 import { generateFivePracticeTestsBatch, generateOneHundredWordsBatch } from './services/scheduleJobService';
 
@@ -55,6 +57,19 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isResourceVaultOpen, setIsResourceVaultOpen] = useState(false);
+
+  // Dynamic Font Scaler (Accessibility First from AspireFree.md)
+  const [fontScale, setFontScale] = useState<FontScale>(() => StorageService.getFontScale());
+
+  // Apply Font Scaler class to documentElement
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.remove('font-scale-standard', 'font-scale-large', 'font-scale-xlarge');
+      document.documentElement.classList.add(`font-scale-${fontScale}`);
+      StorageService.saveFontScale(fontScale);
+    }
+  }, [fontScale]);
 
   const [profile, setProfile] = useState(() => StorageService.getProfile());
   const [activeRole, setActiveRole] = useState<UserRole>(() => currentUser?.role || 'student');
@@ -596,6 +611,9 @@ export default function App() {
         onOpenProfileModal={() => setIsProfileModalOpen(true)}
         onOpenFeedbackModal={() => setIsFeedbackModalOpen(true)}
         onOpenGuideModal={() => setIsGuideModalOpen(true)}
+        onOpenResourceVault={() => setIsResourceVaultOpen(true)}
+        fontScale={fontScale}
+        onFontScaleChange={setFontScale}
         onLogout={handleLogout}
         feedbackTicketCount={
           feedbackTickets.filter((t) =>
@@ -635,6 +653,7 @@ export default function App() {
             onCompleteRevision={handleCompleteRevision}
             onAddTask={handleAddTask}
             onUpdateResume={handleUpdateResume}
+            onOpenResourceVault={() => setIsResourceVaultOpen(true)}
             onCelebrate={(type) => {
               triggerCelebration(type);
               setCelebrationModal({
@@ -756,6 +775,12 @@ export default function App() {
         onClose={() => setIsGuideModalOpen(false)}
         userRole={currentUser?.role || 'student'}
         articles={userGuideArticles}
+      />
+
+      {/* Universal Resource Vault (Printable & Downloadable Study Guides) */}
+      <ResourceVaultModal
+        isOpen={isResourceVaultOpen}
+        onClose={() => setIsResourceVaultOpen(false)}
       />
 
     </div>

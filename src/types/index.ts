@@ -457,3 +457,201 @@ export interface AchievementBadge {
   rarity: string;
 }
 
+// ==========================================
+// Universal Age Cohorts & Accessibility (Ages 5 to 100+)
+// ==========================================
+
+export type FontScale = 'standard' | 'large' | 'xlarge';
+
+export type AgeCohortId = 'early' | 'junior' | 'academy' | 'pro' | 'senior';
+
+export interface AgeCohortInfo {
+  id: AgeCohortId;
+  name: string;
+  ageRange: string;
+  icon: string;
+  badge: string;
+  bestPractice: string;
+  cognitiveFocus: string;
+  description: string;
+  accentColor: string;
+  bgGradient: string;
+}
+
+// 1. Ages 5-8: Little Explorers
+export interface PhonicsCard {
+  id: string;
+  letter: string;
+  phoneme: string;
+  word: string;
+  icon: string;
+  soundType: 'vowel' | 'consonant' | 'blend';
+  promptText: string;
+  exampleSentence: string;
+}
+
+export interface WordBuilderItem {
+  id: string;
+  targetWord: string;
+  category: string;
+  icon: string;
+  hint: string;
+  scrambledLetters: string[];
+}
+
+export interface PictureStory {
+  id: string;
+  title: string;
+  coverEmoji: string;
+  theme: string;
+  pages: {
+    pageNumber: number;
+    text: string;
+    emojiScene: string;
+  }[];
+  comprehensionQuiz: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+    praise: string;
+  };
+}
+
+// 2. Ages 9-14: Junior Scholars
+export interface ScienceQuest {
+  id: string;
+  title: string;
+  topic: string;
+  readingPassage: string;
+  dictionary: Record<string, string>;
+  comprehensionQuestions: {
+    question: string;
+    options: string[];
+    answerIndex: number;
+    explanation: string;
+  }[];
+}
+
+export interface CreativeStoryStarter {
+  id: string;
+  genre: string;
+  prompt: string;
+  starterSentence: string;
+  helperWords: string[];
+}
+
+export interface MentalMathChallenge {
+  id: string;
+  problem: string;
+  options: number[];
+  correctAnswer: number;
+  mentalTrick: string;
+}
+
+export interface SpacedRepetitionCard {
+  id: string;
+  subject: string;
+  question: string;
+  answer: string;
+  explanation: string;
+  mastered: boolean;
+}
+
+// 3. Ages 15-24: Academy & High-Stakes Exams
+export interface TFNGExercise {
+  id: string;
+  passageTitle: string;
+  passageSnippet: string;
+  statement: string;
+  answer: 'TRUE' | 'FALSE' | 'NOT GIVEN';
+  rubricRationale: string;
+  strategyTip: string;
+}
+
+export interface Band9EssayTemplate {
+  id: string;
+  title: string;
+  category: 'Introduction Hook' | 'Body Paragraph Counter-Argument' | 'Conclusion Synthesis' | 'Lexical Discourse Formula';
+  templateSnippet: string;
+  instructions: string;
+  rubricAlignment: string;
+}
+
+export interface CueCardItem {
+  id: string;
+  topicTitle: string;
+  cuePoints: string[];
+  prepTimeSec: number;
+  speakTimeSec: number;
+  sampleBand9Response: string;
+  pronunciationNotes: string;
+}
+
+// 4. Ages 25-54: Professional Fluency
+export interface EmailDiplomacyScenario {
+  id: string;
+  title: string;
+  corporateContext: string;
+  rawDraft: string;
+  diplomaticRewrite: string;
+  politenessScore: number;
+  assertivenessScore: number;
+  clarityScore: number;
+  tacticalNotes: string;
+}
+
+export interface ElevatorPitchPrompt {
+  id: string;
+  title: string;
+  scenario: string;
+  targetSeconds: number;
+  bulletPoints: string[];
+  modelScript: string;
+  wpmTarget: string;
+}
+
+// 5. Ages 55+: Golden Age
+export interface MemoryGymPair {
+  id: string;
+  wordA: string;
+  wordB: string;
+  semanticConnection: string;
+  icon: string;
+}
+
+export interface ReminiscencePrompt {
+  id: string;
+  title: string;
+  category: string;
+  promptText: string;
+  reflectiveQuestion: string;
+}
+
+export interface DigitalSafetyGuide {
+  id: string;
+  title: string;
+  threatType: 'Phishing Email' | 'Fake SMS Alert' | 'Password & 2FA' | 'Safe Browsing';
+  description: string;
+  redFlags: string[];
+  safeActionProtocol: string;
+  interactiveScenario: {
+    previewText: string;
+    isScam: boolean;
+    explanation: string;
+  };
+}
+
+// Resource Vault
+export interface ResourceVaultItem {
+  id: string;
+  cohort: AgeCohortId;
+  cohortLabel: string;
+  title: string;
+  category: string;
+  description: string;
+  badge: string;
+  printableContent: string;
+  downloadFilename: string;
+}
+
+

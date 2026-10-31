@@ -46,10 +46,11 @@ import { Leaderboard } from './Leaderboard';
 import { StreakCounter } from './StreakCounter';
 import { BadgeGrid } from './BadgeGrid';
 import { VocabularyQuiz } from './VocabularyQuiz';
+import { UniversalLearningArena } from '../cohorts/UniversalLearningArena';
 import { BadgeService } from '../../services/badgeService';
 import { sound } from '../../utils/audio';
 
-type StudentTab = 'language' | 'exam' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges' | 'vocab_quiz';
+type StudentTab = 'language' | 'cohorts' | 'exam' | 'vocab_quiz' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges';
 
 interface StudentViewProps {
   profile: UserProfile;
@@ -70,6 +71,7 @@ interface StudentViewProps {
   onCompleteRevision: (revId: string) => void;
   onAddTask: (newTask: Omit<DailyTask, 'id' | 'completed'>) => void;
   onUpdateResume: (updated: ResumeData) => void;
+  onOpenResourceVault: () => void;
   onCelebrate?: (type: 'daily_goal' | 'streak') => void;
 }
 
@@ -92,6 +94,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
   onCompleteRevision,
   onAddTask,
   onUpdateResume,
+  onOpenResourceVault,
   onCelebrate
 }) => {
   const [activeTab, setActiveTab] = useState<StudentTab>('language');
@@ -103,6 +106,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
   const unlockedBadgesCount = badges.filter((b) => b.unlocked).length;
 
   const tabs: { id: StudentTab; label: string; icon: React.ReactNode; badge?: string }[] = [
+    { id: 'cohorts', label: 'Universal Arena (5–100+)', icon: <Sparkles className="w-4 h-4 text-amber-500" />, badge: '5 Cohorts' },
     { id: 'language', label: 'Language Trees', icon: <TreePine className="w-4 h-4" /> },
     { id: 'exam', label: 'Exam Prep (IELTS/PTE)', icon: <Award className="w-4 h-4" /> },
     { id: 'vocab_quiz', label: 'Vocab Quiz', icon: <Brain className="w-4 h-4" />, badge: `${vocabularyWords.length} Words` },
@@ -397,6 +401,12 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
       {/* Active Tab View */}
       <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+        {activeTab === 'cohorts' && (
+          <UniversalLearningArena
+            onOpenResourceVault={onOpenResourceVault}
+          />
+        )}
+
         {activeTab === 'language' && (
           <LanguageTree
             units={units}

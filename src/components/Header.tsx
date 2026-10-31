@@ -19,9 +19,11 @@ import {
   LogIn,
   ChevronDown,
   Calendar,
-  Lock
+  Lock,
+  BookOpen,
+  Type
 } from 'lucide-react';
-import { UserProfile, UserRole, UserAccount } from '../types';
+import { UserProfile, UserRole, UserAccount, FontScale } from '../types';
 import { sound } from '../utils/audio';
 
 interface HeaderProps {
@@ -38,6 +40,9 @@ interface HeaderProps {
   onOpenProfileModal: () => void;
   onOpenFeedbackModal: () => void;
   onOpenGuideModal: () => void;
+  onOpenResourceVault: () => void;
+  fontScale: FontScale;
+  onFontScaleChange: (scale: FontScale) => void;
   onLogout: () => void;
   feedbackTicketCount?: number;
 }
@@ -56,6 +61,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenProfileModal,
   onOpenFeedbackModal,
   onOpenGuideModal,
+  onOpenResourceVault,
+  fontScale,
+  onFontScaleChange,
   onLogout,
   feedbackTicketCount = 0
 }) => {
@@ -185,6 +193,59 @@ export const Header: React.FC<HeaderProps> = ({
               title={soundEnabled ? 'Sound FX Enabled' : 'Sound FX Muted'}
             >
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+
+            {/* Dynamic Font Scaler (Accessibility First: A / A+ / A++) */}
+            <div className="flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-200" title="Dynamic Font Scaler (Accessibility First)">
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  onFontScaleChange('standard');
+                }}
+                className={`px-2 py-1 rounded-lg text-[11px] font-black transition-all ${
+                  fontScale === 'standard' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
+                title="Standard Text Size (A)"
+              >
+                A
+              </button>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  onFontScaleChange('large');
+                }}
+                className={`px-2 py-1 rounded-lg text-xs font-black transition-all ${
+                  fontScale === 'large' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
+                title="Large Text Size (A+)"
+              >
+                A+
+              </button>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  onFontScaleChange('xlarge');
+                }}
+                className={`px-2 py-1 rounded-lg text-sm font-black transition-all ${
+                  fontScale === 'xlarge' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
+                title="Senior & Low-Vision Extra Large (A++)"
+              >
+                A++
+              </button>
+            </div>
+
+            {/* Curated Resource Vault Button */}
+            <button
+              onClick={() => {
+                sound.playClick();
+                onOpenResourceVault();
+              }}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-all cursor-pointer"
+              title="Open Universal Resource Vault (Printable Study Guides & Reference Sheets)"
+            >
+              <BookOpen className="w-4 h-4 text-emerald-600" />
+              <span className="hidden xl:inline">Resource Vault</span>
             </button>
 
             {/* Offline Status Pill */}
