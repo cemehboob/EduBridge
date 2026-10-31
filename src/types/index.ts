@@ -415,3 +415,28 @@ export interface UserGuideArticle {
     tip?: string;
   }[];
 }
+
+// Badge & Achievement System
+export type BadgeTier = 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond' | 'Legendary';
+export type BadgeCategory = 'all' | 'habits' | 'vocabulary' | 'leaderboard' | 'exams' | 'ai';
+
+export interface AchievementBadge {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  criteria: string; // Explicit unlocking criteria for tooltips
+  category: 'habits' | 'vocabulary' | 'leaderboard' | 'exams' | 'ai';
+  tier: BadgeTier;
+  iconName: 'Award' | 'Flame' | 'Trophy' | 'BookOpen' | 'Zap' | 'Shield' | 'Crown' | 'Sparkles' | 'Star' | 'Medal' | 'GraduationCap' | 'Globe';
+  gradientClass: string;
+  borderClass: string;
+  currentValue: number;
+  targetValue: number;
+  unit: string;
+  unlocked: boolean;
+  unlockedAt?: string;
+  xpReward: number;
+  rarity: string;
+}
+

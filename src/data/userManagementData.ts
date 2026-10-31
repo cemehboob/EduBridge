@@ -348,6 +348,37 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     ]
   },
   {
+    id: 'guide_badges_system',
+    title: 'Milestone Badges & Honors System',
+    category: 'Gamification & Honors',
+    icon: 'Medal',
+    minRole: 'student',
+    summary: 'Earn prestigious commemorative achievement badges for vocabulary milestones, unbroken streaks, and top leaderboard finishes.',
+    keywords: ['badge', 'achievement', 'milestone', '1000 words', '7-day streak', 'top of leaderboard', 'criteria', 'xp', 'tooltip'],
+    imagePlaceholder: {
+      title: 'Milestone Badges & Honors Showcase',
+      caption: 'Visual medallion grid with interactive criteria tooltips and real-time progress indicators.',
+      badge: 'Honors Vault',
+      accentColor: 'from-amber-500 via-rose-500 to-indigo-600'
+    },
+    contentSections: [
+      {
+        heading: '1. Unlocking Milestone Badges',
+        text: 'EduBridge celebrates significant intellectual and habit achievements across multiple learning disciplines. Badges feature metallic tiers ranging from Bronze to Legendary, awarding bonus Experience Points (XP) upon unlock.',
+        steps: [
+          '1000 Words Learned: Study, review, and master 1,000 active vocabulary words in your language vault.',
+          '7-Day Streak: Maintain an unbroken daily study habit for 7 consecutive calendar days.',
+          'Top of Leaderboard: Climb the ranks and secure a top 3 podium finish in your weekly league tournament.'
+        ]
+      },
+      {
+        heading: '2. Interactive Criteria Tooltips & Visual Grid',
+        text: 'Hover or tap on any badge card in the Visual Grid to view an in-depth breakdown of the unlocking requirements, current progress percentage, and rarity rating.',
+        tip: 'Tap on any unlocked badge medallion to launch a commemorative celebration or inspect your achievement certificate!'
+      }
+    ]
+  },
+  {
     id: 'guide_teacher_studio',
     title: 'Teacher Studio & Curriculum Management',
     category: 'Teacher Tools',

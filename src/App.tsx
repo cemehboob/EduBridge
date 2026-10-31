@@ -630,6 +630,7 @@ export default function App() {
             careerRoadmaps={careerRoadmaps}
             resume={resume}
             certificates={certificates}
+            vocabularyWords={vocabularyWords}
             onStartLesson={handleStartLesson}
             onSendMessage={handleSendMessage}
             onToggleTask={handleToggleDailyTask}

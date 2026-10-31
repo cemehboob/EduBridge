@@ -699,12 +699,16 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
             #{currentUserData.rank}
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
                 Your Current Standings ({scope === 'global' ? 'Global' : 'Cohort Alpha'})
               </span>
               <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-bold">
                 Promotion Safe
+              </span>
+              <span className="text-[11px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                <Medal className="w-3 h-3 text-amber-400" />
+                <span>'Top of Leaderboard' Diamond Badge Unlocked</span>
               </span>
             </div>
             <p className="text-sm font-semibold text-slate-200 mt-0.5">
