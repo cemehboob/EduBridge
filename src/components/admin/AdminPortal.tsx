@@ -10,29 +10,104 @@ import {
   AlertTriangle,
   RefreshCw,
   Terminal,
-  FileText
+  FileText,
+  Clock,
+  Play,
+  Pause,
+  Sparkles,
+  BookOpen,
+  Award,
+  Search,
+  Filter,
+  Layers,
+  ArrowRight,
+  Users,
+  UserCheck,
+  UserX,
+  UserPlus,
+  MessageSquare,
+  Send,
+  Mail,
+  ToggleLeft,
+  ToggleRight,
+  Shield,
+  Calendar
 } from 'lucide-react';
-import { OllamaModelInfo, SystemMetric, AuditLog } from '../../types';
+import {
+  OllamaModelInfo,
+  SystemMetric,
+  AuditLog,
+  ScheduledJob,
+  VocabularyWord,
+  UserAccount,
+  FeatureFlag,
+  UserFeedbackTicket,
+  UserRole
+} from '../../types';
 import { sound } from '../../utils/audio';
 
 interface AdminPortalProps {
   models: OllamaModelInfo[];
   metrics: SystemMetric[];
   auditLogs: AuditLog[];
+  scheduledJobs: ScheduledJob[];
+  vocabularyWords: VocabularyWord[];
+  users: UserAccount[];
+  featureFlags: FeatureFlag[];
+  feedbackTickets: UserFeedbackTicket[];
   onToggleModelStatus: (modelId: string) => void;
   onUpdateModelTemp: (modelId: string, temp: number) => void;
+  onToggleJob: (jobId: string) => void;
+  onRunScheduledJob: (jobId: string) => Promise<void>;
+  onToggleUserStatus: (userId: string) => void;
+  onAddUser: (newUser: UserAccount) => void;
+  onToggleFeatureFlag: (flagId: string) => void;
+  onRespondFeedback: (ticketId: string, replyMessage: string, newStatus: 'Resolved' | 'Investigating') => void;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
   models,
   metrics,
   auditLogs,
+  scheduledJobs,
+  vocabularyWords,
+  users,
+  featureFlags,
+  feedbackTickets,
   onToggleModelStatus,
-  onUpdateModelTemp
+  onUpdateModelTemp,
+  onToggleJob,
+  onRunScheduledJob,
+  onToggleUserStatus,
+  onAddUser,
+  onToggleFeatureFlag,
+  onRespondFeedback
 }) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'models' | 'telemetry' | 'audit'>('models');
+  const [activeAdminTab, setActiveAdminTab] = useState<
+    'users' | 'feedback' | 'jobs' | 'models' | 'telemetry' | 'audit' | 'vocab'
+  >('users');
+
   const [isFlushingCache, setIsFlushingCache] = useState(false);
   const [cacheStatus, setCacheStatus] = useState('Optimal (94.8% hit ratio)');
+  const [executingJobId, setExecutingJobId] = useState<string | null>(null);
+
+  // User Management state
+  const [userSearch, setUserSearch] = useState('');
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('Password123!');
+  const [newUserDob, setNewUserDob] = useState('2002-05-14');
+  const [newUserRole, setNewUserRole] = useState<UserRole>('student');
+
+  // Feedback reply state
+  const [replyTicketId, setReplyTicketId] = useState<string | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [replyStatus, setReplyStatus] = useState<'Resolved' | 'Investigating'>('Resolved');
+
+  // Vocab Explorer state
+  const [vocabSearch, setVocabSearch] = useState('');
+  const [selectedCefr, setSelectedCefr] = useState<string>('All');
 
   const handleFlushCache = () => {
     sound.playClick();
@@ -44,6 +119,89 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     }, 1500);
   };
 
+  const handleTriggerJob = async (jobId: string) => {
+    sound.playClick();
+    setExecutingJobId(jobId);
+    try {
+      await onRunScheduledJob(jobId);
+      sound.playLevelUp();
+    } finally {
+      setExecutingJobId(null);
+    }
+  };
+
+  const handleCreateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim() || !newUserDob) return;
+
+    sound.playSuccess();
+    const newUser: UserAccount = {
+      id: `usr_${Date.now()}`,
+      name: newUserName.trim(),
+      email: newUserEmail.trim().toLowerCase(),
+      password: newUserPassword.trim(),
+      dateOfBirth: newUserDob,
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      role: newUserRole,
+      status: 'active',
+      createdAt: new Date().toISOString().split('T')[0],
+      lastLoginAt: 'Never logged in',
+      preferences: {
+        preferredLanguage: 'Spanish',
+        dailyGoalXp: 100,
+        targetExam: 'IELTS Academic',
+        targetExamDate: '2026-11-20',
+        targetBand: '8.0 Band',
+        targetCareer: 'AI & Machine Learning Engineer',
+        theme: 'system',
+        soundEnabled: true,
+        emailNotifications: true
+      },
+      profileStats: {
+        currentStreak: 1,
+        highestStreak: 1,
+        xp: 50,
+        level: 1,
+        league: 'Bronze',
+        hearts: 5,
+        maxHearts: 5,
+        todayXp: 0
+      }
+    };
+
+    onAddUser(newUser);
+    setNewUserName('');
+    setNewUserEmail('');
+    setShowAddUserModal(false);
+  };
+
+  const handleSendFeedbackReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyTicketId || !replyMessage.trim()) return;
+
+    sound.playSuccess();
+    onRespondFeedback(replyTicketId, replyMessage.trim(), replyStatus);
+    setReplyTicketId(null);
+    setReplyMessage('');
+  };
+
+  const filteredUsers = users.filter(
+    (u) =>
+      u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.role.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  const filteredVocab = vocabularyWords.filter((w) => {
+    const matchSearch =
+      w.word.toLowerCase().includes(vocabSearch.toLowerCase()) ||
+      w.definition.toLowerCase().includes(vocabSearch.toLowerCase()) ||
+      w.translation.toLowerCase().includes(vocabSearch.toLowerCase()) ||
+      w.category.toLowerCase().includes(vocabSearch.toLowerCase());
+    const matchCefr = selectedCefr === 'All' || w.cefrLevel === selectedCefr;
+    return matchSearch && matchCefr;
+  });
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
       
@@ -52,21 +210,54 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-600">
             <ShieldAlert className="w-4 h-4" />
-            <span>EduBridge Enterprise Infrastructure Cluster</span>
+            <span>EduBridge Enterprise Administrator Cluster</span>
           </div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Self-Hosted Infrastructure &amp; AI Telemetry
+            User Management, Feature Controls &amp; Feedback Center
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Docker Compose · NestJS · PostgreSQL 17 · Redis · MinIO · Ollama Cluster
+            JSON User Accounts · Feature Flags · Email Dispatched Feedback · 00:00 Cron Schedulers
           </p>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200 overflow-x-auto">
+          <button
+            onClick={() => { sound.playClick(); setActiveAdminTab('users'); }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeAdminTab === 'users' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            User Accounts ({users.length})
+          </button>
+          <button
+            onClick={() => { sound.playClick(); setActiveAdminTab('feedback'); }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+              activeAdminTab === 'feedback' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>User Feedback ({feedbackTickets.length})</span>
+          </button>
+          <button
+            onClick={() => { sound.playClick(); setActiveAdminTab('jobs'); }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeAdminTab === 'jobs' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Scheduled Jobs (00:00)
+          </button>
+          <button
+            onClick={() => { sound.playClick(); setActiveAdminTab('vocab'); }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeAdminTab === 'vocab' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Vocabulary Vault
+          </button>
           <button
             onClick={() => { sound.playClick(); setActiveAdminTab('models'); }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
               activeAdminTab === 'models' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -74,7 +265,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </button>
           <button
             onClick={() => { sound.playClick(); setActiveAdminTab('telemetry'); }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
               activeAdminTab === 'telemetry' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -82,7 +273,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </button>
           <button
             onClick={() => { sound.playClick(); setActiveAdminTab('audit'); }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
               activeAdminTab === 'audit' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -91,7 +282,536 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
       </div>
 
-      {/* 1. Ollama AI Models Configuration */}
+      {/* 1. Complete User Management Tab */}
+      {activeAdminTab === 'users' && (
+        <div className="space-y-6">
+          
+          {/* Header & Controls */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
+                  JSON-Stored User Directory
+                </span>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                  User Management &amp; Access Controls
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Manage login credentials, passwords, dates of birth (DOB), assigned roles, and enable/disable account access.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setShowAddUserModal(true);
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition-all shrink-0"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Create New User</span>
+              </button>
+            </div>
+
+            {/* Search filter */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                placeholder="Search user name, email, or role..."
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            {/* Users Table */}
+            <div className="border border-slate-200 rounded-2xl overflow-hidden">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold">
+                  <tr>
+                    <th className="p-3.5">User</th>
+                    <th className="p-3.5">Date of Birth (DOB)</th>
+                    <th className="p-3.5">Assigned Role</th>
+                    <th className="p-3.5">Password</th>
+                    <th className="p-3.5">Status</th>
+                    <th className="p-3.5 text-right">Access Control</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredUsers.map((u) => (
+                    <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-3">
+                          <img src={u.avatar} alt={u.name} className="w-8 h-8 rounded-full object-cover" />
+                          <div>
+                            <span className="font-bold text-slate-900 block">{u.name}</span>
+                            <span className="text-[11px] text-slate-500 font-mono">{u.email}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3.5 font-mono text-slate-700 font-medium">
+                        {u.dateOfBirth}
+                      </td>
+                      <td className="p-3.5">
+                        <span className={`px-2.5 py-0.5 rounded-md font-bold uppercase text-[10px] ${
+                          u.role === 'admin' ? 'bg-rose-100 text-rose-800' :
+                          u.role === 'teacher' ? 'bg-blue-100 text-blue-800' :
+                          u.role === 'parent' ? 'bg-pink-100 text-pink-800' :
+                          'bg-indigo-100 text-indigo-800'
+                        }`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="p-3.5 font-mono text-slate-500 text-[11px]">
+                        ••••••••
+                      </td>
+                      <td className="p-3.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          u.status === 'active'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {u.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right">
+                        <button
+                          onClick={() => {
+                            sound.playClick();
+                            onToggleUserStatus(u.id);
+                          }}
+                          className={`px-3 py-1 rounded-lg font-bold text-xs border transition-all ${
+                            u.status === 'active'
+                              ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                          }`}
+                        >
+                          {u.status === 'active' ? 'Disable Access' : 'Enable Access'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Feature Flags Section */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
+                Platform Feature Governance
+              </span>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                Module Feature Flags (Admin Controlled)
+              </h3>
+              <p className="text-xs text-slate-500">
+                Instantly enable or disable capabilities platform-wide without redeployment.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {featureFlags.map((flag) => (
+                <div
+                  key={flag.id}
+                  className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-3"
+                >
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 block">
+                      {flag.category}
+                    </span>
+                    <h4 className="font-bold text-sm text-slate-900">{flag.name}</h4>
+                    <p className="text-xs text-slate-500 leading-snug">{flag.description}</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      onToggleFeatureFlag(flag.id);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all shrink-0 ${
+                      flag.enabled
+                        ? 'bg-emerald-500 text-white shadow-2xs'
+                        : 'bg-slate-300 text-slate-700'
+                    }`}
+                  >
+                    {flag.enabled ? 'Enabled' : 'Disabled'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* 2. User Feedback & Bug Reporting Center */}
+      {activeAdminTab === 'feedback' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-rose-600 block">
+                User Feedback &amp; Bug Triage
+              </span>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                Feedback Submissions &amp; Admin Email Channel
+              </h3>
+              <p className="text-xs text-slate-500">
+                Review issues raised by learners, inspect email notification logs, and dispatch official administrator responses.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl text-xs font-mono text-slate-600 border border-slate-200">
+              <Mail className="w-4 h-4 text-indigo-600" />
+              <span>Admin Mailing List: admin@edubridge.org</span>
+            </div>
+          </div>
+
+          {/* Tickets List */}
+          <div className="space-y-4">
+            {feedbackTickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="p-5 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-3"
+              >
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <span className="font-bold text-indigo-700 uppercase">{ticket.category}</span>
+                      <span>·</span>
+                      <span className="font-semibold text-slate-800">{ticket.userName} ({ticket.userRole})</span>
+                      <span>·</span>
+                      <span className="font-mono">{ticket.createdAt}</span>
+                      <span>·</span>
+                      <span className={`px-2 py-0.2 rounded text-[10px] font-bold ${
+                        ticket.priority === 'Critical' ? 'bg-rose-100 text-rose-800' :
+                        ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+                        'bg-slate-200 text-slate-700'
+                      }`}>
+                        {ticket.priority} Priority
+                      </span>
+                    </div>
+                    <h4 className="text-base font-black text-slate-900 mt-1">{ticket.subject}</h4>
+                  </div>
+
+                  <span className={`px-3 py-1 rounded-xl text-xs font-black self-start sm:self-auto ${
+                    ticket.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
+                    ticket.status === 'Investigating' ? 'bg-amber-100 text-amber-800' :
+                    'bg-blue-100 text-blue-800'
+                  }`}>
+                    {ticket.status}
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-700 leading-relaxed font-sans">
+                  {ticket.description}
+                </p>
+
+                {/* Simulated Email dispatch proof */}
+                {ticket.emailNotificationSent && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono">
+                    <Mail className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Dispatched notification email to: {ticket.adminEmailRecipients.join(', ')}</span>
+                  </div>
+                )}
+
+                {/* Admin Response section */}
+                {ticket.adminResponse ? (
+                  <div className="p-4 bg-white rounded-xl border border-emerald-200 space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-emerald-900 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        Admin Reply by {ticket.adminResponse.respondedBy}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {ticket.adminResponse.respondedAt}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-800 font-medium">"{ticket.adminResponse.message}"</p>
+                  </div>
+                ) : (
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setReplyTicketId(ticket.id);
+                        setReplyMessage('');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Reply to User</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Inline Reply Form */}
+                {replyTicketId === ticket.id && (
+                  <form onSubmit={handleSendFeedbackReply} className="p-4 bg-white rounded-2xl border border-indigo-200 space-y-3 animate-in fade-in">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-xs text-indigo-950">Compose Administrator Response</span>
+                      <select
+                        value={replyStatus}
+                        onChange={(e) => setReplyStatus(e.target.value as any)}
+                        className="p-1 rounded-lg border border-slate-300 text-xs"
+                      >
+                        <option value="Resolved">Mark as Resolved</option>
+                        <option value="Investigating">Mark as Investigating</option>
+                      </select>
+                    </div>
+
+                    <textarea
+                      rows={3}
+                      required
+                      value={replyMessage}
+                      onChange={(e) => setReplyMessage(e.target.value)}
+                      placeholder="Write response to user (this will appear on their feedback drawer)..."
+                      className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500"
+                    />
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setReplyTicketId(null)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs"
+                      >
+                        Send Response to User
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+              </div>
+            ))}
+          </div>
+
+        </div>
+      )}
+
+      {/* 3. Admin Scheduled Jobs Control Tab */}
+      {activeAdminTab === 'jobs' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
+                Automated Background Daemons
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Admin-Controlled Nightly Cron Schedulers
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Manage automated nightly jobs scheduled to run at 00:00 hours to generate practice tests and expand vocabulary.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 bg-indigo-50 px-3.5 py-1.5 rounded-2xl border border-indigo-200 text-xs font-bold text-indigo-800 shrink-0">
+              <Clock className="w-4 h-4 text-indigo-600" />
+              <span>Cron Daemon: Running (UTC 00:00 Active)</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {scheduledJobs.map((job) => {
+              const isExecuting = executingJobId === job.id;
+              const isExamJob = job.category === 'EXAM_PREP';
+
+              return (
+                <div
+                  key={job.id}
+                  className={`rounded-3xl p-6 sm:p-8 border transition-all space-y-6 flex flex-col justify-between ${
+                    job.enabled
+                      ? 'bg-white border-slate-200/90 shadow-md'
+                      : 'bg-slate-50 border-slate-300 opacity-75'
+                  }`}
+                >
+                  <div className="space-y-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xs ${
+                          isExamJob
+                            ? 'bg-gradient-to-tr from-indigo-600 to-blue-600'
+                            : 'bg-gradient-to-tr from-emerald-600 to-teal-600'
+                        }`}>
+                          {isExamJob ? <Award className="w-6 h-6" /> : <BookOpen className="w-6 h-6" />}
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-black text-slate-900 leading-snug">{job.name}</h4>
+                          <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 inline-block mt-0.5">
+                            Cron: {job.cronExpression} · {job.targetTime}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Enable / Pause Toggle */}
+                      <button
+                        onClick={() => {
+                          sound.playClick();
+                          onToggleJob(job.id);
+                        }}
+                        className={`px-3 py-1 rounded-xl text-xs font-bold border transition-all ${
+                          job.enabled
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300'
+                        }`}
+                      >
+                        {job.enabled ? 'ACTIVE' : 'PAUSED'}
+                      </button>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      {job.description}
+                    </p>
+
+                    {/* Target & Schedule Details */}
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-medium">Batch Requirement:</span>
+                        <strong className="text-slate-900 font-bold">{job.batchTarget}</strong>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-medium">Next Scheduled Execution:</span>
+                        <strong className="text-indigo-700 font-mono">{job.nextRunTimestamp}</strong>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-medium">Last Execution Log:</span>
+                        <span className="text-slate-600 font-mono text-[11px]">{job.lastRunTimestamp || 'Pending'}</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
+                        <span className="text-slate-500 font-medium">Total Items Generated:</span>
+                        <span className="font-black text-emerald-700 font-mono">+{job.itemsGeneratedCount} Items</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Manual Run Now Trigger */}
+                  <div className="pt-2">
+                    <button
+                      onClick={() => handleTriggerJob(job.id)}
+                      disabled={isExecuting}
+                      className={`w-full py-3 rounded-2xl text-white font-extrabold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 ${
+                        isExecuting
+                          ? 'bg-slate-400 cursor-not-allowed'
+                          : isExamJob
+                          ? 'bg-indigo-600 hover:bg-indigo-700 active:scale-98'
+                          : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98'
+                      }`}
+                    >
+                      {isExecuting ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Executing Scheduled Job &amp; Ingesting Content...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4 fill-white" />
+                          <span>Run Job Now (Instant Manual Execution)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 4. Vocabulary Vault Explorer Tab */}
+      {activeAdminTab === 'vocab' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 block">
+                Dynamic Lexicon Repository
+              </span>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                Active Vocabulary Vault ({vocabularyWords.length} Words)
+              </h3>
+              <p className="text-xs text-slate-500">
+                Populated by the nightly 00:00 cron scheduler with full phonetic and CEFR indexing.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleTriggerJob('job_vocab_expansion_00')}
+              disabled={executingJobId === 'job_vocab_expansion_00'}
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2"
+            >
+              <Play className="w-3.5 h-3.5 fill-white" />
+              <span>+ Add 100 Words via Scheduler</span>
+            </button>
+          </div>
+
+          {/* Search & CEFR filter */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                value={vocabSearch}
+                onChange={(e) => setVocabSearch(e.target.value)}
+                placeholder="Search words, definitions, translations or categories..."
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs">
+              {['All', 'B1', 'B2', 'C1', 'C2'].map((tier) => (
+                <button
+                  key={tier}
+                  onClick={() => setSelectedCefr(tier)}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                    selectedCefr === tier ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {tier}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Words Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[550px] overflow-y-auto pr-1">
+            {filteredVocab.map((item) => (
+              <div
+                key={item.id}
+                className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 hover:bg-white transition-all space-y-1.5"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-base font-black text-slate-900">{item.word}</h4>
+                    <span className="text-xs font-mono text-indigo-700 font-semibold">{item.phonetic}</span>
+                    <span className="text-[11px] text-slate-400 italic font-mono">({item.partOfSpeech})</span>
+                  </div>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                    CEFR {item.cefrLevel}
+                  </span>
+                </div>
+
+                <div className="text-xs text-slate-600">
+                  <strong className="text-slate-800 block">{item.translation}</strong>
+                  <p className="mt-0.5">{item.definition}</p>
+                </div>
+
+                <p className="text-[11px] text-slate-500 italic pt-1 border-t border-slate-200/50">
+                  “{item.exampleSentence}”
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 5. Ollama AI Models Configuration */}
       {activeAdminTab === 'models' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -156,10 +876,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     onChange={(e) => onUpdateModelTemp(model.id, Number(e.target.value))}
                     className="w-full accent-indigo-600"
                   />
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>Deterministic (Proofs)</span>
-                    <span>Creative (Essay/Career)</span>
-                  </div>
                 </div>
 
                 <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -172,7 +888,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
       )}
 
-      {/* 2. System Telemetry Tab (Prometheus & Grafana) */}
+      {/* 6. System Telemetry Tab (Prometheus & Grafana) */}
       {activeAdminTab === 'telemetry' && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
@@ -205,48 +921,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               </div>
             ))}
           </div>
-
-          {/* Docker Services Status */}
-          <div className="p-6 bg-slate-900 text-white rounded-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" /> 13 / 13 Production Docker Services Healthy
-              </span>
-              <span className="text-xs text-slate-400 font-mono">Uptime: 99.98%</span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-              {[
-                'postgres:17',
-                'redis:alpine',
-                'minio/minio',
-                'meilisearch',
-                'ollama/ollama',
-                'keycloak:26',
-                'edubridge-backend',
-                'edubridge-frontend',
-                'nginx-proxy',
-                'prometheus',
-                'grafana',
-                'node-exporter'
-              ].map((svc, i) => (
-                <div key={i} className="p-2 bg-slate-800 rounded-lg border border-slate-700 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  <span className="truncate">{svc}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 
-      {/* 3. Audit Logs Tab */}
+      {/* 7. Audit Logs Tab */}
       {activeAdminTab === 'audit' && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">Security &amp; Inference Audit Trail</h3>
-              <p className="text-xs text-slate-500">Immutable ledger of platform actions and model calls.</p>
+              <p className="text-xs text-slate-500">Immutable ledger of platform actions, model calls, and cron events.</p>
             </div>
             <span className="text-xs font-mono text-slate-500">{auditLogs.length} Events Logged</span>
           </div>
@@ -270,6 +954,94 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <span className="text-slate-400 text-[11px] truncate sm:max-w-xs">{log.user}</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal Dialog */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
+            <h3 className="text-lg font-black text-slate-900">Add New User to JSON Repository</h3>
+            
+            <form onSubmit={handleCreateUser} className="space-y-3.5 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  placeholder="e.g. Jordan Lee"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="jordan@edubridge.org"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Initial Password</label>
+                  <input
+                    type="text"
+                    required
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    className="w-full p-2 rounded-xl border border-slate-300 text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Date of Birth (DOB)</label>
+                  <input
+                    type="date"
+                    required
+                    value={newUserDob}
+                    onChange={(e) => setNewUserDob(e.target.value)}
+                    className="w-full p-2 rounded-xl border border-slate-300 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Assigned Role</label>
+                <select
+                  value={newUserRole}
+                  onChange={(e) => setNewUserRole(e.target.value as any)}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs"
+                >
+                  <option value="student">Student (Learner)</option>
+                  <option value="parent">Parent (Progress Monitor)</option>
+                  <option value="teacher">Teacher (Curriculum &amp; Questions)</option>
+                  <option value="admin">Administrator (Cluster Overseer)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddUserModal(false)}
+                  className="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs"
+                >
+                  Save User to JSON
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

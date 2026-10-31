@@ -13,7 +13,13 @@ import {
   AuditLog,
   DailyTask,
   RevisionItem,
-  ChatMessage
+  ChatMessage,
+  ScheduledJob,
+  VocabularyWord,
+  UserAccount,
+  FeatureFlag,
+  UserFeedbackTicket,
+  UserGuideArticle
 } from '../types';
 import {
   initialProfile,
@@ -31,6 +37,8 @@ import {
   initialDailyTasks,
   initialRevisions
 } from '../data/initialData';
+import { initialScheduledJobs, generateOneHundredWordsBatch } from './scheduleJobService';
+import { initialUsers, initialFeatureFlags, initialFeedbackTickets, initialUserGuideArticles } from '../data/userManagementData';
 
 const KEYS = {
   PROFILE: 'edubridge_profile_v1',
@@ -48,6 +56,13 @@ const KEYS = {
   DAILY_TASKS: 'edubridge_daily_tasks_v1',
   REVISIONS: 'edubridge_revisions_v1',
   CHAT_MESSAGES: 'edubridge_chat_messages_v1',
+  SCHEDULED_JOBS: 'edubridge_scheduled_jobs_v1',
+  VOCABULARY_WORDS: 'edubridge_vocab_words_v1',
+  USERS: 'edubridge_users_json_v1',
+  ACTIVE_USER_ID: 'edubridge_active_user_id_v1',
+  FEATURE_FLAGS: 'edubridge_feature_flags_v1',
+  FEEDBACK_TICKETS: 'edubridge_feedback_tickets_v1',
+  USER_GUIDE: 'edubridge_user_guide_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp'
 };
 
@@ -131,6 +146,47 @@ export const StorageService = {
     }
   ]),
   saveChatMessages: (msgs: ChatMessage[]): void => safeSet(KEYS.CHAT_MESSAGES, msgs),
+
+  getScheduledJobs: (): ScheduledJob[] => safeGet<ScheduledJob[]>(KEYS.SCHEDULED_JOBS, initialScheduledJobs),
+  saveScheduledJobs: (j: ScheduledJob[]): void => safeSet(KEYS.SCHEDULED_JOBS, j),
+
+  getVocabularyWords: (): VocabularyWord[] => safeGet<VocabularyWord[]>(KEYS.VOCABULARY_WORDS, generateOneHundredWordsBatch(1)),
+  saveVocabularyWords: (w: VocabularyWord[]): void => safeSet(KEYS.VOCABULARY_WORDS, w),
+
+  // User Management stored in JSON
+  getUsers: (): UserAccount[] => safeGet<UserAccount[]>(KEYS.USERS, initialUsers),
+  saveUsers: (users: UserAccount[]): void => safeSet(KEYS.USERS, users),
+
+  getActiveUserId: (): string | null => {
+    try {
+      return localStorage.getItem(KEYS.ACTIVE_USER_ID) || 'usr_student_01';
+    } catch {
+      return 'usr_student_01';
+    }
+  },
+  setActiveUserId: (id: string | null): void => {
+    try {
+      if (id) localStorage.setItem(KEYS.ACTIVE_USER_ID, id);
+      else localStorage.removeItem(KEYS.ACTIVE_USER_ID);
+    } catch {}
+  },
+
+  getActiveUser: (): UserAccount | null => {
+    const all = StorageService.getUsers();
+    const activeId = StorageService.getActiveUserId();
+    return all.find((u) => u.id === activeId) || all[0] || null;
+  },
+  setActiveUser: (id: string | null): void => {
+    StorageService.setActiveUserId(id);
+  },
+
+  getFeatureFlags: (): FeatureFlag[] => safeGet<FeatureFlag[]>(KEYS.FEATURE_FLAGS, initialFeatureFlags),
+  saveFeatureFlags: (flags: FeatureFlag[]): void => safeSet(KEYS.FEATURE_FLAGS, flags),
+
+  getFeedbackTickets: (): UserFeedbackTicket[] => safeGet<UserFeedbackTicket[]>(KEYS.FEEDBACK_TICKETS, initialFeedbackTickets),
+  saveFeedbackTickets: (tickets: UserFeedbackTicket[]): void => safeSet(KEYS.FEEDBACK_TICKETS, tickets),
+
+  getUserGuideArticles: (): UserGuideArticle[] => safeGet<UserGuideArticle[]>(KEYS.USER_GUIDE, initialUserGuideArticles),
 
   getLastSync: (): string => localStorage.getItem(KEYS.LAST_SYNC) || new Date().toISOString(),
 

@@ -33,9 +33,11 @@ import { AITutorView } from './AITutorView';
 import { StudyPlannerView } from './StudyPlannerView';
 import { CareerPortfolioView } from './CareerPortfolioView';
 import { GamificationView } from './GamificationView';
+import { Leaderboard } from './Leaderboard';
+import { StreakCounter } from './StreakCounter';
 import { sound } from '../../utils/audio';
 
-type StudentTab = 'language' | 'exam' | 'academic' | 'tutor' | 'planner' | 'career' | 'gamification';
+type StudentTab = 'language' | 'exam' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard';
 
 interface StudentViewProps {
   profile: UserProfile;
@@ -88,7 +90,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
     { id: 'tutor', label: 'AI Mentor Bridge', icon: <Bot className="w-4 h-4" />, badge: '4 Models' },
     { id: 'planner', label: 'Study Planner', icon: <Calendar className="w-4 h-4" /> },
     { id: 'career', label: 'Career & Portfolio', icon: <Briefcase className="w-4 h-4" /> },
-    { id: 'gamification', label: 'Leaderboard & XP', icon: <Trophy className="w-4 h-4" /> }
+    { id: 'leaderboard', label: 'Leaderboard & XP', icon: <Trophy className="w-4 h-4" /> }
   ];
 
   const handleConsultAIFromAcademic = (topicTitle: string, formula?: string) => {
@@ -175,6 +177,14 @@ export const StudentView: React.FC<StudentViewProps> = ({
         </div>
       )}
 
+      {/* Prominent Streak Counter & Monthly Activity Heatmap Dashboard */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <StreakCounter
+          profile={profile}
+          onCelebrate={onCelebrate ? () => onCelebrate('streak') : undefined}
+        />
+      </div>
+
       {/* Active Tab View */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {activeTab === 'language' && (
@@ -227,8 +237,8 @@ export const StudentView: React.FC<StudentViewProps> = ({
           />
         )}
 
-        {activeTab === 'gamification' && (
-          <GamificationView profile={profile} />
+        {activeTab === 'leaderboard' && (
+          <Leaderboard profile={profile} />
         )}
       </main>
 

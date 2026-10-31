@@ -298,3 +298,120 @@ export interface AuditLog {
   category: 'AUTH' | 'AI_INFERENCE' | 'EXAM_EVAL' | 'DATABASE_SYNC' | 'RBAC_CHANGE';
   status: 'SUCCESS' | 'INFO' | 'WARN';
 }
+
+export interface ScheduledJob {
+  id: string;
+  name: string;
+  description: string;
+  cronExpression: string; // e.g. "0 0 * * *" (Night 00:00)
+  targetTime: string;
+  category: 'EXAM_PREP' | 'VOCABULARY';
+  enabled: boolean;
+  lastRunTimestamp?: string;
+  nextRunTimestamp: string;
+  itemsGeneratedCount: number;
+  status: 'idle' | 'running' | 'completed' | 'paused';
+  batchTarget: string; // "At least 5 Mock Tests (IELTS & PTE)" or "At least 100 Words"
+}
+
+export interface VocabularyWord {
+  id: string;
+  word: string;
+  phonetic: string;
+  partOfSpeech: string;
+  translation: string;
+  definition: string;
+  exampleSentence: string;
+  cefrLevel: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+  category: string;
+  dateAdded: string;
+}
+
+// User Management in JSON
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  password: string; // simulated credentials
+  dateOfBirth: string; // e.g. "2002-05-14"
+  avatar: string;
+  role: UserRole;
+  status: 'active' | 'disabled';
+  createdAt: string;
+  lastLoginAt: string;
+  preferences: {
+    preferredLanguage: string;
+    dailyGoalXp: number;
+    targetExam?: string;
+    targetExamDate?: string;
+    targetBand?: string;
+    targetCareer?: string;
+    theme: 'light' | 'dark' | 'system';
+    soundEnabled: boolean;
+    emailNotifications: boolean;
+  };
+  profileStats: {
+    currentStreak: number;
+    highestStreak: number;
+    xp: number;
+    level: number;
+    league: 'Bronze' | 'Silver' | 'Gold' | 'Sapphire' | 'Ruby' | 'Diamond';
+    hearts: number;
+    maxHearts: number;
+    todayXp: number;
+  };
+}
+
+export interface FeatureFlag {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  category: 'AI_MODELS' | 'EXAM_PREP' | 'VOICE_PIPER' | 'CAREER_HUB' | 'OFFLINE_MODE';
+}
+
+// User Feedback & Support Mechanism
+export interface UserFeedbackTicket {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userRole: UserRole;
+  category: 'Bug Report' | 'Feature Request' | 'Content Improvement' | 'General Inquiry';
+  priority: 'Low' | 'Medium' | 'High' | 'Critical';
+  subject: string;
+  description: string;
+  createdAt: string;
+  status: 'Pending Review' | 'Investigating' | 'Resolved';
+  adminResponse?: {
+    respondedBy: string;
+    respondedAt: string;
+    message: string;
+  };
+  emailNotificationSent: boolean;
+  adminEmailRecipients: string[];
+}
+
+// Complete Role-Aware User Guide
+export interface UserGuideArticle {
+  id: string;
+  title: string;
+  category: string;
+  icon: string;
+  minRole: UserRole; // 'student', 'parent', 'teacher', 'admin'
+  summary: string;
+  keywords: string[];
+  imagePlaceholder: {
+    title: string;
+    caption: string;
+    badge: string;
+    accentColor: string;
+  };
+  contentSections: {
+    heading: string;
+    text: string;
+    steps?: string[];
+    tip?: string;
+  }[];
+}

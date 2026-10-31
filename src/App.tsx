@@ -4,7 +4,20 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { UserRole, Lesson, ChatMessage, DailyTask, ResumeData, QuestionBankItem, CourseAssignment } from './types';
+import {
+  UserRole,
+  Lesson,
+  ChatMessage,
+  DailyTask,
+  ResumeData,
+  QuestionBankItem,
+  CourseAssignment,
+  AuditLog,
+  UserAccount,
+  FeatureFlag,
+  UserFeedbackTicket,
+  UserGuideArticle
+} from './types';
 import { StorageService } from './services/storage';
 import { systemMetrics } from './data/initialData';
 import { sound } from './utils/audio';
@@ -17,12 +30,34 @@ import { AdminPortal } from './components/admin/AdminPortal';
 import { ExerciseModal } from './components/common/ExerciseModal';
 import { OfflineSyncModal } from './components/common/OfflineSyncModal';
 import { CelebrationModal, CelebrationType } from './components/student/CelebrationModal';
+import { AuthModal } from './components/auth/AuthModal';
+import { ProfileSetupModal } from './components/auth/ProfileSetupModal';
+import { FeedbackModal } from './components/feedback/FeedbackModal';
+import { UserGuideModal } from './components/guide/UserGuideModal';
 import { triggerCelebration } from './utils/celebration';
+import { generateFivePracticeTestsBatch, generateOneHundredWordsBatch } from './services/scheduleJobService';
 
 export default function App() {
   // Global ecosystem state with offline persistence
+  const [users, setUsers] = useState<UserAccount[]>(() => StorageService.getUsers());
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    const active = StorageService.getActiveUser();
+    if (active) return active;
+    const allUsers = StorageService.getUsers();
+    return allUsers[0] || null;
+  });
+  const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>(() => StorageService.getFeatureFlags());
+  const [feedbackTickets, setFeedbackTickets] = useState<UserFeedbackTicket[]>(() => StorageService.getFeedbackTickets());
+  const [userGuideArticles] = useState<UserGuideArticle[]>(() => StorageService.getUserGuideArticles());
+
+  // Modals for User Management, Feedback & Windows Guide
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+
   const [profile, setProfile] = useState(() => StorageService.getProfile());
-  const [activeRole, setActiveRole] = useState<UserRole>('student');
+  const [activeRole, setActiveRole] = useState<UserRole>(() => currentUser?.role || 'student');
   const [celebrationModal, setCelebrationModal] = useState<{
     type: CelebrationType;
     title: string;
@@ -42,6 +77,8 @@ export default function App() {
   const [assignments, setAssignments] = useState(() => StorageService.getAssignments());
   const [questionBank, setQuestionBank] = useState(() => StorageService.getQuestionBank());
   const [auditLogs, setAuditLogs] = useState(() => StorageService.getAuditLogs());
+  const [scheduledJobs, setScheduledJobs] = useState(() => StorageService.getScheduledJobs());
+  const [vocabularyWords, setVocabularyWords] = useState(() => StorageService.getVocabularyWords());
 
   // Interactive Exercise runner state
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
@@ -236,18 +273,338 @@ export default function App() {
     StorageService.saveAssignments(updated);
   };
 
+  // Scheduled Jobs handlers
+  const handleToggleJob = (jobId: string) => {
+    const updated = scheduledJobs.map((j) =>
+      j.id === jobId ? { ...j, enabled: !j.enabled } : j
+    );
+    setScheduledJobs(updated);
+    StorageService.saveScheduledJobs(updated);
+
+    const targetJob = scheduledJobs.find((j) => j.id === jobId);
+    const newLog: AuditLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      user: 'admin@edubridge.org',
+      action: `ADMIN_CRON_TOGGLE: ${targetJob?.name} set to ${!targetJob?.enabled ? 'ACTIVE' : 'PAUSED'}`,
+      category: 'DATABASE_SYNC',
+      status: 'INFO'
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+    StorageService.saveAuditLogs(updatedLogs);
+  };
+
+  const handleRunScheduledJob = async (jobId: string) => {
+    // Simulate daemon execution latency
+    await new Promise((r) => setTimeout(r, 1000));
+    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    if (jobId === 'job_exam_midnight_00') {
+      // Generate at least 5 complete practice tests in IELTS and PTE covering all modules
+      const newTests = generateFivePracticeTestsBatch(Math.floor(mockTests.length / 5) + 1);
+      const updatedTests = [...mockTests, ...newTests];
+      setMockTests(updatedTests);
+      StorageService.saveMockTests(updatedTests);
+
+      const updatedJobs = scheduledJobs.map((j) =>
+        j.id === jobId
+          ? {
+              ...j,
+              itemsGeneratedCount: j.itemsGeneratedCount + newTests.length,
+              lastRunTimestamp: `Last executed: ${timestamp}`,
+              status: 'completed' as const
+            }
+          : j
+      );
+      setScheduledJobs(updatedJobs);
+      StorageService.saveScheduledJobs(updatedJobs);
+
+      const newLog: AuditLog = {
+        id: `log_${Date.now()}`,
+        timestamp,
+        user: 'cron_worker_00',
+        action: `CRON_SCHEDULE_EXECUTE: Added ${newTests.length} practice tests in IELTS and PTE across all 4 modules (Reading, Listening, Writing, Speaking)`,
+        category: 'EXAM_EVAL',
+        status: 'SUCCESS'
+      };
+      const updatedLogs = [newLog, ...auditLogs];
+      setAuditLogs(updatedLogs);
+      StorageService.saveAuditLogs(updatedLogs);
+    } else if (jobId === 'job_vocab_expansion_00') {
+      // Generate at least 100 rich vocabulary words with phonetics and CEFR levels
+      const newWords = generateOneHundredWordsBatch(Math.floor(vocabularyWords.length / 100) + 1);
+      const updatedWords = [...vocabularyWords, ...newWords];
+      setVocabularyWords(updatedWords);
+      StorageService.saveVocabularyWords(updatedWords);
+
+      const updatedJobs = scheduledJobs.map((j) =>
+        j.id === jobId
+          ? {
+              ...j,
+              itemsGeneratedCount: j.itemsGeneratedCount + newWords.length,
+              lastRunTimestamp: `Last executed: ${timestamp}`,
+              status: 'completed' as const
+            }
+          : j
+      );
+      setScheduledJobs(updatedJobs);
+      StorageService.saveScheduledJobs(updatedJobs);
+
+      const newLog: AuditLog = {
+        id: `log_${Date.now()}`,
+        timestamp,
+        user: 'cron_worker_00',
+        action: `CRON_SCHEDULE_EXECUTE: Added ${newWords.length} new vocabulary words with phonetics, CEFR levels, and audio transcripts`,
+        category: 'DATABASE_SYNC',
+        status: 'SUCCESS'
+      };
+      const updatedLogs = [newLog, ...auditLogs];
+      setAuditLogs(updatedLogs);
+      StorageService.saveAuditLogs(updatedLogs);
+    }
+  };
+
+  // User Management & RBAC Handlers
+  const handleLogin = (user: UserAccount) => {
+    const updated = users.map((u) =>
+      u.id === user.id ? { ...u, lastLoginAt: new Date().toLocaleString() } : u
+    );
+    setUsers(updated);
+    StorageService.saveUsers(updated);
+    setCurrentUser(user);
+    StorageService.setActiveUser(user.id);
+    setActiveRole(user.role);
+    setProfile((prev) => ({
+      ...prev,
+      name: user.name,
+      avatar: user.avatar,
+      currentStreak: user.profileStats.currentStreak,
+      xp: user.profileStats.xp,
+      hearts: user.profileStats.hearts,
+      maxHearts: user.profileStats.maxHearts,
+      todayXp: user.profileStats.todayXp,
+      dailyGoalXp: user.preferences.dailyGoalXp
+    }));
+    setIsAuthModalOpen(false);
+
+    // Audit Log entry
+    const newLog: AuditLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      user: user.email,
+      action: `USER_AUTHENTICATED: Logged in successfully with role '${user.role}'`,
+      category: 'AUTH',
+      status: 'SUCCESS'
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+    StorageService.saveAuditLogs(updatedLogs);
+  };
+
+  const handleRegister = (newUser: UserAccount) => {
+    const updatedUsers = [newUser, ...users];
+    setUsers(updatedUsers);
+    StorageService.saveUsers(updatedUsers);
+    setCurrentUser(newUser);
+    StorageService.setActiveUser(newUser.id);
+    setActiveRole(newUser.role);
+    setProfile((prev) => ({
+      ...prev,
+      name: newUser.name,
+      avatar: newUser.avatar,
+      currentStreak: newUser.profileStats.currentStreak,
+      xp: newUser.profileStats.xp,
+      hearts: newUser.profileStats.hearts,
+      maxHearts: newUser.profileStats.maxHearts,
+      todayXp: newUser.profileStats.todayXp,
+      dailyGoalXp: newUser.preferences.dailyGoalXp
+    }));
+    setIsAuthModalOpen(false);
+
+    // Audit Log entry
+    const newLog: AuditLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      user: newUser.email,
+      action: `USER_REGISTERED: New account created for ${newUser.name} (${newUser.role}) stored in JSON`,
+      category: 'AUTH',
+      status: 'SUCCESS'
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+    StorageService.saveAuditLogs(updatedLogs);
+  };
+
+  const handleLogout = () => {
+    StorageService.setActiveUser(null);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleUpdateCurrentUser = (updatedUser: UserAccount) => {
+    const updated = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
+    setUsers(updated);
+    StorageService.saveUsers(updated);
+    setCurrentUser(updatedUser);
+    setProfile((prev) => ({
+      ...prev,
+      name: updatedUser.name,
+      dailyGoalXp: updatedUser.preferences.dailyGoalXp
+    }));
+  };
+
+  const handleToggleUserStatus = (userId: string) => {
+    const updated = users.map((u) => {
+      if (u.id === userId) {
+        const nextStatus = u.status === 'active' ? ('disabled' as const) : ('active' as const);
+        return { ...u, status: nextStatus };
+      }
+      return u;
+    });
+    setUsers(updated);
+    StorageService.saveUsers(updated);
+
+    const targetUser = users.find((u) => u.id === userId);
+    const newLog: AuditLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      user: currentUser?.email || 'admin@edubridge.org',
+      action: `RBAC_STATUS_CHANGE: Toggled account status for ${targetUser?.name || userId}`,
+      category: 'RBAC_CHANGE',
+      status: 'INFO'
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+    StorageService.saveAuditLogs(updatedLogs);
+  };
+
+  const handleAddUser = (newUser: UserAccount) => {
+    const updated = [newUser, ...users];
+    setUsers(updated);
+    StorageService.saveUsers(updated);
+
+    const newLog: AuditLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      user: currentUser?.email || 'admin@edubridge.org',
+      action: `USER_PROVISIONED: Admin created user account ${newUser.email} with role '${newUser.role}'`,
+      category: 'RBAC_CHANGE',
+      status: 'SUCCESS'
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+    StorageService.saveAuditLogs(updatedLogs);
+  };
+
+  const handleToggleFeatureFlag = (flagId: string) => {
+    const updated = featureFlags.map((f) =>
+      f.id === flagId ? { ...f, enabled: !f.enabled } : f
+    );
+    setFeatureFlags(updated);
+    StorageService.saveFeatureFlags(updated);
+
+    const changedFlag = featureFlags.find((f) => f.id === flagId);
+    const newLog: AuditLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      user: currentUser?.email || 'admin@edubridge.org',
+      action: `FEATURE_FLAG_TOGGLE: ${changedFlag?.name} set to ${!changedFlag?.enabled}`,
+      category: 'RBAC_CHANGE',
+      status: 'INFO'
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+    StorageService.saveAuditLogs(updatedLogs);
+  };
+
+  // Feedback Mechanism Handlers
+  const handleSubmitFeedback = (newTicket: UserFeedbackTicket) => {
+    const updated = [newTicket, ...feedbackTickets];
+    setFeedbackTickets(updated);
+    StorageService.saveFeedbackTickets(updated);
+
+    // Add Audit Log
+    const newLog: AuditLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      user: newTicket.userEmail,
+      action: `FEEDBACK_DISPATCHED: ${newTicket.category} filed [${newTicket.subject}]. Email notification sent to admin mailing list (${newTicket.adminEmailRecipients.join(', ')})`,
+      category: 'AUTH',
+      status: 'INFO'
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+    StorageService.saveAuditLogs(updatedLogs);
+  };
+
+  const handleRespondFeedback = (
+    ticketId: string,
+    replyMessage: string,
+    newStatus: 'Resolved' | 'Investigating'
+  ) => {
+    const updated = feedbackTickets.map((t) =>
+      t.id === ticketId
+        ? {
+            ...t,
+            status: newStatus,
+            adminResponse: {
+              respondedBy: currentUser?.name || 'Administrator Root',
+              respondedAt: new Date().toLocaleString(),
+              message: replyMessage
+            }
+          }
+        : t
+    );
+    setFeedbackTickets(updated);
+    StorageService.saveFeedbackTickets(updated);
+
+    const targetTicket = feedbackTickets.find((t) => t.id === ticketId);
+    const newLog: AuditLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      user: currentUser?.email || 'admin@edubridge.org',
+      action: `FEEDBACK_RESPONSE_SENT: Admin responded to '${targetTicket?.subject}' with status ${newStatus}. User notification updated.`,
+      category: 'AUTH',
+      status: 'SUCCESS'
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+    StorageService.saveAuditLogs(updatedLogs);
+  };
+
+  // Effective Role Boundary:
+  // Non-admins can NEVER view the admin cluster.
+  const isUserAdmin = currentUser?.role === 'admin';
+  const effectiveRole = !isUserAdmin && activeRole === 'admin' ? (currentUser?.role || 'student') : activeRole;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
       
       {/* Top Header */}
       <Header
         profile={profile}
-        activeRole={activeRole}
-        onRoleChange={setActiveRole}
+        currentUser={currentUser}
+        activeRole={effectiveRole}
+        onRoleChange={(newRole) => {
+          if (isUserAdmin || newRole === currentUser?.role) {
+            setActiveRole(newRole);
+          }
+        }}
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
         isOnline={isOnline}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onOpenProfileModal={() => setIsProfileModalOpen(true)}
+        onOpenFeedbackModal={() => setIsFeedbackModalOpen(true)}
+        onOpenGuideModal={() => setIsGuideModalOpen(true)}
+        onLogout={handleLogout}
+        feedbackTicketCount={
+          feedbackTickets.filter((t) =>
+            t.status === 'Pending Review' ||
+            (currentUser && t.userId === currentUser.id && t.adminResponse)
+          ).length
+        }
         onCelebrateStreak={() => {
           triggerCelebration('streak');
           setCelebrationModal({
@@ -258,9 +615,9 @@ export default function App() {
         }}
       />
 
-      {/* Main Content View by Role */}
+      {/* Main Content View by Role (Strict RBAC Guarded) */}
       <div className="flex-1 py-4 sm:py-6">
-        {activeRole === 'student' && (
+        {effectiveRole === 'student' && (
           <StudentView
             profile={profile}
             units={units}
@@ -292,13 +649,13 @@ export default function App() {
           />
         )}
 
-        {activeRole === 'parent' && (
+        {effectiveRole === 'parent' && (
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ParentPortal progress={childProgress} />
           </main>
         )}
 
-        {activeRole === 'teacher' && (
+        {effectiveRole === 'teacher' && (
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <TeacherPortal
               assignments={assignments}
@@ -309,14 +666,25 @@ export default function App() {
           </main>
         )}
 
-        {activeRole === 'admin' && (
+        {effectiveRole === 'admin' && isUserAdmin && (
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <AdminPortal
               models={ollamaModels}
               metrics={systemMetrics}
               auditLogs={auditLogs}
+              scheduledJobs={scheduledJobs}
+              vocabularyWords={vocabularyWords}
+              users={users}
+              featureFlags={featureFlags}
+              feedbackTickets={feedbackTickets}
               onToggleModelStatus={handleToggleModelStatus}
               onUpdateModelTemp={handleUpdateModelTemp}
+              onToggleJob={handleToggleJob}
+              onRunScheduledJob={handleRunScheduledJob}
+              onToggleUserStatus={handleToggleUserStatus}
+              onAddUser={handleAddUser}
+              onToggleFeatureFlag={handleToggleFeatureFlag}
+              onRespondFeedback={handleRespondFeedback}
             />
           </main>
         )}
@@ -352,6 +720,44 @@ export default function App() {
           onClose={() => setCelebrationModal(null)}
         />
       )}
+
+      {/* User Authentication & Password Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        users={users}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+      />
+
+      {/* User Profile & Preferences Modal */}
+      {currentUser && (
+        <ProfileSetupModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          user={currentUser}
+          onUpdateUser={handleUpdateCurrentUser}
+        />
+      )}
+
+      {/* User Feedback & Admin Response Modal */}
+      {currentUser && (
+        <FeedbackModal
+          isOpen={isFeedbackModalOpen}
+          onClose={() => setIsFeedbackModalOpen(false)}
+          currentUser={currentUser}
+          tickets={feedbackTickets}
+          onSubmitTicket={handleSubmitFeedback}
+        />
+      )}
+
+      {/* Windows-Style Role-Aware User Guide */}
+      <UserGuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        userRole={currentUser?.role || 'student'}
+        articles={userGuideArticles}
+      />
 
     </div>
   );
