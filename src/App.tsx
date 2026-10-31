@@ -322,7 +322,7 @@ export default function App() {
     const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
     if (jobId === 'job_exam_midnight_00') {
-      // Generate at least 5 complete practice tests in IELTS and PTE covering all modules
+      // Generate at least 5 complete daily practice tests covering PTE, TOEFL, OET, DET, and Cambridge English
       const newTests = generateFivePracticeTestsBatch(Math.floor(mockTests.length / 5) + 1);
       const updatedTests = [...mockTests, ...newTests];
       setMockTests(updatedTests);
@@ -345,7 +345,7 @@ export default function App() {
         id: `log_${Date.now()}`,
         timestamp,
         user: 'cron_worker_00',
-        action: `CRON_SCHEDULE_EXECUTE: Added ${newTests.length} practice tests in IELTS and PTE across all 4 modules (Reading, Listening, Writing, Speaking)`,
+        action: `CRON_SCHEDULE_EXECUTE: Added ${newTests.length} practice tests across PTE, TOEFL, OET, DET & Cambridge English`,
         category: 'EXAM_EVAL',
         status: 'SUCCESS'
       };

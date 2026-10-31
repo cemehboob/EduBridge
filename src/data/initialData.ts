@@ -15,6 +15,7 @@ import {
   DailyTask,
   RevisionItem
 } from '../types';
+import { multiExamMockTests } from './multiExamMockTestsData';
 
 export const initialProfile: UserProfile = {
   id: 'user_edubridge_01',
@@ -431,7 +432,8 @@ export const mockTests: MockTest[] = [
         correctAnswer: 'Rigorous empirical evaluation confirms the statistical significance of the hypothesis.'
       }
     ]
-  }
+  },
+  ...multiExamMockTests
 ];
 
 export const academicTopics: AcademicTopic[] = [

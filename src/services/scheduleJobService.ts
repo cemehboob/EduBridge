@@ -3,17 +3,17 @@ import { MockTest, ScheduledJob, VocabularyWord, AuditLog } from '../types';
 export const initialScheduledJobs: ScheduledJob[] = [
   {
     id: 'job_exam_midnight_00',
-    name: 'Nightly 00:00 Mock Exam Generator',
-    description: 'Scheduled cron at 00:00 night hours to automatically generate at least 5 full practice tests in IELTS & PTE across all modules (Reading, Listening, Writing, Speaking).',
+    name: 'Nightly 00:00 Multi-Exam Test Generator',
+    description: 'Scheduled cron at 00:00 night hours to automatically generate at least 5 authentic practice tests across PTE, TOEFL, OET, DET, and Cambridge English patterns daily.',
     cronExpression: '0 0 * * *',
     targetTime: '00:00 UTC (Nightly)',
     category: 'EXAM_PREP',
     enabled: true,
     lastRunTimestamp: 'Last run: 2026-10-30 00:00:02',
     nextRunTimestamp: 'Tonight at 00:00 UTC',
-    itemsGeneratedCount: 15,
+    itemsGeneratedCount: 30,
     status: 'idle',
-    batchTarget: 'At least 5 Mock Tests (IELTS & PTE in all 4 modules)'
+    batchTarget: 'At least 5 Mock Tests (PTE, TOEFL, OET, DET & Cambridge English daily)'
   },
   {
     id: 'job_vocab_expansion_00',
@@ -184,112 +184,32 @@ export function generateOneHundredWordsBatch(batchNumber: number): VocabularyWor
   return words;
 }
 
-// Generates 5 distinct mock tests across IELTS & PTE in all 4 modules (Reading, Listening, Writing, Speaking)
+// Generates at least 5 complete daily sample tests covering PTE, TOEFL, OET, DET, Cambridge English & IELTS patterns
 export function generateFivePracticeTestsBatch(batchIndex: number): MockTest[] {
   const tests: MockTest[] = [
-    // 1. IELTS Academic Test #105
+    // 1. PTE Academic Daily Practice Test
     {
-      id: `mock_ielts_${batchIndex}_01`,
-      exam: 'IELTS',
-      title: `IELTS Academic Full Simulation #${104 + batchIndex * 5 + 1}`,
-      difficulty: 'Standard',
-      totalDurationMin: 60,
-      targetBandRequirement: '7.5 – 8.5 Band',
-      sections: [
-        {
-          id: 'sec_r_1',
-          name: 'Reading',
-          durationMinutes: 20,
-          questionsCount: 3,
-          samplePrompt: 'Academic Passage on Neuro-Symbolic Artificial Intelligence',
-          rubric: [
-            { criteria: 'Skimming & Scanning', weight: '25%', description: 'Quick extraction of specific factual data' },
-            { criteria: 'Inference', weight: '25%', description: 'Deducing implied meanings not explicitly written' },
-            { criteria: 'True/False/Not Given', weight: '50%', description: 'Strict factual attribution against text' }
-          ]
-        },
-        {
-          id: 'sec_w_1',
-          name: 'Writing',
-          durationMinutes: 25,
-          questionsCount: 1,
-          samplePrompt: 'Task 2: Academic Essay on Decentralized Renewable Energy vs Central Grids',
-          rubric: [
-            { criteria: 'Task Achievement', weight: '25%', description: 'Addresses all prompt facets thoroughly' },
-            { criteria: 'Cohesion & Coherence', weight: '25%', description: 'Logical paragraph flow and precise discourse markers' },
-            { criteria: 'Lexical Resource', weight: '25%', description: 'Advanced academic vocabulary with accurate collocations' },
-            { criteria: 'Grammatical Range', weight: '25%', description: 'Complex sentence structures with zero error rate' }
-          ]
-        },
-        {
-          id: 'sec_s_1',
-          name: 'Speaking',
-          durationMinutes: 15,
-          questionsCount: 2,
-          samplePrompt: 'Part 2 Cue Card: Describe an environmental technology innovation that impressed you',
-          rubric: [
-            { criteria: 'Fluency & Coherence', weight: '25%', description: 'Smooth tempo without unnatural hesitations' },
-            { criteria: 'Lexical Resource', weight: '25%', description: 'Varied idiomatic expressions' },
-            { criteria: 'Grammar', weight: '25%', description: 'Accurate conditionals and passive forms' },
-            { criteria: 'Pronunciation', weight: '25%', description: 'Clear intonation and natural sentence stress' }
-          ]
-        }
-      ],
-      questions: [
-        {
-          id: `q_ielts_${batchIndex}_r1`,
-          section: 'Reading',
-          instruction: 'Read the excerpt and answer the inference question.',
-          passage: `While statistical deep learning models demonstrate unprecedented pattern recognition across massive corpora, their black-box nature leaves them vulnerable to out-of-distribution hallucinations. Neuro-symbolic frameworks combine neural perceptual prowess with symbolic knowledge graphs, enabling verifiable deductive reasoning that satisfies enterprise safety constraints.`,
-          questionText: 'According to the passage, what is the primary advantage of coupling symbolic reasoning with neural networks?',
-          options: [
-            'It enables verifiable deductive reasoning and mitigates hallucinations',
-            'It reduces GPU memory usage to zero',
-            'It eliminates the need for any training datasets',
-            'It prevents models from processing multilingual text'
-          ],
-          correctAnswer: 'It enables verifiable deductive reasoning and mitigates hallucinations'
-        },
-        {
-          id: `q_ielts_${batchIndex}_w1`,
-          section: 'Writing',
-          instruction: 'Write an academic essay of at least 250 words responding to the following prompt.',
-          questionText: 'Governments should prioritize decentralized community-level solar and battery storage systems over mega-scale centralized power plants. To what extent do you agree or disagree?',
-          modelAnswer: `The debate over municipal energy topology has intensified as geopolitical instability and climate disruptions threaten traditional centralized infrastructure. I firmly argue that investing in decentralized microgrids delivers superior resilience and democratic energy sovereignty compared to monolithic power stations.\n\nPrimarily, decentralized architectures eliminate single points of catastrophic vulnerability. When regional transmission lines fail, localized distributed batteries isolate failures and sustain critical services. Furthermore, local storage incentivizes civic stewardship and reduces line loss during transmission.`
-        },
-        {
-          id: `q_ielts_${batchIndex}_s1`,
-          section: 'Speaking',
-          instruction: 'Deliver a 2-minute oral response to the cue card prompt.',
-          questionText: 'Describe an environmental technology or energy innovation that you believe will fundamentally reshape urban living.',
-          modelAnswer: 'I would like to discuss grid-scale flow battery storage. Unlike lithium-ion chemistries prone to thermal degradation, flow batteries use liquid electrolyte tanks that separate energy capacity from power output, offering safe twenty-year operational lifespans.'
-        }
-      ]
-    },
-
-    // 2. PTE Academic Test #23
-    {
-      id: `mock_pte_${batchIndex}_02`,
+      id: `mock_pte_batch_${batchIndex}_01`,
       exam: 'PTE',
-      title: `PTE Academic Master Diagnostic #${22 + batchIndex * 5 + 1}`,
+      title: `PTE Academic Daily Simulation #${25 + batchIndex * 5 + 1}`,
       difficulty: 'Advanced',
       totalDurationMin: 50,
       targetBandRequirement: '79+ (IELTS 8.0 Equivalent)',
       sections: [
         {
-          id: 'sec_pte_spk_2',
+          id: `sec_pte_spk_${batchIndex}`,
           name: 'Speaking',
           durationMinutes: 15,
           questionsCount: 2,
-          samplePrompt: 'Read Aloud & Re-tell Lecture',
+          samplePrompt: 'Read Aloud & Re-tell Academic Lecture',
           rubric: [
-            { criteria: 'Oral Fluency', weight: '40%', description: 'Cadence, rhythm, no false restarts' },
-            { criteria: 'Pronunciation', weight: '40%', description: 'Vowel purity, syllable stress' },
-            { criteria: 'Content', weight: '20%', description: 'All key lecture terms accurately delivered' }
+            { criteria: 'Oral Fluency', weight: '40%', description: 'Smooth rhythm, natural phrasing, no false restarts' },
+            { criteria: 'Pronunciation', weight: '40%', description: 'Intelligibility, vowel purity, syllable stress' },
+            { criteria: 'Content', weight: '20%', description: 'All key terms accurately captured' }
           ]
         },
         {
-          id: 'sec_pte_lis_2',
+          id: `sec_pte_lis_${batchIndex}`,
           name: 'Listening',
           durationMinutes: 35,
           questionsCount: 2,
@@ -302,187 +222,308 @@ export function generateFivePracticeTestsBatch(batchIndex: number): MockTest[] {
       ],
       questions: [
         {
-          id: `q_pte_${batchIndex}_1`,
+          id: `q_pte_${batchIndex}_spk1`,
           section: 'Speaking',
           instruction: 'Read Aloud: Speak clearly into your microphone within 35 seconds.',
-          questionText: 'The integration of quantum key distribution across metropolitan fiber loops ensures mathematical immunity against eavesdropping, heralding an era of cryptographically unassailable communication.',
-          correctAnswer: 'The integration of quantum key distribution across metropolitan fiber loops ensures mathematical immunity against eavesdropping, heralding an era of cryptographically unassailable communication.'
+          questionText: 'Distributed cryptographic ledgers facilitate verifiable consensus across trustless nodes without necessitating centralized intermediary verification.',
+          correctAnswer: 'Distributed cryptographic ledgers facilitate verifiable consensus across trustless nodes without necessitating centralized intermediary verification.'
         },
         {
-          id: `q_pte_${batchIndex}_2`,
+          id: `q_pte_${batchIndex}_lis1`,
           section: 'Listening',
           instruction: 'Write from Dictation: Type the exact lecture sentence as dictated.',
-          audioTranscript: 'Comprehensive peer review guarantees the empirical reproducibility of all published findings.',
+          audioTranscript: 'Multivariate statistical regressions demonstrated a significant correlation between sleep hygiene and cognitive throughput.',
           questionText: 'Listen to the audio clip and type the exact sentence:',
-          correctAnswer: 'Comprehensive peer review guarantees the empirical reproducibility of all published findings.'
+          correctAnswer: 'Multivariate statistical regressions demonstrated a significant correlation between sleep hygiene and cognitive throughput.'
         }
       ]
     },
 
-    // 3. IELTS Academic Test #106
+    // 2. TOEFL iBT Daily Practice Test
     {
-      id: `mock_ielts_${batchIndex}_03`,
-      exam: 'IELTS',
-      title: `IELTS Academic Full Simulation #${104 + batchIndex * 5 + 2}`,
-      difficulty: 'Advanced',
-      totalDurationMin: 60,
-      targetBandRequirement: '8.0 Band',
-      sections: [
-        {
-          id: 'sec_r_3',
-          name: 'Reading',
-          durationMinutes: 20,
-          questionsCount: 2,
-          samplePrompt: 'Academic Passage on Deep Ocean Geothermal Vents',
-          rubric: [
-            { criteria: 'Factual Accuracy', weight: '50%', description: 'Direct text correspondence' },
-            { criteria: 'Inference', weight: '50%', description: 'Deductive reasoning' }
-          ]
-        },
-        {
-          id: 'sec_w_3',
-          name: 'Writing',
-          durationMinutes: 25,
-          questionsCount: 1,
-          samplePrompt: 'Task 2: The Economic Ramifications of Remote Global Labor Markets',
-          rubric: [
-            { criteria: 'Task Response', weight: '25%', description: 'Thorough evaluation of economic effects' },
-            { criteria: 'Cohesion', weight: '25%', description: 'Paragraph logic and discourse' },
-            { criteria: 'Lexical Resource', weight: '25%', description: 'Advanced economic terminology' },
-            { criteria: 'Grammar Accuracy', weight: '25%', description: 'Complex sentence mastery' }
-          ]
-        }
-      ],
-      questions: [
-        {
-          id: `q_ielts_${batchIndex}_r3`,
-          section: 'Reading',
-          instruction: 'Answer based on the scientific text.',
-          passage: `Chemosynthetic bacteria dwelling around abyssal hydrothermal vents synthesize organic macromolecules utilizing hydrogen sulfide rather than sunlight. This radical biochemical pathway challenges traditional planetary habitability definitions, bolstering hypotheses that life could flourish within the subsurface oceans of Jovian moons like Europa.`,
-          questionText: 'Why do chemosynthetic hydrothermal communities challenge standard planetary habitability models?',
-          options: [
-            'They prove complex biological ecosystems can thrive entirely without solar radiation',
-            'They show life requires oxygen in extreme atmospheric concentrations',
-            'They indicate Europa has no geothermal activity',
-            'They prove all ocean life originated on land'
-          ],
-          correctAnswer: 'They prove complex biological ecosystems can thrive entirely without solar radiation'
-        },
-        {
-          id: `q_ielts_${batchIndex}_w3`,
-          section: 'Writing',
-          instruction: 'Write an essay of at least 250 words discussing remote global work.',
-          questionText: 'The rise of borderless remote employment allows multinational firms to hire worldwide talent, yet may destabilize local labor economies. Discuss both sides and give your opinion.',
-          modelAnswer: 'The advent of asynchronous borderless employment has rewritten international economics. While developing regions enjoy unprecedented access to high-value software and design salaries, domestic firms in emerging economies often suffer talent drain. On balance, remote labor bridges global wage inequality when complemented by local tax modernization.'
-        }
-      ]
-    },
-
-    // 4. PTE Academic Test #24
-    {
-      id: `mock_pte_${batchIndex}_04`,
-      exam: 'PTE',
-      title: `PTE Academic Master Diagnostic #${22 + batchIndex * 5 + 2}`,
+      id: `mock_toefl_batch_${batchIndex}_02`,
+      exam: 'TOEFL',
+      title: `TOEFL iBT Academic Simulation #${90 + batchIndex * 5 + 1}`,
       difficulty: 'Standard',
-      totalDurationMin: 45,
-      targetBandRequirement: '79+ (Band 8.0)',
+      totalDurationMin: 116,
+      targetBandRequirement: '105+ / 120 (Top University Standard)',
       sections: [
         {
-          id: 'sec_pte_spk_4',
-          name: 'Speaking',
-          durationMinutes: 15,
+          id: `sec_toefl_r_${batchIndex}`,
+          name: 'Reading',
+          durationMinutes: 35,
           questionsCount: 2,
-          samplePrompt: 'Describe Image & Retell Lecture',
+          samplePrompt: 'Paleoclimatology & Oceanic Carbon Sequestration',
           rubric: [
-            { criteria: 'Fluency', weight: '50%', description: 'Native rhythm without hesitation' },
-            { criteria: 'Pronunciation', weight: '50%', description: 'Intelligibility & phonetic clarity' }
+            { criteria: 'Factual Accuracy', weight: '50%', description: 'Direct text identification' },
+            { criteria: 'Inference', weight: '50%', description: 'Deducing implied consequences' }
           ]
         },
         {
-          id: 'sec_pte_wri_4',
+          id: `sec_toefl_w_${batchIndex}`,
           name: 'Writing',
           durationMinutes: 30,
           questionsCount: 1,
-          samplePrompt: 'Write Essay on Algorithmic Auditing',
+          samplePrompt: 'Academic Discussion: Autonomous Infrastructure Deployment',
           rubric: [
-            { criteria: 'Grammar', weight: '30%', description: 'Syntactic variety' },
-            { criteria: 'Vocabulary', weight: '30%', description: 'Academic terminology' },
-            { criteria: 'Structure', weight: '40%', description: 'Essay coherence' }
+            { criteria: 'Argumentation', weight: '50%', description: 'Clarity of thesis and evidence' },
+            { criteria: 'Lexical Range', weight: '50%', description: 'Advanced academic vocabulary' }
           ]
         }
       ],
       questions: [
         {
-          id: `q_pte_${batchIndex}_spk4`,
-          section: 'Speaking',
-          instruction: 'Read Aloud into the microphone.',
-          questionText: 'Urban microclimatic monitoring requires high-density distributed sensor meshes to detect localized thermal heat islands and optimize municipal tree-canopy allocation.',
-          correctAnswer: 'Urban microclimatic monitoring requires high-density distributed sensor meshes to detect localized thermal heat islands and optimize municipal tree-canopy allocation.'
+          id: `q_toefl_${batchIndex}_r1`,
+          section: 'Reading',
+          instruction: 'Read the scientific excerpt and answer the inference question.',
+          passage: 'Coccolithophore blooms in the sub-polar North Atlantic fix gigatons of inorganic carbon into calcium carbonate shells. Upon organismal senescence, these calcite plates descend into the benthic abyss, effectively sequestering carbon from atmospheric exchange for geological epochs.',
+          questionText: 'What primary role do coccolithophore blooms play in global carbon cycles?',
+          options: [
+            'They transport and sequester inorganic carbon into the deep ocean sediment',
+            'They release enormous amounts of carbon dioxide into the upper atmosphere',
+            'They prevent sunlight from penetrating any part of the upper ocean',
+            'They completely deoxygenate polar marine ecosystems'
+          ],
+          correctAnswer: 'They transport and sequester inorganic carbon into the deep ocean sediment'
         },
         {
-          id: `q_pte_${batchIndex}_wri4`,
+          id: `q_toefl_${batchIndex}_w1`,
           section: 'Writing',
-          instruction: 'Write a 200-300 word essay on algorithmic auditing in automated credit decisions.',
-          questionText: 'Financial institutions increasingly deploy automated scoring algorithms. Should proprietary credit models be legally required to provide public algorithmic explanations?',
-          modelAnswer: 'As machine learning models dictate access to mortgages and capital, black-box decision systems pose grave risks of systemic bias. Mandating open algorithmic explanations ensures accountability and protects civil liberties without sacrificing computational efficacy.'
+          instruction: 'Respond to the professor’s question in the academic forum (minimum 100 words).',
+          questionText: 'Professor Vance: Should municipal authorities mandate that all public transport fleets transition to hydrogen fuel cells rather than battery electric vehicles? Defend your position with technical or economic reasoning.',
+          modelAnswer: 'While hydrogen fuel cells provide rapid refueling and high energy density suitable for heavy transit, I maintain that battery electric buses currently represent the vastly superior municipal investment. Battery electric systems boast round-trip energetic efficiencies surpassing seventy-five percent, whereas the electricity-to-hydrogen-to-electricity pathway suffers thermodynamic line losses exceeding fifty percent. Furthermore, municipal electric grids already possess distributed charging capability, whereas specialized cryogenic hydrogen distribution infrastructure demands exorbitant capital expenditures that drain limited civic budgets.'
         }
       ]
     },
 
-    // 5. IELTS Academic Test #107
+    // 3. OET Healthcare Clinical Practice Test
     {
-      id: `mock_ielts_${batchIndex}_05`,
-      exam: 'IELTS',
-      title: `IELTS Academic Full Simulation #${104 + batchIndex * 5 + 3}`,
+      id: `mock_oet_batch_${batchIndex}_03`,
+      exam: 'OET',
+      title: `OET Healthcare Clinical Practice Test #${42 + batchIndex * 5 + 1}`,
       difficulty: 'Advanced',
-      totalDurationMin: 60,
-      targetBandRequirement: '8.5 Band',
+      totalDurationMin: 120,
+      targetBandRequirement: 'Grade B+ (380+ / 500 for Medical/Nursing Licensure)',
       sections: [
         {
-          id: 'sec_r_5',
+          id: `sec_oet_r_${batchIndex}`,
           name: 'Reading',
-          durationMinutes: 20,
+          durationMinutes: 45,
           questionsCount: 2,
-          samplePrompt: 'Academic Passage on Computational Genomics & CRISPR-Cas9',
+          samplePrompt: 'Sepsis Six Pathway & Antibiotic Stewardship',
           rubric: [
-            { criteria: 'Lexical Inference', weight: '50%', description: 'Deducing scientific meaning' },
-            { criteria: 'Factual Retention', weight: '50%', description: 'Direct textual verification' }
+            { criteria: 'Rapid Fact Finding', weight: '50%', description: 'Timely extraction of diagnostic and intervention criteria' },
+            { criteria: 'Clinical Guidelines', weight: '50%', description: 'Protocol adherence under emergent scenarios' }
           ]
         },
         {
-          id: 'sec_s_5',
-          name: 'Speaking',
-          durationMinutes: 15,
-          questionsCount: 2,
-          samplePrompt: 'Part 2 Cue Card: Describe an intellectual discovery that changed human history',
+          id: `sec_oet_w_${batchIndex}`,
+          name: 'Writing',
+          durationMinutes: 45,
+          questionsCount: 1,
+          samplePrompt: 'Formal Clinical Referral Letter for Geriatric Patient',
           rubric: [
-            { criteria: 'Lexical Resource', weight: '30%', description: 'Scientific collocations' },
-            { criteria: 'Fluency', weight: '30%', description: 'Smooth delivery' },
-            { criteria: 'Grammar', weight: '40%', description: 'Varied clause structures' }
+            { criteria: 'Organization & Tone', weight: '30%', description: 'Standard medical referral conventions' },
+            { criteria: 'Clinical Data Selection', weight: '40%', description: 'Concise relevant handover facts' },
+            { criteria: 'Language Accuracy', weight: '30%', description: 'Precise clinical terms and dosages' }
           ]
         }
       ],
       questions: [
         {
-          id: `q_ielts_${batchIndex}_r5`,
+          id: `q_oet_${batchIndex}_r1`,
           section: 'Reading',
-          instruction: 'Read the genetics passage and select the accurate scientific deduction.',
-          passage: `CRISPR-Cas9 gene editing relies on synthetic guide RNA sequences that match target DNA loci with single-nucleotide precision. However, off-target cleavage events historically constrained clinical in vivo applications. Recent high-fidelity Cas9 variants incorporate engineered hydrogen-bonding alterations that reduce non-specific binding affinity by over 99%.`,
-          questionText: 'What structural innovation in high-fidelity Cas9 variants suppressed off-target genomic cleavage?',
+          instruction: 'Read the emergency sepsis protocol extract.',
+          passage: 'The Sepsis Six protocol dictates that within one hour of identifying severe sepsis, clinicians must: 1. Administer high-flow oxygen (target SpO2 94-98%), 2. Take blood cultures, 3. Give IV broad-spectrum antibiotics, 4. Start IV fluid resuscitation (30 mL/kg crystalloid), 5. Check serum lactate and hemoglobin, 6. Measure urine output via catheter.',
+          questionText: 'What is the recommended intravenous fluid resuscitation volume mandated within the first hour of severe sepsis management?',
           options: [
-            'Engineered hydrogen-bonding alterations that diminish non-specific binding affinity',
-            'Eliminating guide RNA molecules altogether',
-            'Operating exclusively in cryogenic conditions',
-            'Doubling the operational temperature inside cells'
+            '30 mL/kg of crystalloid fluids',
+            '100 mL/kg of colloid fluids',
+            '5 mL/kg of hypertonic saline',
+            'Fluid resuscitation is withheld until lactate returns to normal'
           ],
-          correctAnswer: 'Engineered hydrogen-bonding alterations that diminish non-specific binding affinity'
+          correctAnswer: '30 mL/kg of crystalloid fluids'
         },
         {
-          id: `q_ielts_${batchIndex}_s5`,
-          section: 'Speaking',
-          instruction: 'Deliver a 2-minute oral response describing a transformative discovery.',
-          questionText: 'Describe an intellectual or scientific discovery that fundamentally changed human civilization.',
-          modelAnswer: 'I would like to speak about the formulation of Maxwell’s equations in 1865, unifying electricity, magnetism, and optics into a single mathematical symmetry that laid the foundation for modern wireless telecommunications and computing.'
+          id: `q_oet_${batchIndex}_w1`,
+          section: 'Writing',
+          instruction: 'Write a clinical referral letter (180-200 words) to the Community Physiotherapy Team.',
+          questionText: 'Draft a referral letter for Mrs. Eleanor Wright (Age 78), recovering from a right total knee arthroplasty, requiring home mobilization assessment, range-of-motion exercises, and fall risk prevention.',
+          modelAnswer: 'Community Physiotherapy Team\nEduBridge Integrated Care\n\nRE: Referral for Mrs. Eleanor Wright (DOB: 12/05/1948)\n\nDear Physiotherapy Colleagues,\n\nI am writing to refer Mrs. Wright, a 78-year-old lady who underwent an elective right total knee arthroplasty on 27 October 2026, for home-based physiotherapy and mobility rehabilitation.\n\nMrs. Wright’s post-operative recovery has been satisfactory. She is currently mobilizing short distances with a gutter frame under supervision. Right knee flexion has reached 75 degrees, with full extension achieved. Pain is well controlled with regular paracetamol and PRN dihydrocodeine.\n\nShe lives in a two-story home with her husband. Given her mild cognitive impairment and historical fear of falling, please evaluate her home environment, advance her mobility aids from frame to walking sticks, and establish an active quad-strengthening routine.\n\nThank you for assisting in Mrs. Wright’s community rehabilitation.\n\nYours sincerely,\nOrthopedic Clinical Specialist\nEduBridge Hospital'
+        }
+      ]
+    },
+
+    // 4. DET Adaptive English Daily Simulation
+    {
+      id: `mock_det_batch_${batchIndex}_04`,
+      exam: 'DET',
+      title: `Duolingo English Test Adaptive Simulation #${14 + batchIndex * 5 + 1}`,
+      difficulty: 'Standard',
+      totalDurationMin: 60,
+      targetBandRequirement: '130 – 150 / 160 (High Academic Level)',
+      sections: [
+        {
+          id: `sec_det_r_${batchIndex}`,
+          name: 'Reading',
+          durationMinutes: 15,
+          questionsCount: 2,
+          samplePrompt: 'Read and Complete (C-Test) & Lexical Discernment',
+          rubric: [
+            { criteria: 'Spelling Accuracy', weight: '50%', description: 'Accurate missing letters' },
+            { criteria: 'Vocabulary Verification', weight: '50%', description: 'Distinguishing real academic words' }
+          ]
+        },
+        {
+          id: `sec_det_w_${batchIndex}`,
+          name: 'Writing',
+          durationMinutes: 15,
+          questionsCount: 1,
+          samplePrompt: '5-Minute Interactive Writing: Artificial Intelligence in Creative Arts',
+          rubric: [
+            { criteria: 'Syntax Variety', weight: '40%', description: 'Complex sentence structures' },
+            { criteria: 'Academic Lexis', weight: '30%', description: 'Rich CEFR C1 vocabulary' },
+            { criteria: 'Coherence', weight: '30%', description: 'Logical paragraph structure' }
+          ]
+        }
+      ],
+      questions: [
+        {
+          id: `q_det_${batchIndex}_r1`,
+          section: 'Reading',
+          instruction: 'Read and Complete: Identify the missing letters to complete the academic statement.',
+          questionText: 'Complete the sentence: "Cog___ive sci___tists inves___gate how biol___ical neu___ns rep___sent abs___ct con___pts."',
+          options: [
+            'Cognitive scientists investigate how biological neurons represent abstract concepts.',
+            'Cognitive sciences investigate how biologically neurons represent abstractive concepts.',
+            'Cognitively scientists investigate how biological neurology represent abstracted conceptuals.',
+            'Cognition science investigate how biology neuron represent abstract concepts.'
+          ],
+          correctAnswer: 'Cognitive scientists investigate how biological neurons represent abstract concepts.'
+        },
+        {
+          id: `q_det_${batchIndex}_w1`,
+          section: 'Writing',
+          instruction: 'Write a 5-minute timed response (minimum 80 words) to the prompt.',
+          questionText: 'Some artists fear generative image models will devalue human creativity, while others believe AI serves as a powerful collaborative instrument. What is your perspective?',
+          modelAnswer: 'Throughout human history, every transformative technological disruption—from the invention of daguerreotype photography to synthesizer sequencers—sparked existential anxiety among traditional artists. However, mechanical tools do not extinguish artistic expression; rather, they expand the boundaries of the creative imagination. Generative models allow solo creators to rapidly storyboard cinematic visions and explore aesthetic permutations that once required multi-million-dollar production studios, thereby democratizing artistic creation.'
+        }
+      ]
+    },
+
+    // 5. Cambridge English (C1/C2) Daily Simulation
+    {
+      id: `mock_cam_${batchIndex}_05`,
+      exam: 'Cambridge English',
+      title: `Cambridge C1 Advanced (CAE) Simulation #${302 + batchIndex * 5 + 1}`,
+      difficulty: 'Advanced',
+      totalDurationMin: 120,
+      targetBandRequirement: 'C1 Grade A / 200+ (Cambridge English Scale)',
+      sections: [
+        {
+          id: `sec_cam_r_${batchIndex}`,
+          name: 'Reading',
+          durationMinutes: 45,
+          questionsCount: 2,
+          samplePrompt: 'Reading & Use of English: Key Word Transformations & Cloze',
+          rubric: [
+            { criteria: 'Grammar Transformation', weight: '50%', description: 'Strict 3-6 word rephrasing with given word' },
+            { criteria: 'Lexical Register', weight: '50%', description: 'Advanced collocations and phrasal verbs' }
+          ]
+        },
+        {
+          id: `sec_cam_w_${batchIndex}`,
+          name: 'Writing',
+          durationMinutes: 45,
+          questionsCount: 1,
+          samplePrompt: 'Formal Report for Municipal Environmental Directorate',
+          rubric: [
+            { criteria: 'Task Achievement', weight: '25%', description: 'Addresses all executive terms of reference' },
+            { criteria: 'Register & Tone', weight: '25%', description: 'Authoritative, analytical civil service report style' },
+            { criteria: 'Organization', weight: '25%', description: 'Logical sub-headings and cohesive progression' },
+            { criteria: 'Lexical Range', weight: '25%', description: 'Rich C1 academic and technical vocabulary' }
+          ]
+        }
+      ],
+      questions: [
+        {
+          id: `q_cam_${batchIndex}_r1`,
+          section: 'Reading',
+          instruction: 'Complete the sentence using between 3 and 6 words including the given word in CAPITAL letters.',
+          questionText: 'Original: "Sarah only realized how intricate the software was after she inspected the architecture diagram."\nGiven Word: DID\nCompletion: "Not until she inspected the architecture diagram ____________________ how intricate the software was."',
+          options: [
+            'did Sarah realize',
+            'did she had realized',
+            'did Sarah really understand',
+            'Sarah did realize'
+          ],
+          correctAnswer: 'did Sarah realize'
+        },
+        {
+          id: `q_cam_${batchIndex}_w1`,
+          section: 'Writing',
+          instruction: 'Write a formal report of 220–260 words for the city council.',
+          questionText: 'Write a report analyzing the feasibility of creating pedestrian-only green corridors in the central business district. Detail economic impacts on local commerce, public transit integration, and projected air quality improvements.',
+          modelAnswer: 'REPORT: FEASIBILITY ASSESSMENT FOR DOWNTOWN PEDESTRIANIZATION\n\nIntroduction\nThis report investigates the socio-economic and environmental feasibility of converting three major arterial thoroughfares in the Central Business District (CBD) into pedestrian-only green transit corridors.\n\nImpact on Local Commerce\nMerchant surveys from comparable European urban transformations demonstrate that while street pedestrianization initially provokes resistance from motor trade retailers, footfall across retail and culinary establishments increases by an average of thirty-two percent within twelve months. Calmer streetscapes encourage leisure dwell time, significantly augmenting consumer transactions.\n\nTransit Integration & Air Quality\nBanning private combustion vehicular traffic will necessitate rerouting five municipal bus lines to adjacent ring avenues and expanding automated micro-mobility rental docks at pedestrian perimeter hubs. Telemetric air monitoring models project a forty-five percent diminution in localized particulate matter (PM2.5) and nitrogen dioxide levels within the core.\n\nRecommendations\nIt is strongly advised that the Directorate authorize a phased pilot program along Market Street over a four-month period, accompanied by real-time merchant revenue tracking.\n\nConclusion\nPedestrianization represents a viable, high-yield municipal modernization strategy that enhances both economic dynamism and public respiratory health.'
+        }
+      ]
+    },
+
+    // 6. IELTS Academic Daily Practice Test
+    {
+      id: `mock_ielts_batch_${batchIndex}_06`,
+      exam: 'IELTS',
+      title: `IELTS Academic Full Simulation #${108 + batchIndex * 5 + 1}`,
+      difficulty: 'Advanced',
+      totalDurationMin: 60,
+      targetBandRequirement: '8.0 – 8.5 Band',
+      sections: [
+        {
+          id: `sec_ielts_r_${batchIndex}`,
+          name: 'Reading',
+          durationMinutes: 20,
+          questionsCount: 2,
+          samplePrompt: 'Academic Passage on Quantum Metrology & Atomic Clocks',
+          rubric: [
+            { criteria: 'Factual Accuracy', weight: '50%', description: 'Strict textual attribution' },
+            { criteria: 'Inference', weight: '50%', description: 'Deductive reasoning from physics text' }
+          ]
+        },
+        {
+          id: `sec_ielts_w_${batchIndex}`,
+          name: 'Writing',
+          durationMinutes: 25,
+          questionsCount: 1,
+          samplePrompt: 'Task 2: Academic Essay on Global Space Exploration Funding',
+          rubric: [
+            { criteria: 'Task Achievement', weight: '25%', description: 'Well-supported response to prompt' },
+            { criteria: 'Coherence', weight: '25%', description: 'Logical paragraph progression' },
+            { criteria: 'Lexical Resource', weight: '25%', description: 'Sophisticated scientific lexis' },
+            { criteria: 'Grammar Accuracy', weight: '25%', description: 'Complex sentence structures' }
+          ]
+        }
+      ],
+      questions: [
+        {
+          id: `q_ielts_${batchIndex}_r6`,
+          section: 'Reading',
+          instruction: 'Read the excerpt and select the correct scientific statement.',
+          passage: 'Optical lattice atomic clocks utilize strontium atoms trapped in standing laser waves, measuring the oscillation of light at quadrillion cycles per second. Their unprecedented precision allows geophysicists to detect millimeter changes in Earth’s gravitational geoid via relativistic time dilation.',
+          questionText: 'How do optical lattice atomic clocks assist geophysicists?',
+          options: [
+            'They measure millimeter changes in Earth’s gravitational geoid via relativistic time dilation',
+            'They predict earthquakes by measuring underground magnetic storms',
+            'They replace GPS satellites completely with laser optics',
+            'They record seismic waves using sound echoes'
+          ],
+          correctAnswer: 'They measure millimeter changes in Earth’s gravitational geoid via relativistic time dilation'
+        },
+        {
+          id: `q_ielts_${batchIndex}_w6`,
+          section: 'Writing',
+          instruction: 'Write an essay of at least 250 words responding to the prompt.',
+          questionText: 'Some individuals argue that international expenditure on deep space exploration is unjustified while pressing environmental and poverty crises persist on Earth. Discuss both views and give your opinion.',
+          modelAnswer: 'The allocation of public billions toward deep space exploration often ignites controversy in an era marked by terrestrial ecological fragility and socioeconomic disparity. While skeptics contend that domestic poverty alleviation demands singular fiscal priority, I maintain that space science generates critical technological dividends and environmental telemetry indispensable for Earth’s long-term survival.\n\nCritics legitimately observe that funding spent on extraterrestrial probes could immediately fund clean municipal water, renewable grids, and healthcare in marginalized populations. However, this view overlooks the origin of our environmental monitoring tools: satellite meteorology, climate modeling, and solar panel efficiency all originated directly from aerospace research programs.\n\nIn conclusion, space exploration and earthly sustainability are not mutually exclusive; orbital research equips humanity with the scientific precision necessary to protect our own planet.'
         }
       ]
     }

@@ -193,18 +193,63 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
     const wordCount = essayText.trim().split(/\s+/).filter(Boolean).length;
     const hasSufficientWords = wordCount >= 180;
 
+    let predictedScore = 'Band 8.0';
+    let sectionScores = {
+      listening: 8.5,
+      reading: 8.0,
+      writing: hasSufficientWords ? 7.5 : 6.5,
+      speaking: 8.0
+    };
+
+    if (selectedExam === 'PTE') {
+      predictedScore = hasSufficientWords ? '84 / 90 (Superior English)' : '72 / 90 (Proficient)';
+      sectionScores = {
+        listening: 85,
+        reading: 83,
+        writing: hasSufficientWords ? 82 : 68,
+        speaking: 86
+      };
+    } else if (selectedExam === 'TOEFL') {
+      predictedScore = hasSufficientWords ? '112 / 120 (Top Tier)' : '98 / 120 (Standard)';
+      sectionScores = {
+        listening: 29,
+        reading: 28,
+        writing: hasSufficientWords ? 27 : 21,
+        speaking: 28
+      };
+    } else if (selectedExam === 'OET') {
+      predictedScore = hasSufficientWords ? 'Grade A (430 / 500 Clinical Mastery)' : 'Grade B (360 / 500 Licensure Pass)';
+      sectionScores = {
+        listening: 440,
+        reading: 420,
+        writing: hasSufficientWords ? 410 : 340,
+        speaking: 450
+      };
+    } else if (selectedExam === 'DET') {
+      predictedScore = hasSufficientWords ? '145 / 160 (Advanced Academic)' : '125 / 160 (Competent)';
+      sectionScores = {
+        listening: 145,
+        reading: 140,
+        writing: hasSufficientWords ? 140 : 120,
+        speaking: 145
+      };
+    } else if (selectedExam === 'Cambridge English') {
+      predictedScore = hasSufficientWords ? 'C1 Advanced Grade A (204 / 210)' : 'C1 Advanced Grade B (193 / 210)';
+      sectionScores = {
+        listening: 205,
+        reading: 202,
+        writing: hasSufficientWords ? 198 : 184,
+        speaking: 204
+      };
+    }
+
     const simulatedAttempt: ExamAttempt = {
       id: `att_${Date.now()}`,
       mockTestId: currentTest.id,
       exam: selectedExam,
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      predictedScore: selectedExam.includes('IELTS') ? 'Band 8.0' : selectedExam === 'PTE' ? '82 / 90' : '108 / 120',
-      sectionScores: {
-        listening: 8.5,
-        reading: 8.0,
-        writing: hasSufficientWords ? 7.5 : 6.5,
-        speaking: 8.0
-      },
+      predictedScore,
+      sectionScores,
       feedback: {
         fluency: 'Outstanding prosody and cadence. Natural pauses observed without hesitation or false restarts.',
         lexicalResource: 'Exceptional academic register. Precise vocabulary usage: "synaptic plasticity", "algorithmic bias", "democratizes".',
@@ -517,6 +562,43 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests }) => {
         /* Official Timed Mock Tests Mode */
         filteredMockTests.length > 0 ? (
           <div className="space-y-6">
+            {filteredMockTests.length > 1 && (
+              <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-indigo-700">
+                    Available {selectedExam} Tests ({filteredMockTests.length}):
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
+                  {filteredMockTests.map((t) => {
+                    const isCur = currentTest.id === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          sound.playClick();
+                          setActiveTest(t);
+                          setActiveSectionIndex(0);
+                          setIsRunning(false);
+                          setExamResult(null);
+                          setUserAnswers({});
+                          setEssayText('');
+                          setSpeakingText('');
+                        }}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                          isCur
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {t.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
               <div className="p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-2">

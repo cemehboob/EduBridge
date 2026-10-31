@@ -112,7 +112,17 @@ export const StorageService = {
   getUnits: (): Unit[] => safeGet<Unit[]>(KEYS.UNITS, initialUnits),
   saveUnits: (u: Unit[]): void => safeSet(KEYS.UNITS, u),
 
-  getMockTests: (): MockTest[] => safeGet<MockTest[]>(KEYS.MOCK_TESTS, mockTests),
+  getMockTests: (): MockTest[] => {
+    const existing = safeGet<MockTest[]>(KEYS.MOCK_TESTS, mockTests);
+    const existingIds = new Set(existing.map((t) => t.id));
+    const missing = mockTests.filter((t) => !existingIds.has(t.id));
+    if (missing.length > 0) {
+      const merged = [...existing, ...missing];
+      safeSet(KEYS.MOCK_TESTS, merged);
+      return merged;
+    }
+    return existing;
+  },
   saveMockTests: (m: MockTest[]): void => safeSet(KEYS.MOCK_TESTS, m),
 
   getAcademicTopics: (): AcademicTopic[] => safeGet<AcademicTopic[]>(KEYS.ACADEMIC_TOPICS, academicTopics),
