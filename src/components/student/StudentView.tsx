@@ -13,6 +13,8 @@ import {
   Sparkles,
   Medal,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Info,
   CheckCircle2,
   Lock,
@@ -49,6 +51,7 @@ import { VocabularyQuiz } from './VocabularyQuiz';
 import { UniversalLearningArena } from '../cohorts/UniversalLearningArena';
 import { QuestionSolverView } from '../solver/QuestionSolverView';
 import { BadgeService } from '../../services/badgeService';
+import { StorageService } from '../../services/storage';
 import { sound } from '../../utils/audio';
 
 type StudentTab = 'language' | 'cohorts' | 'solver' | 'exam' | 'vocab_quiz' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges';
@@ -363,13 +366,18 @@ export const StudentView: React.FC<StudentViewProps> = ({
               <button
                 onClick={() => {
                   sound.playClick();
-                  setActiveTab('badges');
+                  setActiveTab(activeTab === 'badges' ? 'language' : 'badges');
                 }}
-                className="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-200/80 shadow-2xs"
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-200/80 shadow-2xs cursor-pointer"
+                title={activeTab === 'badges' ? 'Collapse back to partial view' : 'Expand full badge grid'}
               >
                 <Grid className="w-3.5 h-3.5" />
-                <span>View Full Badge Grid</span>
-                <ChevronRight className="w-3.5 h-3.5 text-indigo-500" />
+                <span>{activeTab === 'badges' ? 'Show Less / Partial View' : 'View Full Badge Grid'}</span>
+                {activeTab === 'badges' ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-indigo-500" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />
+                )}
               </button>
             </div>
           </div>
@@ -385,7 +393,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
                 <div
                   onClick={() => {
                     sound.playClick();
-                    setActiveTab('badges');
+                    setActiveTab(activeTab === 'badges' ? 'language' : 'badges');
                   }}
                   className="p-3.5 rounded-2xl border border-slate-200 hover:border-cyan-400 bg-gradient-to-br from-white to-cyan-50/30 hover:shadow-sm transition-all cursor-pointer group space-y-2 relative"
                 >
@@ -403,9 +411,16 @@ export const StudentView: React.FC<StudentViewProps> = ({
                         </span>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                      +{b.xpReward} XP
-                    </span>
+                    {b.unlocked ? (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>Unlocked</span>
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        +{b.xpReward} XP
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-[11px] text-slate-600 line-clamp-1">
@@ -414,7 +429,9 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] font-mono text-slate-500 font-bold">
-                      <span>{b.unlocked ? 'Unlocked' : 'Progress'}</span>
+                      <span className={b.unlocked ? 'text-emerald-700 font-semibold' : 'text-slate-600'}>
+                        {b.unlocked ? 'Unlocked' : 'In Progress'}
+                      </span>
                       <span>{b.currentValue} / {b.targetValue} words ({pct}%)</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
@@ -429,11 +446,14 @@ export const StudentView: React.FC<StudentViewProps> = ({
             {(() => {
               const b = badges.find((x) => x.id === 'badge_streak_7');
               if (!b) return null;
+              const streak = Math.max(profile.currentStreak || 0, profile.highestStreak || 0);
+              const pct = Math.min(100, Math.round((streak / b.targetValue) * 100));
+              const isUnlocked = b.unlocked;
               return (
                 <div
                   onClick={() => {
                     sound.playClick();
-                    setActiveTab('badges');
+                    setActiveTab(activeTab === 'badges' ? 'language' : 'badges');
                   }}
                   className="p-3.5 rounded-2xl border border-amber-200/90 hover:border-amber-400 bg-gradient-to-br from-white to-amber-50/40 hover:shadow-sm transition-all cursor-pointer group space-y-2 relative"
                 >
@@ -451,10 +471,16 @@ export const StudentView: React.FC<StudentViewProps> = ({
                         </span>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      <span>Unlocked</span>
-                    </span>
+                    {isUnlocked ? (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>Unlocked</span>
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        +{b.xpReward} XP
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-[11px] text-slate-600 line-clamp-1">
@@ -463,11 +489,13 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] font-mono text-slate-500 font-bold">
-                      <span className="text-emerald-700 font-semibold">Habit Pioneer</span>
-                      <span>{profile.currentStreak} / {b.targetValue} days (100%)</span>
+                      <span className={isUnlocked ? 'text-emerald-700 font-semibold' : 'text-slate-600'}>
+                        {isUnlocked ? 'Habit Pioneer' : 'In Progress'}
+                      </span>
+                      <span>{streak} / {b.targetValue} days ({pct}%)</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full" style={{ width: '100%' }} />
+                      <div className="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 </div>
@@ -482,7 +510,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
                 <div
                   onClick={() => {
                     sound.playClick();
-                    setActiveTab('badges');
+                    setActiveTab(activeTab === 'badges' ? 'language' : 'badges');
                   }}
                   className="p-3.5 rounded-2xl border border-rose-200/90 hover:border-rose-400 bg-gradient-to-br from-white to-rose-50/40 hover:shadow-sm transition-all cursor-pointer group space-y-2 relative"
                 >
@@ -563,6 +591,22 @@ export const StudentView: React.FC<StudentViewProps> = ({
             profile={profile}
             vocabularyWords={vocabularyWords}
             onCompleteQuiz={(score, total, xpEarned) => {
+              // Record authentic quiz conduction and words
+              BadgeService.recordQuizAttemptWords(score);
+              StorageService.recordTestConduction({
+                userEmail: profile.email,
+                userName: profile.name,
+                userRole: profile.role,
+                cohort: profile.ageCohort || 'academy',
+                testId: `quiz_${Date.now()}`,
+                testTitle: `Vocabulary Mastery Quiz (${score}/${total})`,
+                testType: 'VOCAB_QUIZ',
+                category: 'Vocabulary Track',
+                score: `${score}/${total}`,
+                xpEarned,
+                status: 'COMPLETED',
+                details: `Answered ${score} of ${total} vocabulary quiz words correctly.`
+              });
               if (onCelebrate && (score / total) >= 0.8) {
                 onCelebrate('daily_goal');
               }
@@ -619,6 +663,8 @@ export const StudentView: React.FC<StudentViewProps> = ({
             mockTests={mockTests}
             currentRank={3}
             onCelebrate={onCelebrate}
+            onCollapse={() => setActiveTab('language')}
+            onNavigateToPractice={() => setActiveTab('vocab_quiz')}
           />
         )}
       </main>

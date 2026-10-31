@@ -17,7 +17,9 @@ import {
   Medal,
   Clock,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { AchievementBadge, BadgeCategory, UserProfile, VocabularyWord, Unit, MockTest } from '../../types';
 import { BadgeCard } from './BadgeCard';
@@ -32,6 +34,8 @@ interface BadgeGridProps {
   mockTests?: MockTest[];
   currentRank?: number;
   onCelebrate?: (type: 'streak' | 'daily_goal') => void;
+  onCollapse?: () => void;
+  onNavigateToPractice?: () => void;
 }
 
 export const BadgeGrid: React.FC<BadgeGridProps> = ({
@@ -40,7 +44,9 @@ export const BadgeGrid: React.FC<BadgeGridProps> = ({
   units = [],
   mockTests = [],
   currentRank = 3,
-  onCelebrate
+  onCelebrate,
+  onCollapse,
+  onNavigateToPractice
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<BadgeCategory>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
@@ -86,16 +92,11 @@ export const BadgeGrid: React.FC<BadgeGridProps> = ({
     });
   }, [allBadges, selectedCategory, statusFilter, searchQuery]);
 
-  // Interactive handler to practice words and advance toward the '1000 Words Learned' badge
-  const handleSimulateWordPractice = (increment = 50) => {
-    sound.playSuccess();
-    const newCount = BadgeService.incrementLearnedWords(increment, vocabularyWords);
-    setWordsPracticeBonus((prev) => prev + increment);
-
-    // If just crossed 1,000 words milestone, launch full celebration!
-    if (newCount >= 1000) {
-      triggerCelebration('daily_goal');
-      if (onCelebrate) onCelebrate('daily_goal');
+  // Authentic handler to start practice quiz to earn verified words
+  const handleStartPractice = () => {
+    sound.playClick();
+    if (onNavigateToPractice) {
+      onNavigateToPractice();
     }
   };
 
@@ -199,12 +200,12 @@ export const BadgeGrid: React.FC<BadgeGridProps> = ({
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-slate-400">
                   <span>{b.unlocked ? 'Mastered!' : `${b.targetValue - b.currentValue} words remaining`}</span>
-                  {!b.unlocked && (
+                  {!b.unlocked && onNavigateToPractice && (
                     <button
-                      onClick={() => handleSimulateWordPractice(50)}
+                      onClick={onNavigateToPractice}
                       className="text-[10px] text-cyan-300 hover:text-white font-bold underline cursor-pointer"
                     >
-                      +50 Words Drill
+                      Attempt Practice Quiz →
                     </button>
                   )}
                 </div>
@@ -365,18 +366,30 @@ export const BadgeGrid: React.FC<BadgeGridProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
             <span className="text-[11px] text-slate-500 font-medium">
               Showing {filteredBadges.length} of {totalBadgesCount} badges
             </span>
-            <button
-              onClick={() => handleSimulateWordPractice(50)}
-              title="Practice 50 new vocabulary words in the flashcard drill engine"
-              className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Simulate +50 Words Drill</span>
-            </button>
+            {onNavigateToPractice && (
+              <button
+                onClick={handleStartPractice}
+                title="Attempt authentic vocabulary practice questions in the quiz engine"
+                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Practice Vocabulary Quiz</span>
+              </button>
+            )}
+            {onCollapse && (
+              <button
+                onClick={onCollapse}
+                title="Collapse full badge grid back to summary view"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
+              >
+                <ChevronUp className="w-3.5 h-3.5" />
+                <span>Show Less / Collapse</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -389,7 +402,7 @@ export const BadgeGrid: React.FC<BadgeGridProps> = ({
               key={badge.id}
               badge={badge}
               onSelectBadge={handleCardClick}
-              onLearnMoreWords={() => handleSimulateWordPractice(50)}
+              onLearnMoreWords={handleStartPractice}
             />
           ))}
         </div>
@@ -520,13 +533,13 @@ export const BadgeGrid: React.FC<BadgeGridProps> = ({
                   selectedBadgeForModal.id === 'badge_words_1000' && (
                     <button
                       onClick={() => {
-                        handleSimulateWordPractice(50);
+                        handleStartPractice();
                         setSelectedBadgeForModal(null);
                       }}
                       className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
                     >
                       <BookOpen className="w-3.5 h-3.5" />
-                      <span>Practice 50 Words Now</span>
+                      <span>Attempt Practice Quiz →</span>
                     </button>
                   )
                 )}

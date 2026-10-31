@@ -260,10 +260,11 @@ export const BadgeCard: React.FC<BadgeCardProps> = ({ badge, onSelectBadge, onLe
                   e.stopPropagation();
                   onLearnMoreWords();
                 }}
-                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-lg border border-indigo-200 transition-colors flex items-center gap-0.5"
+                className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-lg border border-indigo-200 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Attempt authentic vocabulary practice questions to earn verified words"
               >
-                <span>+50 Words</span>
-                <TrendingUp className="w-2.5 h-2.5" />
+                <span>Practice Quiz</span>
+                <ChevronRight className="w-2.5 h-2.5" />
               </button>
             )}
           </div>

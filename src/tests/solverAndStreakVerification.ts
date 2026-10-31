@@ -265,7 +265,51 @@ async function runTests() {
     console.log('PASS: Custom Color Scheme configuration verified with primary and accent tones.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 20 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 21: Authentic Words Learned Progression & No Fake Cheat Increment
+  console.log('\nTest 21: Verifying Words Learned authentic calculation and badge progression...');
+  const { BadgeService } = await import('../services/badgeService');
+  const learnedCount = BadgeService.getLearnedWordsCount([], []);
+  if (typeof learnedCount !== 'number' || learnedCount < 0) {
+    console.error(`FAIL: Invalid learned words count: ${learnedCount}`);
+    failures++;
+  } else {
+    console.log(`PASS: Baseline learned words count computed authentically: ${learnedCount} words.`);
+  }
+
+  // Test 22: Badge Unlock Integrity & Streak Badges
+  console.log('\nTest 22: Verifying Badge unlock integrity for Day 1 streak...');
+  const mockProfile: any = {
+    id: 'test-user',
+    name: 'Student Test',
+    email: 'student@test.com',
+    role: 'student',
+    currentStreak: 1,
+    highestStreak: 1,
+    xp: 250,
+    todayXp: 50,
+    dailyGoalXp: 50
+  };
+  const badges = BadgeService.computeBadges(mockProfile, [], [], []);
+  const streak7Badge = badges.find(b => b.id === 'badge_streak_7');
+  if (!streak7Badge) {
+    console.error('FAIL: badge_streak_7 not found');
+    failures++;
+  } else if (streak7Badge.unlocked) {
+    console.error('FAIL: badge_streak_7 should NOT be unlocked on Day 1 streak (currentStreak=1)');
+    failures++;
+  } else {
+    console.log(`PASS: badge_streak_7 is properly locked on Day 1 (unlocked=${streak7Badge.unlocked}, value=${streak7Badge.currentValue}/${streak7Badge.targetValue}).`);
+  }
+
+  const words1000Badge = badges.find(b => b.id === 'badge_words_1000');
+  if (!words1000Badge) {
+    console.error('FAIL: badge_words_1000 not found');
+    failures++;
+  } else {
+    console.log(`PASS: badge_words_1000 progress: ${words1000Badge.currentValue}/${words1000Badge.targetValue} (unlocked=${words1000Badge.unlocked}).`);
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 22 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

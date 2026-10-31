@@ -271,3 +271,4 @@ export const ColorSchemeSelector: React.FC<ColorSchemeSelectorProps> = ({
     </div>
   );
 };
+
