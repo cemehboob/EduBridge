@@ -33,8 +33,10 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   onUpdateUser
 }) => {
   const [name, setName] = useState(user.name);
-  const [password, setPassword] = useState(user.password);
-  const [showPassword, setShowPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [dob, setDob] = useState(user.dateOfBirth);
   const [ageCohort, setAgeCohort] = useState<AgeCohortId>(
     user.preferences.ageCohort || calculateCohortFromDob(user.dateOfBirth)
@@ -53,6 +55,14 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isChangingPassword && newPassword.trim() && newPassword.trim().length < 6) {
+      sound.playError();
+      setPasswordError('New password must be at least 6 characters long.');
+      return;
+    }
+    setPasswordError(null);
+
     sound.playSuccess();
 
     const calculatedEdu = calculateEducationLevel(dob);
@@ -60,7 +70,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
     const updated: UserAccount = {
       ...user,
       name: name.trim(),
-      password: password.trim(),
+      password: isChangingPassword && newPassword.trim() ? newPassword.trim() : user.password,
       dateOfBirth: dob,
       preferences: {
         ...user.preferences,
@@ -153,56 +163,87 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
             </div>
           </div>
 
-          {/* Password & Date of Birth */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">Account Password</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password..."
-                  className="w-full pl-9 pr-10 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    sound.playClick();
-                    setShowPassword(!showPassword);
-                  }}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  title={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+          {/* Date of Birth & Live Developmental Age */}
+          <div>
+            <label className="font-bold text-slate-700 block mb-1">Date of Birth (DOB)</label>
+            <div className="relative">
+              <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="date"
+                required
+                value={dob}
+                onChange={(e) => {
+                  setDob(e.target.value);
+                  const inferred = calculateCohortFromDob(e.target.value);
+                  setAgeCohort(inferred);
+                }}
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div className="mt-1.5 text-[11px] text-indigo-700 font-bold flex items-center gap-1.5">
+              <span>Calculated Age: {calculateAge(dob)} years old</span>
+              <span>•</span>
+              <span className="text-slate-600">{calculateEducationLevel(dob)}</span>
+            </div>
+          </div>
+
+          {/* Account Security & Password Management (Password is never exposed) */}
+          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-bold text-slate-900 block text-xs">Account Credentials &amp; Security</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Password is encrypted &amp; hidden</span>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setIsChangingPassword(!isChangingPassword);
+                  setPasswordError(null);
+                }}
+                className="px-3 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200 transition-all cursor-pointer shadow-2xs"
+              >
+                {isChangingPassword ? 'Cancel' : 'Change Password'}
+              </button>
             </div>
 
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">Date of Birth (DOB)</label>
-              <div className="relative">
-                <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="date"
-                  required
-                  value={dob}
-                  onChange={(e) => {
-                    setDob(e.target.value);
-                    const inferred = calculateCohortFromDob(e.target.value);
-                    setAgeCohort(inferred);
-                  }}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs"
-                />
+            {isChangingPassword && (
+              <div className="pt-2 border-t border-slate-200 space-y-1.5 animate-in fade-in duration-150">
+                <label className="font-bold text-slate-700 block text-[11px]">New Password</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (min 6 characters)..."
+                    className="w-full pl-9 pr-10 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setShowNewPassword(!showNewPassword);
+                    }}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    title={showNewPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {passwordError && (
+                  <p className="text-[10px] font-bold text-rose-600">{passwordError}</p>
+                )}
+                <p className="text-[10px] text-slate-500">
+                  Leave blank to keep your current secure password.
+                </p>
               </div>
-              <div className="mt-1 text-[11px] text-indigo-700 font-bold flex items-center gap-1.5">
-                <span>Calculated Age: {calculateAge(dob)} years old</span>
-                <span>•</span>
-                <span className="text-slate-600">{calculateEducationLevel(dob)}</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Developmental Stage & Accessibility Scaling */}
