@@ -31,7 +31,12 @@ export class QuestionSolverService {
     // 1. Ambiguity & Missing Information Check
     const ambiguityCheck = this.detectAmbiguity(question);
     if (ambiguityCheck.isAmbiguous) {
-      return this.generateAmbiguityResponse(question, inputMode, ambiguityCheck.clarificationPrompt);
+      return this.generateAmbiguityResponse(
+        question,
+        inputMode,
+        ambiguityCheck.clarificationPrompt,
+        ambiguityCheck.suggestedOptions
+      );
     }
 
     // 2. Identify Subject & Topic
@@ -55,13 +60,18 @@ export class QuestionSolverService {
   /**
    * Detects whether the input lacks necessary variables, values, or clarity.
    */
-  private static detectAmbiguity(q: string): { isAmbiguous: boolean; clarificationPrompt: string } {
+  private static detectAmbiguity(q: string): {
+    isAmbiguous: boolean;
+    clarificationPrompt: string;
+    suggestedOptions?: string[];
+  } {
     const lower = q.toLowerCase();
 
     if (q.length < 3) {
       return {
         isAmbiguous: true,
-        clarificationPrompt: 'The question appears too short. Please provide the full problem statement or equation.'
+        clarificationPrompt: 'The question appears too short. Please provide the full problem statement or equation.',
+        suggestedOptions: ['Solve 2x + 5 = 15', 'Balance H2 + O2 -> H2O', 'Write a paragraph on Pakistan']
       };
     }
 
@@ -71,7 +81,8 @@ export class QuestionSolverService {
     ) {
       return {
         isAmbiguous: true,
-        clarificationPrompt: 'Please specify the exact equation or polynomial expression you would like to solve (e.g., 2x² - 8 = 0).'
+        clarificationPrompt: 'Please specify the exact equation or polynomial expression you would like to solve (e.g., 2x² - 8 = 0).',
+        suggestedOptions: ['2x² - 8 = 0', 'x² - 5x + 6 = 0', 'x² - 9 = 0', '3x + 12 = 0']
       };
     }
 
@@ -81,7 +92,8 @@ export class QuestionSolverService {
     ) {
       return {
         isAmbiguous: true,
-        clarificationPrompt: 'To calculate velocity or speed, please provide numerical values for distance/displacement and elapsed time, or acceleration parameters.'
+        clarificationPrompt: 'To calculate velocity or speed, please provide numerical values for distance/displacement and elapsed time, or acceleration parameters.',
+        suggestedOptions: ['Distance: 150m, Time: 10s', 'Displacement: 200m, Time: 5s', 'Initial v: 0 m/s, a: 3 m/s², t: 4s']
       };
     }
 
@@ -91,11 +103,12 @@ export class QuestionSolverService {
     ) {
       return {
         isAmbiguous: true,
-        clarificationPrompt: 'Please provide the chemical formula or reactants and products to balance (e.g., H2 + O2 -> H2O).'
+        clarificationPrompt: 'Please provide the chemical formula or reactants and products to balance (e.g., H2 + O2 -> H2O).',
+        suggestedOptions: ['H2 + O2 -> H2O', 'CH4 + O2 -> CO2 + H2O', 'Fe + O2 -> Fe2O3', 'N2 + H2 -> NH3']
       };
     }
 
-    return { isAmbiguous: false, clarificationPrompt: '' };
+    return { isAmbiguous: false, clarificationPrompt: '', suggestedOptions: [] };
   }
 
   /**
@@ -104,7 +117,8 @@ export class QuestionSolverService {
   private static generateAmbiguityResponse(
     question: string,
     inputMode: InputMode,
-    clarificationPrompt: string
+    clarificationPrompt: string,
+    suggestedOptions: string[] = []
   ): SolverResponse {
     return {
       id: `solve-${Date.now()}`,
@@ -117,6 +131,7 @@ export class QuestionSolverService {
       difficulty: 'Standard',
       isAmbiguous: true,
       clarificationPrompt,
+      suggestedClarifications: suggestedOptions,
       finalAnswer: 'Clarification Needed: Additional information is required to solve this problem accurately.',
       summary: clarificationPrompt,
       steps: [
@@ -124,7 +139,7 @@ export class QuestionSolverService {
           stepNumber: 1,
           title: 'Missing Required Parameters',
           explanation: clarificationPrompt,
-          tip: 'Tip: Add specific numbers, equations, or context in the input box above.'
+          tip: 'Tip: Add specific numbers, equations, or context in the input box or chat below.'
         }
       ],
       highlightedConcepts: [
@@ -146,95 +161,102 @@ export class QuestionSolverService {
 
   /**
    * Classifies question into subject, specific topic, and difficulty level.
+   * Employs strict word boundaries and prioritized categorization to eliminate false positives
+   * (e.g. "paragraph" or "Pakistan" must never trigger Chemistry's "ph" or "base").
    */
   public static classifySubjectAndTopic(question: string): {
     subject: SolverSubject;
     topic: string;
     difficulty: 'Foundation' | 'Standard' | 'Advanced';
   } {
-    const q = question.toLowerCase();
+    const q = question.toLowerCase().trim();
 
-    // Chemistry
-    if (
-      q.includes('h2o') || q.includes('acid') || q.includes('base') || q.includes('ph') ||
-      q.includes('mole') || q.includes('molar') || q.includes('chemical') || q.includes('reaction') ||
-      q.includes('stoichiometry') || q.includes('periodic table') || q.includes('c6h12o6') ||
-      q.includes('combustion') || q.includes('oxidation')
-    ) {
-      return { subject: 'Chemistry', topic: 'Chemical Reactions & Stoichiometry', difficulty: 'Standard' };
-    }
+    // 1. Essay & Composition / Creative & Descriptive Writing Prompts
+    // Evaluated first so prompts asking to write or describe never collide with scientific words.
+    const isWritingPrompt =
+      /\b(eassy|essay|esay|composition|paragraph|letter|story|article|speech|creative writing|expository)\b/i.test(q) ||
+      /\bwrite (an?|about|a paragraph|an essay|a letter|a story|an article|a speech)\b/i.test(q) ||
+      /\b(my friend|best friend|my school|my mother|my teacher|my family|my country|pakistan|my pet)\b/i.test(q) ||
+      q.startsWith('write ') ||
+      q.startsWith('compose ') ||
+      q.startsWith('draft ');
 
-    // Physics
-    if (
-      q.includes('velocity') || q.includes('acceleration') || q.includes('force') ||
-      q.includes('gravity') || q.includes('newton') || q.includes('kinetic energy') ||
-      q.includes('momentum') || q.includes('ohm') || q.includes('current') ||
-      q.includes('voltage') || q.includes('circuit') || q.includes('optics') ||
-      q.includes('thermodynamics') || q.includes('friction')
-    ) {
-      return { subject: 'Physics', topic: 'Classical Mechanics & Energy', difficulty: 'Standard' };
-    }
+    if (isWritingPrompt) {
+      let topic = 'Structured Composition & Analysis';
+      const cleanTopic = question
+        .replace(/^(please\s+)?(write|draft|compose)\s+(an?|a\s+short|a\s+brief)?\s*(eassy|essay|esay|paragraph|composition|letter|story|article|speech)\s*(on|about)?\s*/i, '')
+        .replace(/^(eassy|essay|esay|composition|paragraph|letter|story|article|speech)\s*(on|about)\s*/i, '')
+        .replace(/^(please\s+)?(write|tell\s+me)\s+(about|on)\s*/i, '')
+        .trim();
 
-    // Biology
-    if (
-      q.includes('cell') || q.includes('photosynthesis') || q.includes('mitochondria') ||
-      q.includes('dna') || q.includes('rna') || q.includes('gene') || q.includes('genetics') ||
-      q.includes('respiration') || q.includes('mitosis') || q.includes('meiosis') ||
-      q.includes('organism') || q.includes('ecosystem') || q.includes('bacteria')
-    ) {
-      return { subject: 'Biology', topic: 'Cellular Biology & Genetics', difficulty: 'Standard' };
-    }
+      if (/pakistan/i.test(q)) {
+        topic = 'Pakistan: Heritage, Geography & Resilience';
+      } else if (cleanTopic.length > 2) {
+        topic = cleanTopic.charAt(0).toUpperCase() + cleanTopic.slice(1);
+      } else if (/friend/i.test(q)) {
+        topic = 'My Best Friend';
+      } else if (/school/i.test(q)) {
+        topic = 'My School';
+      } else if (/mother|mom/i.test(q)) {
+        topic = 'My Mother';
+      } else if (/teacher/i.test(q)) {
+        topic = 'My Favorite Teacher';
+      } else if (/pollution|climate|environment/i.test(q)) {
+        topic = 'Environmental Conservation';
+      } else if (/ai|intelligence|technology/i.test(q)) {
+        topic = 'Technology & Modern Life';
+      }
 
-    // Computer Science
-    if (
-      q.includes('algorithm') || q.includes('binary') || q.includes('python') ||
-      q.includes('javascript') || q.includes('code') || q.includes('time complexity') ||
-      q.includes('big o') || q.includes('data structure') || q.includes('recursion') ||
-      q.includes('array') || q.includes('sorting') || q.includes('database') || q.includes('sql')
-    ) {
-      return { subject: 'Computer Science', topic: 'Algorithms & Data Structures', difficulty: 'Standard' };
-    }
-
-    // Essay & Composition Writing (robust matching for essay, eassy, esay, paragraph, story, letter, etc.)
-    const isEssayQuery =
-      /\b(eassy|essay|esay|composition|paragraph|letter|story|article|speech)\b/i.test(q) ||
-      /\bwrite (an?|about)?\b/i.test(q) ||
-      /\b(my friend|best friend|my school|my mother|my teacher|my family|my hobby|my country|my pet)\b/i.test(q) ||
-      q.includes('write an essay') || q.includes('write an eassy') || q.includes('write an esay') ||
-      q.includes('essay on') || q.includes('eassy on') || q.includes('esay on') ||
-      q.includes('write a paragraph') || q.includes('paragraph on') || q.includes('write a letter') ||
-      q.includes('write a story') || q.includes('composition') || q.includes('argumentative essay') ||
-      q.includes('thesis statement');
-
-    if (isEssayQuery) {
-      let topic = 'Structured Essay & Composition';
-      if (q.includes('friend')) topic = 'My Best Friend';
-      else if (q.includes('school')) topic = 'My School';
-      else if (q.includes('mother')) topic = 'My Mother';
-      else if (q.includes('teacher')) topic = 'My Favorite Teacher';
-      else if (q.includes('pollution') || q.includes('climate') || q.includes('environment')) topic = 'Environmental Conservation';
-      else if (q.includes('ai') || q.includes('intelligence') || q.includes('technology')) topic = 'Technology & Modern Life';
       return { subject: 'Essay Writing', topic, difficulty: 'Standard' };
     }
 
-    // English
-    if (
-      q.includes('grammar') || q.includes('passive voice') || q.includes('active voice') ||
-      q.includes('tense') || q.includes('synonym') || q.includes('antonym') ||
-      q.includes('metaphor') || q.includes('preposition') || q.includes('sentence structure') ||
-      q.includes('punctuation') || q.includes('part of speech')
-    ) {
+    // 2. English Language, Grammar, Vocabulary & Syntax
+    const isEnglishGrammar =
+      /\b(grammar|passive voice|active voice|tense|tenses|synonym|synonyms|antonym|antonyms|metaphor|simile|preposition|prepositions|sentence structure|punctuation|parts? of speech|idiom|idioms|comprehension|clause|clauses|conjunction|conjunctions)\b/i.test(q);
+    if (isEnglishGrammar) {
       return { subject: 'English', topic: 'Grammar & Syntax Analysis', difficulty: 'Standard' };
     }
 
-    // Mathematics (Algebra, Calculus, Arithmetic, Geometry)
-    if (
-      /[0-9]/.test(q) && (/[=+\-*/^√∫∑%]/.test(q) || q.includes('solve') || q.includes('calculate') ||
-      q.includes('integral') || q.includes('derivative') || q.includes('triangle') ||
-      q.includes('pythagorean') || q.includes('probability') || q.includes('matrix'))
-    ) {
-      const isCalculus = q.includes('integral') || q.includes('derivative') || q.includes('limit') || q.includes('dx');
-      const isAdvanced = isCalculus || q.includes('eigen') || q.includes('laplace');
+    // 3. Chemistry (Strict word boundaries to prevent substring collisions like 'ph' in 'paragraph' or 'base' in 'database')
+    const isChemistry =
+      /\b(chemistry|chemical|reaction|reactions|reactant|reactants|stoichiometry|periodic table|combustion|oxidation|reduction|titration|molar|molarity|avogadro|covalent|ionic bond|catalyst|valency|noble gas|atomic mass)\b/i.test(q) ||
+      /\b(acid|acids|acidic|base|bases|alkaline|alkali|mole|moles)\b/i.test(q) ||
+      /\b(ph\s*(=|\b|\d)|poh)\b/i.test(q) ||
+      /\b(h2o|c6h12o6|nacl|co2|o2|h2|hcl|naoh|h2so4|ch4|nh3|caco3|kno3)\b/i.test(q);
+    if (isChemistry) {
+      return { subject: 'Chemistry', topic: 'Chemical Reactions & Stoichiometry', difficulty: 'Standard' };
+    }
+
+    // 4. Physics (Strict word boundaries to avoid 'force' in 'workforce' or 'current' in 'currently')
+    const isPhysics =
+      /\b(physics|velocity|acceleration|accelerate|force|net force|mass|momentum|gravitation|gravity|kinematics|thermodynamics|optics|friction|projectile|torque|centripetal|refraction|reflection)\b/i.test(q) ||
+      /\b(newton'?s? (law|first law|second law|third law)|newtons?|f\s*=\s*m\s*[·*a]|kinetic energy|potential energy|joules?)\b/i.test(q) ||
+      /\b(electric current|voltage|resistor|resistance|circuit|capacitance|magnetic field|electromagnetism|ohm'?s? law)\b/i.test(q);
+    if (isPhysics) {
+      return { subject: 'Physics', topic: 'Classical Mechanics & Energy', difficulty: 'Standard' };
+    }
+
+    // 5. Biology
+    const isBiology =
+      /\b(biology|biological|cell|cells|cellular|photosynthesis|mitochondria|dna|rna|gene|genetics|respiration|mitosis|meiosis|organism|organisms|ecosystem|bacteria|chloroplast|enzyme|enzymes|ribosome)\b/i.test(q);
+    if (isBiology) {
+      return { subject: 'Biology', topic: 'Cellular Biology & Genetics', difficulty: 'Standard' };
+    }
+
+    // 6. Computer Science
+    const isComputerScience =
+      /\b(algorithm|algorithms|binary|python|javascript|coding|data structure|recursion|time complexity|big o|sorting|database|sql|hash table|linked list|binary search|oop|object-oriented)\b/i.test(q);
+    if (isComputerScience) {
+      return { subject: 'Computer Science', topic: 'Algorithms & Data Structures', difficulty: 'Standard' };
+    }
+
+    // 7. Mathematics
+    const isMath =
+      (/[0-9]/.test(q) && (/[=+\-*/^√∫∑%]/.test(q) || /\b(solve|calculate|evaluate|equation|factorize|algebra|calculus|derivative|integral|limit|matrix|matrices|probability|trigonometry|hypotenuse|pythagorean|quadratic|polynomial)\b/i.test(q))) ||
+      /\b(pythagorean theorem|quadratic formula|linear equation|sin|cos|tan)\b/i.test(q);
+    if (isMath) {
+      const isCalculus = /\b(integral|derivative|limit|dx|dy\/dx)\b/i.test(q);
+      const isAdvanced = isCalculus || /\b(eigen|laplace|fourier)\b/i.test(q);
       return {
         subject: 'Mathematics',
         topic: isCalculus ? 'Calculus & Analysis' : 'Algebra & Computation',
@@ -242,7 +264,14 @@ export class QuestionSolverService {
       };
     }
 
-    return { subject: 'General Knowledge', topic: 'Concept Explanation & Analysis', difficulty: 'Standard' };
+    // 8. General Knowledge (Countries, History, Geography, General Science)
+    let gkTopic = 'Concept Explanation & Analysis';
+    if (/pakistan/i.test(q)) gkTopic = 'Pakistan: Geography & History';
+    else if (/sky.*blue/i.test(q)) gkTopic = 'Atmospheric Optics & Rayleigh Scattering';
+    else if (/earthquake/i.test(q)) gkTopic = 'Plate Tectonics & Seismic Waves';
+    else if (/solar system|planet/i.test(q)) gkTopic = 'Astronomy & The Solar System';
+
+    return { subject: 'General Knowledge', topic: gkTopic, difficulty: 'Standard' };
   }
 
   /**
@@ -895,6 +924,7 @@ export class QuestionSolverService {
     topic: string,
     difficulty: 'Foundation' | 'Standard' | 'Advanced'
   ): SolverResponse {
+    const isParagraphPrompt = /\b(paragraph|short paragraph|brief paragraph)\b/i.test(question);
     const rawClean = question
       .replace(/write an? (eassy|essay|esay|paragraph|story|composition|article|speech) (on|about)?/gi, '')
       .replace(/(eassy|essay|esay|composition|paragraph|article|speech) (on|about)/gi, '')
@@ -1085,7 +1115,64 @@ In conclusion, humanity stands at a decisive crossroads. The earth does not belo
         }
       ];
     }
-    // 5. Default General & Academic Full-Text Essay Generator for any Topic
+    // 5. "Pakistan" Descriptive Paragraph / Full Essay
+    else if (lowerTopic.includes('pakistan')) {
+      const paragraphText = `Pakistan is a vibrant South Asian nation endowed with extraordinary natural majesty, a rich heritage spanning over five millennia, and world-renowned hospitality. Cradling the ancient Indus Valley Civilization—one of the earliest urban societies known to humankind, celebrated through iconic archaeological landmarks such as Mohenjo-Daro and Harappa—the country represents a timeless cultural crossroads where ancient traditions harmonize with modern aspirations. Geographically, Pakistan is a land of dramatic and breathtaking contrasts, stretching from the snow-crested summits of the Karakoram, Himalayan, and Hindu Kush ranges in the north—home to K2, the world’s second-highest mountain, and vast glaciers like Baltoro—down through the lush, fertile agricultural plains of the Indus River basin, across the serene golden expanses of the Thar and Cholistan deserts, to the bustling sunlit shores of the Arabian Sea in the south. The country is home to a dynamic and talented population of over 240 million people whose linguistic tapestry encompasses Urdu, Punjabi, Pashto, Sindhi, Balochi, and Saraiki, unified by strong bonds of communal solidarity, family devotion, and legendary warmth toward visitors. Globally celebrated for its vibrant cultural arts, exquisite handicrafts, world-class surgical instruments, FIFA-certified match footballs, and a proud athletic heritage in cricket, hockey, and squash, Pakistan stands as an industrious and resilient nation steadily progressing toward a promising and enlightened future.`;
+
+      const fullEssayText = `Title: Pakistan: A Land of Rich Heritage, Majestic Landscapes, and Resilient People
+
+Pakistan, officially the Islamic Republic of Pakistan, is a captivating and dynamic nation located at the crossroads of South Asia, Central Asia, and the Middle East. Blessed with an ancient history, an extraordinary variety of topographical wonders, and an industrious population of over 240 million, Pakistan occupies a position of profound cultural and geopolitical significance.
+
+Historically, the lands that comprise Pakistan are the cradle of ancient civilizations. Over five thousand years ago, the Indus Valley Civilization flourished along the banks of the mighty Indus River, leaving behind world-renowned archaeological sites at Mohenjo-Daro and Harappa that showcase remarkable early city planning, water management, and metallurgy. In subsequent centuries, the region was illuminated by the spiritual and artistic heights of Gandhara art and Buddhism in Taxila, followed by the majestic architectural grandeur of the Mughal Empire, immortalized in the Lahore Fort, Badshahi Mosque, and Shalimar Gardens. This layered history has endowed the country with an indelible legacy of multicultural heritage and intellectual depth.
+
+Geographically, Pakistan is among the most diverse nations on Earth. In the northern territories of Gilgit-Baltistan and Khyber Pakhtunkhwa, the world’s three greatest mountain ranges—the Himalayas, the Karakorams, and the Hindu Kush—converge to create breathtaking panoramas, including K2, the world’s second-highest peak, and massive glaciers like Baltoro and Biafo. Flowing southwards, the Indus River irrigates the vast, fertile agricultural plains of Punjab and Sindh, yielding abundant harvests of Basmati rice, premium cotton, wheat, and world-famous mangoes. The southwestern province of Balochistan features mineral-rich plateaus and dramatic coastal cliffs, while the southern coastline along the Arabian Sea is home to Karachi, Pakistan’s bustling financial metropolis and maritime gateway.
+
+Culturally, Pakistan is an enchanting tapestry of linguistic and artistic richness. While Urdu serves as the unifying national language, regional languages including Punjabi, Pashto, Sindhi, Balochi, and Saraiki thrive with centuries of mystical Sufi poetry, folk music, and vibrant storytelling. Pakistani society is renowned globally for its boundless hospitality, where guests are honored with genuine affection and treated to rich culinary delicacies such as biryani, nihari, and aromatic kebabs. Traditional craftsmanship—from exquisite Peshawari chappals and Multani ceramics to hand-woven carpets and intricately truck-painted art—reflects the ingenuity and creative spirit of its artisans.
+
+Economically and socially, Pakistan is powered by a youthful, resilient, and forward-looking demographic. Pakistani youth are making stellar contributions across international software engineering, scientific research, fintech, and entrepreneurship. In athletics, the nation holds a legendary legacy in international cricket, squash, and field hockey, while its manufacturing industries produce FIFA-certified match footballs and precision surgical tools used in healthcare systems worldwide. Despite navigating complex socioeconomic challenges, the perseverance and unwavering resolve of the Pakistani people remain their greatest asset.
+
+In conclusion, Pakistan is far more than a geographical entity; it is a living symphony of ancient wisdom, natural grandeur, and boundless human potential. Its soaring mountains, fertile valleys, and resilient people embody a spirit of endurance and hope. As Pakistan continues its journey of development, innovation, and educational advancement, it remains a proud and integral contributor to global culture and human progress.`;
+
+      essayTitle = isParagraphPrompt
+        ? 'A Descriptive Paragraph on Pakistan'
+        : 'Pakistan: A Land of Rich Heritage, Majestic Landscapes, and Resilient People';
+      fullEssay = isParagraphPrompt ? paragraphText : fullEssayText;
+
+      steps = [
+        {
+          stepNumber: 1,
+          title: isParagraphPrompt ? 'Paragraph Architecture & Topic Sentence' : 'Essay Architecture & Central Theme',
+          explanation: 'Establish a clear, compelling topic statement connecting Pakistan’s ancient roots (Indus Valley Civilization, Mohenjo-Daro) with its contemporary identity, geographic diversity, and strategic importance.',
+          tip: 'Begin country-focused compositions with an engaging hook that connects geography to historical significance.'
+        },
+        {
+          stepNumber: 2,
+          title: 'Historical Foundations & Ancient Heritage',
+          explanation: 'Integrate concrete historical references: 5,000-year-old Indus Valley Civilization, Gandhara art in Taxila, and Mughal architectural masterworks.'
+        },
+        {
+          stepNumber: 3,
+          title: 'Geographic Diversity & Natural Wonders',
+          explanation: 'Depict northern mountain peaks (K2, Karakorams), the fertile Indus River basin, scenic deserts (Thar, Cholistan), and the southern Arabian Sea coastline.'
+        },
+        {
+          stepNumber: 4,
+          title: 'Cultural Tapestry & Renowned Hospitality',
+          explanation: 'Highlight national and regional languages (Urdu, Punjabi, Pashto, Sindhi, Balochi), traditional cuisine, folklore, and legendary warmth toward visitors.'
+        },
+        {
+          stepNumber: 5,
+          title: 'Global Contributions, Industry & Sports',
+          explanation: 'Highlight sports excellence (cricket, hockey, squash), precision surgical instruments, FIFA-certified football manufacturing, and dynamic IT entrepreneurship.'
+        },
+        {
+          stepNumber: 6,
+          title: 'Synthesis & Future Outlook',
+          explanation: 'Synthesize the enduring resilience and optimism of the people, concluding with a memorable, forward-looking perspective.'
+        }
+      ];
+    }
+    // 6. Default General & Academic Full-Text Essay Generator for any Topic
     else {
       essayTitle = `Comprehensive Essay on ${topicTitle}`;
       fullEssay = `Title: Comprehensive Essay on ${topicTitle}
@@ -1140,12 +1227,16 @@ In conclusion, ${topicTitle} remains an indispensable pillar of human progress a
       difficulty,
       isAmbiguous: false,
       finalAnswer: fullEssay,
-      summary: `Complete, beautifully written 5-paragraph essay on "${essayTitle}" with cohesive paragraphs, vivid vocabulary, and structured analysis.`,
+      summary: isParagraphPrompt
+        ? `Complete, beautifully written descriptive paragraph on "${essayTitle}" with cohesive flow, vivid vocabulary, and structured analysis.`
+        : `Complete, beautifully written 5-paragraph essay on "${essayTitle}" with cohesive paragraphs, vivid vocabulary, and structured analysis.`,
       steps,
       highlightedConcepts: [
         {
-          term: 'Thesis Statement',
-          definition: 'A concise assertion that establishes the central argument, scope, and direction of the entire essay.',
+          term: isParagraphPrompt ? 'Topic Sentence & Anchor' : 'Thesis Statement',
+          definition: isParagraphPrompt
+            ? 'The initial sentence introducing the central theme, setting the tone and scope of the paragraph.'
+            : 'A concise assertion that establishes the central argument, scope, and direction of the entire essay.',
           relevance: 'The foundational anchor of academic and expository writing.'
         },
         {
@@ -1156,28 +1247,34 @@ In conclusion, ${topicTitle} remains an indispensable pillar of human progress a
         {
           term: 'Descriptive Vocabulary',
           definition: 'Varied and expressive word choice that evokes emotion, clarity, and precise meaning.',
-          relevance: 'Distinguishes exceptional essays from basic summaries.'
+          relevance: 'Distinguishes exceptional writing from basic summaries.'
         }
       ],
       learningAssistance: {
-        methodRationale: '5-paragraph structural framework delivers maximum clarity, narrative flow, and analytical balance.',
+        methodRationale: isParagraphPrompt
+          ? 'PEEL paragraph structural framework ensures focused point development, evidence integration, and concise synthesis.'
+          : '5-paragraph structural framework delivers maximum clarity, narrative flow, and analytical balance.',
         alternativeMethods: [
           'Narrative storytelling framework (Hook -> Conflict -> Climax -> Resolution)',
           'Comparative analytical structure (Point-by-point comparative method)'
         ],
         commonPitfalls: [
-          'Writing short, fragmented sentences without transition words between paragraphs.',
+          'Writing short, fragmented sentences without transition words between ideas.',
           'Introducing entirely new factual claims in the conclusion instead of synthesizing established points.'
         ],
         keyFormulas: [
-          '\\text{Essay Architecture} = \\text{Introduction (Hook+Thesis)} + 3\\times\\text{PEEL Body} + \\text{Reflective Conclusion}'
+          isParagraphPrompt
+            ? '\\text{PEEL Paragraph} = \\text{Point (Topic Sentence)} + \\text{Evidence / Detail} + \\text{Explanation} + \\text{Link}'
+            : '\\text{Essay Architecture} = \\text{Introduction (Hook+Thesis)} + 3\\times\\text{PEEL Body} + \\text{Reflective Conclusion}'
         ],
         practiceExample: {
           question: `Write an outline for an essay on "The Value of Time"`,
           answer: 'Intro: Time is irreplaceable -> Body 1: Academic discipline -> Body 2: Avoiding procrastination -> Body 3: Balancing work and rest -> Conclusion: Time once lost cannot be regained.'
         }
       },
-      voiceSpeechScript: `Here is your complete essay on ${essayTitle}. It includes a captivating introduction, detailed body paragraphs filled with personal and practical reflections, and a thoughtful conclusion. You can also download this full essay as a PDF or document.`
+      voiceSpeechScript: isParagraphPrompt
+        ? `Here is your descriptive paragraph on ${essayTitle}. You can listen to the narration or download the full text as a PDF or document.`
+        : `Here is your complete essay on ${essayTitle}. It includes a captivating introduction, detailed body paragraphs filled with personal and practical reflections, and a thoughtful conclusion. You can also download this full essay as a PDF or document.`
     };
   }
 
@@ -1494,6 +1591,112 @@ Output ONLY raw valid JSON. Do not wrap in markdown quotes if possible, or use s
         keyFormulas: []
       },
       voiceSpeechScript: parsed.voiceSpeechScript || parsed.finalAnswer
+    };
+  }
+
+  /**
+   * Refines or narrows down an ambiguous or broad question using the user's chat input.
+   * Seamlessly combines the prior context with the clarification to generate a verified solution.
+   */
+  public static async narrowDownAndSolve(
+    originalQuestion: string,
+    userClarification: string,
+    inputMode: InputMode = 'keyboard',
+    apiKey?: string,
+    language: string = 'en-US'
+  ): Promise<{ refinedQuestion: string; result: SolverResponse; aiMessage: string }> {
+    const origClean = originalQuestion.trim();
+    const clarClean = userClarification.trim();
+
+    let refined = `${origClean}: ${clarClean}`;
+    const origLower = origClean.toLowerCase();
+
+    if (origLower.includes('roots') || origLower.includes('solve for x')) {
+      refined = `Find the roots of ${clarClean}`;
+    } else if (origLower.includes('velocity') || origLower.includes('speed')) {
+      refined = `Calculate velocity given ${clarClean}`;
+    } else if (origLower.includes('balance')) {
+      refined = `Balance the chemical reaction: ${clarClean}`;
+    } else if (origLower.includes('write') || origLower.includes('paragraph') || origLower.includes('essay')) {
+      if (clarClean.toLowerCase().startsWith('on ') || clarClean.toLowerCase().startsWith('about ')) {
+        refined = `${origClean} ${clarClean}`;
+      } else {
+        refined = `${origClean} on ${clarClean}`;
+      }
+    }
+
+    const result = await this.solveQuestion(refined, inputMode, apiKey, language);
+
+    const aiMessage = `Thank you for clarifying! I have narrowed down your problem statement to: "${refined}". Here is the complete step-by-step verified solution with core concepts, formulas, and learning assistance below.`;
+
+    return {
+      refinedQuestion: refined,
+      result,
+      aiMessage
+    };
+  }
+
+  /**
+   * Conversational educational assistant providing interactive follow-ups, step deep-dives,
+   * summaries, and problem refinements on already solved questions.
+   */
+  public static async chatFollowUp(
+    currentResult: SolverResponse,
+    userQuery: string
+  ): Promise<{ aiReply: string; updatedResult?: SolverResponse }> {
+    const q = userQuery.toLowerCase().trim();
+
+    // 1. Shorter / concise summary request
+    if (q.includes('shorter') || q.includes('shorten') || q.includes('concise') || q.includes('brief') || q.includes('summary')) {
+      const summaryText = currentResult.summary || currentResult.finalAnswer.slice(0, 320);
+      return {
+        aiReply: `Here is a concise, streamlined summary of the solution:\n\n${summaryText}\n\nCore Takeaway: ${currentResult.steps[0]?.explanation || 'Review the core formula and intermediate results in the answer palette.'}`
+      };
+    }
+
+    // 2. Specific step explanation
+    const stepMatch = q.match(/step\s*(\d+)/i);
+    if (stepMatch) {
+      const stepNum = parseInt(stepMatch[1], 10);
+      const step = currentResult.steps.find((s) => s.stepNumber === stepNum);
+      if (step) {
+        return {
+          aiReply: `Deep-Dive into Step ${stepNum} (${step.title}):\n\n${step.explanation}\n\n${step.formulaOrCalculation ? `Applied Calculation: ${step.formulaOrCalculation}\n\n` : ''}${step.tip ? `Pedagogical Tip: ${step.tip}` : 'This step logically bridges the given knowns with the final result.'}`
+        };
+      }
+    }
+
+    // 3. Formula / equation query
+    if (q.includes('formula') || q.includes('equation') || q.includes('rule')) {
+      const formulas = currentResult.learningAssistance?.keyFormulas || [];
+      return {
+        aiReply: `Primary formulas and governing principles applied for "${currentResult.topic}":\n\n${formulas.length > 0 ? formulas.map((f, i) => `${i + 1}. ${f}`).join('\n') : currentResult.steps.map(s => s.formulaOrCalculation).filter(Boolean).join('\n') || 'Standard conceptual deductions and linguistic frameworks.'}`
+      };
+    }
+
+    // 4. Translate request
+    if (q.includes('urdu') || q.includes('translate')) {
+      if (currentResult.subject === 'Essay Writing' && currentResult.topic.toLowerCase().includes('pakistan')) {
+        return {
+          aiReply: `اردو خلاصہ (Urdu Summary):\n\nپاکستان جنوبی ایشیا کا ایک عظیم اور تاریخی ملک ہے جو ہمالیہ اور کے ٹو کے فلک بوس پہاڑوں سے لے کر بحیرہ عرب کے ساحل تک پھیلا ہوا ہے۔ یہ وادی سندھ کی قدیم تہذیب، زرخیز زمینوں اور 24 کروڑ سے زائد پرعزم و مہمان نواز عوام کا وطن ہے۔`
+        };
+      }
+      return {
+        aiReply: `Multilingual Notes:\nThis explanation is provided in ${currentResult.recognizedQuestion.length > 0 ? 'English' : 'your target language'}. Important highlighted concepts include: ${currentResult.highlightedConcepts.map(c => c.term).join(', ')}. You can also listen to spoken narration via the Voice persona.`
+      };
+    }
+
+    // 5. Common exam pitfalls
+    if (q.includes('mistake') || q.includes('pitfall') || q.includes('avoid')) {
+      const pitfalls = currentResult.learningAssistance?.commonPitfalls || [];
+      return {
+        aiReply: `Common student pitfalls to avoid for "${currentResult.topic}":\n\n${pitfalls.map((p, i) => `${i + 1}. ${p}`).join('\n') || 'Failing to verify unit consistency or jumping to conclusions without structured step-by-step working.'}`
+      };
+    }
+
+    // 6. Default helpful pedagogical answer
+    return {
+      aiReply: `Regarding your query "${userQuery}": For this ${currentResult.subject} problem on "${currentResult.topic}", the verified result concludes that ${currentResult.summary}. If you would like to test modified numbers or explore an alternative method, feel free to ask!`
     };
   }
 }

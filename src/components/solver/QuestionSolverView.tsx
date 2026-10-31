@@ -40,11 +40,15 @@ import {
   FileText,
   Download,
   Copy,
-  Check
+  Check,
+  Bot,
+  Send,
+  MessageSquare
 } from 'lucide-react';
 import {
   SolverSubject,
   SolverResponse,
+  SolverChatMessage,
   InputMode
 } from '../../types/solver';
 import { QuestionSolverService } from '../../services/questionSolverService';
@@ -141,6 +145,12 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
   // Settings / API Key (optional)
   const [customApiKey] = useState<string>('');
 
+  // Interactive AI Clarification & Question-Narrowing Chat State
+  const [chatMessages, setChatMessages] = useState<SolverChatMessage[]>([]);
+  const [chatInputText, setChatInputText] = useState<string>('');
+  const [isChatProcessing, setIsChatProcessing] = useState<boolean>(false);
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(true);
+
   // Auto-solve default sample on first mount without triggering external celebrations
   useEffect(() => {
     handleSolveQuestion('Solve for x: 2x + 5 = 15', 'keyboard', false);
@@ -184,6 +194,36 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
         speechLanguage
       );
       setSolverResult(result);
+
+      // Populate interactive AI chat with clarification prompt or solution assistant
+      if (result.isAmbiguous) {
+        setChatMessages([
+          {
+            id: `ai-${Date.now()}`,
+            sender: 'ai',
+            text: `I noticed some missing parameters: "${result.clarificationPrompt}". Please reply below or click a quick suggestion to narrow down your problem so I can solve it for you!`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            suggestedReplies: result.suggestedClarifications || []
+          }
+        ]);
+        setIsChatOpen(true);
+      } else {
+        setChatMessages([
+          {
+            id: `ai-${Date.now()}`,
+            sender: 'ai',
+            text: `I have analyzed your request regarding "${result.topic}". The verified solution is presented in the answer palette and step-by-step breakdown. If you would like to clarify, shorten, explain any step further, or explore follow-ups, just ask me here!`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            suggestedReplies: [
+              'Explain step 2 in more detail',
+              'Summarize in 3 bullet points',
+              'Make it shorter',
+              'What common mistakes to avoid?'
+            ]
+          }
+        ]);
+      }
+
       if (notifyParent && onQuestionSolved) {
         onQuestionSolved(result.subject);
       }
@@ -192,6 +232,77 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
       console.error('Error solving question:', err);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  /**
+   * Interactive Clarification & Follow-Up Chat Handler
+   */
+  const handleSendChatMessage = async (overrideText?: string) => {
+    const text = (overrideText || chatInputText).trim();
+    if (!text || !solverResult || isChatProcessing) return;
+
+    sound.playClick();
+    setChatInputText('');
+    const userMsg: SolverChatMessage = {
+      id: `user-${Date.now()}`,
+      sender: 'user',
+      text,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+    setIsChatProcessing(true);
+
+    try {
+      if (solverResult.isAmbiguous) {
+        // Clarification and Narrowing flow
+        const { refinedQuestion, result, aiMessage } = await QuestionSolverService.narrowDownAndSolve(
+          solverResult.originalInput,
+          text,
+          activeMode,
+          customApiKey,
+          speechLanguage
+        );
+
+        setQuestionText(refinedQuestion);
+        setSolverResult(result);
+
+        const aiMsg: SolverChatMessage = {
+          id: `ai-${Date.now()}`,
+          sender: 'ai',
+          text: aiMessage,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          suggestedReplies: [
+            'Explain step 2 in more detail',
+            'Summarize in 3 bullet points',
+            'Make it shorter'
+          ]
+        };
+        setChatMessages((prev) => [...prev, aiMsg]);
+        sound.playSuccess();
+      } else {
+        // Interactive Follow-up / Step deep-dive / Translation / Shorten flow
+        const { aiReply } = await QuestionSolverService.chatFollowUp(solverResult, text);
+
+        const aiMsg: SolverChatMessage = {
+          id: `ai-${Date.now()}`,
+          sender: 'ai',
+          text: aiReply,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          suggestedReplies: [
+            'Explain step 1 in more detail',
+            'Summarize key formulas',
+            'What mistakes should I avoid?'
+          ]
+        };
+        setChatMessages((prev) => [...prev, aiMsg]);
+        sound.playSuccess();
+      }
+    } catch (err) {
+      console.error('Chat error:', err);
+    } finally {
+      setIsChatProcessing(false);
     }
   };
 
@@ -764,17 +875,78 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
 
             {solverResult ? (
               <>
-                {/* Ambiguity Alert (if clarification is needed) */}
+                {/* Interactive AI Clarification & Question Narrowing Chat */}
                 {solverResult.isAmbiguous && (
-                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <h4 className="font-extrabold text-amber-900 text-sm">
-                        Clarification Needed
-                      </h4>
-                      <p className="text-xs text-amber-800 leading-relaxed">
-                        {solverResult.clarificationPrompt}
-                      </p>
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-200/90 shadow-sm space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Bot className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-extrabold text-amber-950 text-sm flex items-center gap-2">
+                          <span>AI Clarification Assistant</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/70 text-amber-900">
+                            Interactive Chat
+                          </span>
+                        </h4>
+                        <p className="text-xs text-amber-900 leading-relaxed">
+                          {solverResult.clarificationPrompt}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Quick Suggestion Chips */}
+                    {solverResult.suggestedClarifications && solverResult.suggestedClarifications.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider block">
+                          ⚡ One-Click Suggestions to Narrow Down:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {solverResult.suggestedClarifications.map((sug, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => handleSendChatMessage(sug)}
+                              className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300 shadow-2xs transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                            >
+                              <span>{sug}</span>
+                              <ArrowRight className="w-3 h-3 text-amber-600" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Interactive Clarification Chat Input */}
+                    <div className="pt-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={chatInputText}
+                          onChange={(e) => setChatInputText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSendChatMessage();
+                            }
+                          }}
+                          placeholder="Reply to AI: enter equation, values, or topic..."
+                          className="flex-1 px-3.5 py-2 text-xs rounded-xl bg-white border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium text-slate-800 shadow-2xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSendChatMessage()}
+                          disabled={!chatInputText.trim() || isChatProcessing}
+                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          {isChatProcessing ? (
+                            <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Send className="w-3.5 h-3.5" />
+                          )}
+                          <span>Send &amp; Solve</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1001,6 +1173,105 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                     )}
                   </div>
                 )}
+
+                {/* Interactive AI Classroom Chat & Question Narrowing Widget */}
+                <div className="pt-2 border-t border-slate-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setIsChatOpen(!isChatOpen)}
+                      className="flex items-center gap-2 text-xs font-black text-slate-800 hover:text-indigo-600 transition-colors cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4 text-indigo-600" />
+                      <span>Chat with AI Tutor &amp; Refine</span>
+                      <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold">
+                        {chatMessages.length} messages
+                      </span>
+                      {isChatOpen ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+                    </button>
+                  </div>
+
+                  {isChatOpen && (
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                      {/* Chat Messages Log */}
+                      <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+                        {chatMessages.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className={`flex items-start gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            {msg.sender === 'ai' && (
+                              <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                                <Bot className="w-3.5 h-3.5" />
+                              </div>
+                            )}
+                            <div
+                              className={`p-3 rounded-2xl text-xs max-w-[85%] leading-relaxed ${
+                                msg.sender === 'user'
+                                  ? 'bg-indigo-600 text-white rounded-tr-none font-medium'
+                                  : 'bg-white text-slate-800 rounded-tl-none border border-slate-200/90 shadow-2xs'
+                              }`}
+                            >
+                              <div className="whitespace-pre-wrap">{msg.text}</div>
+                              <span className={`block text-[9px] mt-1 ${msg.sender === 'user' ? 'text-indigo-200 text-right' : 'text-slate-400'}`}>
+                                {msg.timestamp}
+                              </span>
+
+                              {/* Suggested quick replies attached to AI messages */}
+                              {msg.suggestedReplies && msg.suggestedReplies.length > 0 && (
+                                <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1">
+                                  {msg.suggestedReplies.map((reply, rIdx) => (
+                                    <button
+                                      key={rIdx}
+                                      type="button"
+                                      onClick={() => handleSendChatMessage(reply)}
+                                      className="px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold border border-indigo-200 transition-all cursor-pointer active:scale-95"
+                                    >
+                                      {reply}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+
+                        {isChatProcessing && (
+                          <div className="flex items-center gap-2 text-xs text-indigo-600 font-bold p-2 bg-indigo-50 rounded-xl">
+                            <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                            <span>AI Assistant is analyzing and formulating response...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Chat Input Bar */}
+                      <div className="flex items-center gap-2 pt-1 border-t border-slate-200/70">
+                        <input
+                          type="text"
+                          value={chatInputText}
+                          onChange={(e) => setChatInputText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSendChatMessage();
+                            }
+                          }}
+                          placeholder="Ask a follow-up or refine question..."
+                          className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 shadow-2xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSendChatMessage()}
+                          disabled={!chatInputText.trim() || isChatProcessing}
+                          className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-xs flex items-center gap-1 transition-all cursor-pointer"
+                        >
+                          <Send className="w-3 h-3" />
+                          <span>Send</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
               </>
             ) : (

@@ -268,7 +268,7 @@ async function runTests() {
   // Test 21: Authentic Words Learned Progression & No Fake Cheat Increment
   console.log('\nTest 21: Verifying Words Learned authentic calculation and badge progression...');
   const { BadgeService } = await import('../services/badgeService');
-  const learnedCount = BadgeService.getLearnedWordsCount([], []);
+  const learnedCount = BadgeService.getLearnedWordsCount([]);
   if (typeof learnedCount !== 'number' || learnedCount < 0) {
     console.error(`FAIL: Invalid learned words count: ${learnedCount}`);
     failures++;
@@ -309,7 +309,60 @@ async function runTests() {
     console.log(`PASS: badge_words_1000 progress: ${words1000Badge.currentValue}/${words1000Badge.targetValue} (unlocked=${words1000Badge.unlocked}).`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 22 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 23: Accurate Subject Classification for Country / Paragraph Prompts ("write a paragraph on Pakistan")
+  console.log('\nTest 23: Testing Country Paragraph Request ("write a paragraph on Pakistan")...');
+  const pakRes = await QuestionSolverService.solveQuestion('write a paragraph on Pakistan', 'keyboard');
+  if (pakRes.subject === 'Chemistry') {
+    console.error('FAIL: "write a paragraph on Pakistan" was misclassified as Chemistry!');
+    failures++;
+  } else if (pakRes.subject !== 'Essay Writing') {
+    console.error(`FAIL: Expected subject "Essay Writing", received "${pakRes.subject}"`);
+    failures++;
+  } else {
+    console.log(`PASS: Correctly identified as subject "${pakRes.subject}", topic "${pakRes.topic}".`);
+  }
+
+  if (!pakRes.finalAnswer.includes('Indus Valley Civilization') || !pakRes.finalAnswer.includes('K2') || pakRes.finalAnswer.length < 250) {
+    console.error(`FAIL: Paragraph on Pakistan missing historical or geographical content (${pakRes.finalAnswer.length} chars)`);
+    failures++;
+  } else {
+    console.log(`PASS: Comprehensive, factually rich paragraph generated on Pakistan (${pakRes.finalAnswer.length} characters).`);
+  }
+
+  // Test 24: Interactive Chat Clarification & Question Narrowing
+  console.log('\nTest 24: Verifying Interactive Chat Clarification and Question Narrowing...');
+  const { refinedQuestion, result: narrowedRes, aiMessage } = await QuestionSolverService.narrowDownAndSolve(
+    'Find the roots',
+    '2x² - 8 = 0',
+    'keyboard'
+  );
+  if (!narrowedRes || narrowedRes.isAmbiguous || narrowedRes.subject !== 'Mathematics') {
+    console.error(`FAIL: Narrowed question failed to resolve mathematically: subject=${narrowedRes?.subject}, isAmbiguous=${narrowedRes?.isAmbiguous}`);
+    failures++;
+  } else {
+    console.log(`PASS: Chat narrowed "${refinedQuestion}" successfully into Mathematics solution (Answer: ${narrowedRes.finalAnswer.slice(0, 40)}...).`);
+    console.log(`PASS: AI Clarification Chat message: "${aiMessage.slice(0, 60)}..."`);
+  }
+
+  // Test 25: Interactive AI Chat Follow-up on Solved Question
+  console.log('\nTest 25: Verifying Conversational Chat Follow-up on Solved Question...');
+  const followUp1 = await QuestionSolverService.chatFollowUp(pakRes, 'Can you make it shorter and give a summary?');
+  if (!followUp1.aiReply || followUp1.aiReply.length < 50) {
+    console.error('FAIL: Expected conversational summary reply');
+    failures++;
+  } else {
+    console.log(`PASS: Chat follow-up successfully generated concise summary.`);
+  }
+
+  const followUp2 = await QuestionSolverService.chatFollowUp(pakRes, 'Explain step 2 in more detail');
+  if (!followUp2.aiReply || !followUp2.aiReply.includes('Step 2')) {
+    console.error('FAIL: Expected detailed step 2 breakdown in follow-up chat');
+    failures++;
+  } else {
+    console.log('PASS: Chat follow-up successfully provided step 2 pedagogical deep dive.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 25 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

@@ -44,6 +44,14 @@ export interface LearningAssistance {
   };
 }
 
+export interface SolverChatMessage {
+  id: string;
+  sender: 'ai' | 'user';
+  text: string;
+  timestamp: string;
+  suggestedReplies?: string[];
+}
+
 export interface SolverResponse {
   id: string;
   timestamp: string;
@@ -55,6 +63,8 @@ export interface SolverResponse {
   difficulty: 'Foundation' | 'Standard' | 'Advanced';
   isAmbiguous: boolean;
   clarificationPrompt?: string;
+  suggestedClarifications?: string[];
+  chatHistory?: SolverChatMessage[];
   finalAnswer: string;
   summary: string;
   steps: SolutionStep[];
