@@ -336,10 +336,13 @@ export interface VocabularyWord {
   partOfSpeech: string;
   translation: string;
   definition: string;
-  exampleSentence: string;
+  exampleSentence?: string;
+  example?: string;
   cefrLevel: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
   category: string;
   dateAdded: string;
+  synonyms?: string[];
+  antonyms?: string[];
 }
 
 // User Management in JSON

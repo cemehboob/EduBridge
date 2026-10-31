@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   Lock,
   Zap,
-  Grid
+  Grid,
+  Brain
 } from 'lucide-react';
 import {
   UserProfile,
@@ -44,10 +45,11 @@ import { GamificationView } from './GamificationView';
 import { Leaderboard } from './Leaderboard';
 import { StreakCounter } from './StreakCounter';
 import { BadgeGrid } from './BadgeGrid';
+import { VocabularyQuiz } from './VocabularyQuiz';
 import { BadgeService } from '../../services/badgeService';
 import { sound } from '../../utils/audio';
 
-type StudentTab = 'language' | 'exam' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges';
+type StudentTab = 'language' | 'exam' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges' | 'vocab_quiz';
 
 interface StudentViewProps {
   profile: UserProfile;
@@ -103,6 +105,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
   const tabs: { id: StudentTab; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'language', label: 'Language Trees', icon: <TreePine className="w-4 h-4" /> },
     { id: 'exam', label: 'Exam Prep (IELTS/PTE)', icon: <Award className="w-4 h-4" /> },
+    { id: 'vocab_quiz', label: 'Vocab Quiz', icon: <Brain className="w-4 h-4" />, badge: `${vocabularyWords.length} Words` },
     { id: 'academic', label: 'STEM Academics', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'tutor', label: 'AI Mentor Bridge', icon: <Bot className="w-4 h-4" />, badge: '4 Models' },
     { id: 'planner', label: 'Study Planner', icon: <Calendar className="w-4 h-4" /> },
@@ -405,6 +408,17 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
         {activeTab === 'exam' && (
           <ExamPrepView mockTests={mockTests} />
+        )}
+
+        {activeTab === 'vocab_quiz' && (
+          <VocabularyQuiz
+            vocabularyWords={vocabularyWords}
+            onCompleteQuiz={(score, total, xpEarned) => {
+              if (onCelebrate && (score / total) >= 0.8) {
+                onCelebrate('daily_goal');
+              }
+            }}
+          />
         )}
 
         {activeTab === 'academic' && (
