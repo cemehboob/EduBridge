@@ -15,6 +15,7 @@ import {
   LearningAssistance,
   InputMode
 } from '../types/solver';
+import { MathSolverEngine } from './mathSolverEngine';
 
 export class QuestionSolverService {
   /**
@@ -252,8 +253,9 @@ export class QuestionSolverService {
 
     // 7. Mathematics
     const isMath =
-      (/[0-9]/.test(q) && (/[=+\-*/^√∫∑%]/.test(q) || /\b(solve|calculate|evaluate|equation|factorize|algebra|calculus|derivative|integral|limit|matrix|matrices|probability|trigonometry|hypotenuse|pythagorean|quadratic|polynomial)\b/i.test(q))) ||
-      /\b(pythagorean theorem|quadratic formula|linear equation|sin|cos|tan)\b/i.test(q);
+      (/[0-9]/.test(q) && (/[=+\-*/^√∫∑%]/.test(q) || /\b(solve|calculate|evaluate|equation|factorize|algebra|calculus|derivative|integral|limit|matrix|matrices|det|determinant|probability|trigonometry|hypotenuse|pythagorean|quadratic|polynomial)\b/i.test(q))) ||
+      /\b(pythagorean theorem|quadratic formula|linear equation|sin|cos|tan|det|determinant|matrix|matrices|d\/dx)\b/i.test(q) ||
+      /\[\[.*\]\]/.test(q);
     if (isMath) {
       const isCalculus = /\b(integral|derivative|limit|dx|dy\/dx)\b/i.test(q);
       const isAdvanced = isCalculus || /\b(eigen|laplace|fourier)\b/i.test(q);
@@ -306,7 +308,7 @@ export class QuestionSolverService {
   }
 
   /**
-   * Mathematics Solver
+   * Mathematics Solver (Powered by MathSolverEngine, Symbolab, Photomath, and Wolfram Alpha computational methods)
    */
   private static solveMathQuestion(
     question: string,
@@ -314,7 +316,13 @@ export class QuestionSolverService {
     topic: string,
     difficulty: 'Foundation' | 'Standard' | 'Advanced'
   ): SolverResponse {
-    // Check for linear equation: ax + b = c or ax - b = c
+    // 1. First delegate to the dedicated MathSolverEngine for exact analytical calculations
+    const engineRes = MathSolverEngine.solve(question, inputMode);
+    if (engineRes) {
+      return engineRes;
+    }
+
+    // 2. Check for linear equation: ax + b = c or ax - b = c
     const linearMatch = question.match(/([+-]?\d*)\s*x\s*([+-]\s*\d+)\s*=\s*([+-]?\d+)/i);
     if (linearMatch) {
       const aRaw = linearMatch[1].replace(/\s+/g, '');

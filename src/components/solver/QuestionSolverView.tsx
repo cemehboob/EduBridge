@@ -77,7 +77,37 @@ const SAMPLE_QUESTIONS: { subject: SolverSubject; label: string; question: strin
   {
     subject: 'Mathematics',
     label: 'Quadratic (Math)',
-    question: 'Find the roots of x² - 5x + 6 = 0'
+    question: '2x^2 - 8 = 0'
+  },
+  {
+    subject: 'Mathematics',
+    label: 'Derivative (Calculus)',
+    question: 'derivative of x^3 - 5x + 4'
+  },
+  {
+    subject: 'Mathematics',
+    label: 'Integral (Calculus)',
+    question: 'integral of 3x^2 + 2x - 5 dx'
+  },
+  {
+    subject: 'Mathematics',
+    label: 'Factor (Algebra)',
+    question: 'factor x^2 - 16'
+  },
+  {
+    subject: 'Mathematics',
+    label: 'Matrix Det (LinAlg)',
+    question: 'det([[1, 2], [3, 4]])'
+  },
+  {
+    subject: 'Mathematics',
+    label: 'Linear System (2 eq)',
+    question: '2x + y = 7, x - y = 2'
+  },
+  {
+    subject: 'Essay Writing',
+    label: 'Paragraph: Pakistan',
+    question: 'write a paragraph on Pakistan'
   },
   {
     subject: 'Physics',
@@ -307,9 +337,24 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
   };
 
   /**
-   * Formula toolbar symbol insert
+   * Formula toolbar symbol and quick-solver template insert
    */
   const handleInsertSymbol = (symbol: string) => {
+    sound.playClick();
+    if (
+      symbol.includes('=') ||
+      symbol.startsWith('derivative') ||
+      symbol.startsWith('integral') ||
+      symbol.startsWith('det(') ||
+      symbol.startsWith('factor') ||
+      symbol.startsWith('sin(') ||
+      symbol.includes('2x + y = 7')
+    ) {
+      if (!questionText.trim() || questionText.includes('Solve for x: 2x + 5 = 15')) {
+        setQuestionText(symbol);
+        return;
+      }
+    }
     setQuestionText((prev) => prev + symbol);
   };
 

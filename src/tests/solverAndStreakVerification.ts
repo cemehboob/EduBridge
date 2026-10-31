@@ -362,7 +362,67 @@ async function runTests() {
     console.log('PASS: Chat follow-up successfully provided step 2 pedagogical deep dive.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 25 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 26: Symbolab/Photomath Style Exact Quadratic Roots Solver
+  console.log('\nTest 26: Verifying Exact Quadratic Solver (Symbolab / Photomath style)...');
+  const quadRes = await QuestionSolverService.solveQuestion('2x^2 - 8 = 0', 'keyboard');
+  if (!quadRes.finalAnswer.includes('2') || !quadRes.finalAnswer.includes('-2')) {
+    console.error(`FAIL: Expected roots 2 and -2, received "${quadRes.finalAnswer}"`);
+    failures++;
+  } else {
+    console.log(`PASS: Exact quadratic roots resolved: ${quadRes.finalAnswer}`);
+  }
+
+  // Test 27: Calculus Derivative Solver (Power Rule)
+  console.log('\nTest 27: Verifying Calculus Derivative Solver (Wolfram / Symbolab style)...');
+  const derivRes = await QuestionSolverService.solveQuestion('derivative of x^3 - 5x + 4', 'keyboard');
+  if (!derivRes.finalAnswer.includes('3x^2') || !derivRes.finalAnswer.includes('5')) {
+    console.error(`FAIL: Expected derivative containing 3x^2 - 5, received "${derivRes.finalAnswer}"`);
+    failures++;
+  } else {
+    console.log(`PASS: Exact derivative resolved: ${derivRes.finalAnswer}`);
+  }
+
+  // Test 28: Calculus Indefinite Integral Solver
+  console.log('\nTest 28: Verifying Calculus Integral Solver (Wolfram / Symbolab style)...');
+  const intRes = await QuestionSolverService.solveQuestion('integral of 3x^2 + 2x - 5 dx', 'keyboard');
+  if (!intRes.finalAnswer.includes('x^3') || !intRes.finalAnswer.includes('C')) {
+    console.error(`FAIL: Expected integral containing x^3 + ... + C, received "${intRes.finalAnswer}"`);
+    failures++;
+  } else {
+    console.log(`PASS: Exact integral resolved: ${intRes.finalAnswer}`);
+  }
+
+  // Test 29: Factoring Polynomials (Difference of Squares)
+  console.log('\nTest 29: Verifying Factoring Solver (Mathway / Photomath style)...');
+  const factRes = await QuestionSolverService.solveQuestion('factor x^2 - 16', 'keyboard');
+  if (!factRes.finalAnswer.includes('(x - 4)(x + 4)')) {
+    console.error(`FAIL: Expected factor (x - 4)(x + 4), received "${factRes.finalAnswer}"`);
+    failures++;
+  } else {
+    console.log(`PASS: Exact factored form resolved: ${factRes.finalAnswer}`);
+  }
+
+  // Test 30: Linear Algebra Matrix Determinant
+  console.log('\nTest 30: Verifying Matrix Determinant Solver (Wolfram / Symbolab style)...');
+  const matRes = await QuestionSolverService.solveQuestion('det([[1, 2], [3, 4]])', 'keyboard');
+  if (!matRes.finalAnswer.includes('-2')) {
+    console.error(`FAIL: Expected determinant -2, received "${matRes.finalAnswer}"`);
+    failures++;
+  } else {
+    console.log(`PASS: Exact matrix determinant resolved: ${matRes.finalAnswer}`);
+  }
+
+  // Test 31: System of 2 Linear Equations (Cramer's Rule / Elimination)
+  console.log('\nTest 31: Verifying 2-Variable Linear System Solver...');
+  const sysRes = await QuestionSolverService.solveQuestion('2x + y = 7, x - y = 2', 'keyboard');
+  if (!sysRes.finalAnswer.includes('x = 3') || !sysRes.finalAnswer.includes('y = 1')) {
+    console.error(`FAIL: Expected system solution x = 3, y = 1, received "${sysRes.finalAnswer}"`);
+    failures++;
+  } else {
+    console.log(`PASS: Exact system solution resolved: ${sysRes.finalAnswer}`);
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 31 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 
