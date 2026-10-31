@@ -66,7 +66,8 @@ export function userAccountToProfile(user: UserAccount): UserProfile {
       ? user.preferences.simplifiedInterface
       : (cohort === 'early' || cohort === 'junior'),
     visibleModules: user.preferences.visibleModules,
-    personaVoice: user.preferences.personaVoice
+    personaVoice: user.preferences.personaVoice,
+    colorScheme: user.preferences.colorScheme
   };
 }
 

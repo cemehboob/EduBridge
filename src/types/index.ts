@@ -17,6 +17,29 @@ export interface OllamaModelInfo {
   temperature: number;
 }
 
+export type ColorSchemePreset =
+  | 'default-indigo'
+  | 'emerald-growth'
+  | 'royal-violet'
+  | 'sunset-amber'
+  | 'rose-blossom'
+  | 'cyber-cyan'
+  | 'midnight-dark'
+  | 'high-contrast'
+  | 'custom';
+
+export interface CustomColorPalette {
+  primaryColor: string;
+  accentColor: string;
+  surfaceTone: 'light' | 'soft' | 'dark' | 'warm';
+}
+
+export interface ColorSchemeConfig {
+  preset: ColorSchemePreset;
+  custom?: CustomColorPalette;
+  appliedAt?: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -43,6 +66,7 @@ export interface UserProfile {
   simplifiedInterface?: boolean;
   visibleModules?: VisibleModulesConfig;
   personaVoice?: VoicePersona;
+  colorScheme?: ColorSchemeConfig;
 }
 
 export interface VisibleModulesConfig {
@@ -435,6 +459,7 @@ export interface UserAccount {
     simplifiedInterface?: boolean;
     visibleModules?: VisibleModulesConfig;
     personaVoice?: VoicePersona;
+    colorScheme?: ColorSchemeConfig;
   };
   profileStats: {
     currentStreak: number;

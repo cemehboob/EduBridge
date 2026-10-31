@@ -19,10 +19,12 @@ import {
   Check,
   Layout
 } from 'lucide-react';
-import { UserAccount, AgeCohortId, FontScale, VisibleModulesConfig, VoicePersona } from '../../types';
+import { UserAccount, AgeCohortId, FontScale, VisibleModulesConfig, VoicePersona, ColorSchemeConfig } from '../../types';
 import { sound } from '../../utils/audio';
 import { calculateAge, calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
+import { ColorSchemeSelector } from '../common/ColorSchemeSelector';
+import { StorageService } from '../../services/storage';
 
 interface ProfileSetupModalProps {
   isOpen: boolean;
@@ -74,6 +76,9 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const [targetCareer, setTargetCareer] = useState(user.preferences.targetCareer || 'AI & Machine Learning Engineer');
   const [dailyGoalXp, setDailyGoalXp] = useState(user.preferences.dailyGoalXp);
   const [personaVoice, setPersonaVoice] = useState<VoicePersona>(user.preferences.personaVoice || 'woman');
+  const [colorScheme, setColorScheme] = useState<ColorSchemeConfig>(
+    user.preferences.colorScheme || StorageService.getColorScheme()
+  );
   const [isSaved, setIsSaved] = useState(false);
 
   if (!isOpen) return null;
@@ -109,7 +114,8 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
         fontScale,
         simplifiedInterface,
         visibleModules,
-        personaVoice
+        personaVoice,
+        colorScheme
       }
     };
 
@@ -322,6 +328,14 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
                 compact={false}
                 showPreviewButton={true}
                 onPersonaChange={(p) => setPersonaVoice(p)}
+              />
+            </div>
+
+            {/* Color Scheme & Theme Template Selection */}
+            <div className="pt-3 border-t border-slate-100">
+              <ColorSchemeSelector
+                currentScheme={colorScheme}
+                onChangeScheme={(newScheme) => setColorScheme(newScheme)}
               />
             </div>
           </div>

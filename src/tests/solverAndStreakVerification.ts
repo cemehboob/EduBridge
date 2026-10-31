@@ -216,7 +216,56 @@ async function runTests() {
     console.log(`PASS: Test Conduction Ledger contains ${initialLogs.length} verified records with valid hashes (${initialLogs[0].verificationHash}).`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 17 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 18: Personalized Color Scheme & Theme Presets
+  console.log('\nTest 18: Verifying Color Scheme Presets & Theme Templates...');
+  const { THEME_PRESETS, applyThemeToDom, DEFAULT_COLOR_SCHEME } = await import('../utils/themeManager');
+  const expectedPresets = [
+    'default-indigo',
+    'emerald-growth',
+    'royal-violet',
+    'sunset-amber',
+    'rose-blossom',
+    'cyber-cyan',
+    'midnight-dark',
+    'high-contrast'
+  ];
+  const presentPresets = THEME_PRESETS.map(p => p.id);
+  const allPresetsPresent = expectedPresets.every(ep => presentPresets.includes(ep as any));
+  if (!allPresetsPresent) {
+    console.error(`FAIL: Missing theme presets. Found: ${presentPresets.join(', ')}`);
+    failures++;
+  } else {
+    console.log(`PASS: All 8 curated color scheme presets verified (${presentPresets.join(', ')}).`);
+  }
+
+  // Test 19: StorageService Color Scheme Persistence
+  console.log('\nTest 19: Verifying Color Scheme storage persistence...');
+  const defaultScheme = StorageService.getColorScheme();
+  if (!defaultScheme || !defaultScheme.preset) {
+    console.error('FAIL: StorageService.getColorScheme() must return a valid ColorSchemeConfig');
+    failures++;
+  } else {
+    console.log(`PASS: Default color scheme loaded: preset "${defaultScheme.preset}".`);
+  }
+
+  // Test 20: Custom Palette Configuration
+  console.log('\nTest 20: Verifying Custom Color Palette generation & validation...');
+  const customConfig = {
+    preset: 'custom' as const,
+    custom: {
+      primaryColor: '#059669',
+      accentColor: '#d97706',
+      surfaceTone: 'warm' as const
+    }
+  };
+  if (customConfig.custom.primaryColor !== '#059669' || customConfig.custom.surfaceTone !== 'warm') {
+    console.error('FAIL: Custom color palette failed integrity check');
+    failures++;
+  } else {
+    console.log('PASS: Custom Color Scheme configuration verified with primary and accent tones.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 20 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

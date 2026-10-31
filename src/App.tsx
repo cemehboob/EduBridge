@@ -45,6 +45,7 @@ import { ResourceVaultModal } from './components/cohorts/ResourceVaultModal';
 import { triggerCelebration } from './utils/celebration';
 import { generateFivePracticeTestsBatch, generateOneHundredWordsBatch, generatePracticeTestsBatch } from './services/scheduleJobService';
 import { IngestedItemRecord } from './types';
+import { applyThemeToDom } from './utils/themeManager';
 
 export default function App() {
   // Global ecosystem state with offline persistence
@@ -77,6 +78,12 @@ export default function App() {
       StorageService.saveFontScale(fontScale);
     }
   }, [fontScale]);
+
+  // Apply User Color Scheme & Theme Template (Accessibility & Customization)
+  useEffect(() => {
+    const activeScheme = currentUser?.preferences.colorScheme || StorageService.getColorScheme();
+    applyThemeToDom(activeScheme);
+  }, [currentUser]);
 
   const [profile, setProfile] = useState(() => StorageService.getProfile());
   const [activeRole, setActiveRole] = useState<UserRole>(() => currentUser?.role || 'student');
@@ -593,6 +600,10 @@ export default function App() {
     }
     if (updatedUser.preferences.ageCohort) {
       StorageService.saveActiveCohort(updatedUser.preferences.ageCohort);
+    }
+    if (updatedUser.preferences.colorScheme) {
+      applyThemeToDom(updatedUser.preferences.colorScheme);
+      StorageService.saveColorScheme(updatedUser.preferences.colorScheme);
     }
   };
 

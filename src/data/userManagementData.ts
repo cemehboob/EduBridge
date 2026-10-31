@@ -503,17 +503,33 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
   },
   {
     id: 'guide_preferences_simplification',
-    title: 'User Preferences & Kid-Friendly Interface',
+    title: 'User Preferences & Personalized Color Schemes',
     category: 'Platform Basics',
     icon: 'Sliders',
     minRole: 'student',
-    summary: 'Tailor visual complexity by age cohort, toggle child-friendly mode, customize module visibility, and configure persona voices.',
-    keywords: ['preferences', 'kid mode', 'simplified', 'dob', 'age cohort', 'visible modules', 'voice persona'],
+    summary: 'Customize your visual theme template, color schemes, child-friendly mode, module visibility, and persona voices.',
+    keywords: ['preferences', 'color scheme', 'theme', 'template', 'kid mode', 'simplified', 'dob', 'age cohort', 'visible modules', 'voice persona'],
     screenshotUrl: '/assets/guide/user_preferences_interface.jpg',
-    screenshotCaption: 'Preferences Interface: Child-Friendly Mode toggle, Module Visibility switches, and Persona Voice Selection (Man, Woman, Boy, Girl).',
+    screenshotCaption: 'Preferences Interface: Color Scheme Templates (Emerald, Violet, Sunset, Midnight, Custom), Child-Friendly Mode, and Persona Voices.',
     contentSections: [
       {
-        heading: '1. Child-Friendly Mode for Young Learners',
+        heading: '1. Personalized Color Schemes & Theme Templates',
+        text: 'EduBridge allows learners to configure their ideal visual environment. You can choose from 8 curated study theme templates or design a custom color scheme:',
+        steps: [
+          'Oceanic Indigo: Default classic balance of deep indigo and teal focus tones.',
+          'Emerald Forest: Soothing natural greens designed to prevent cognitive fatigue during lengthy reading.',
+          'Royal Amethyst: Regal violet and magenta accents for creative writing and literature.',
+          'Sunset Terracotta: Warm low-blue-light palette engineered for relaxed evening study.',
+          'Rose Blossom: High-energy raspberry and coral tones that stimulate active recall.',
+          'Cyberpunk Cyan: High-tech electric blue and slate for coding and STEM disciplines.',
+          'Midnight OLED: Deep slate dark mode with luminous neon accents for night study.',
+          'High-Contrast Ink: Stark black and white monochrome with bold borders for maximum visual clarity.',
+          'Custom Color Palette: Pick your exact primary hex color, accent tone, and surface background.'
+        ],
+        tip: 'Color scheme changes are permanently saved in your User Profile preferences so a single update transforms your workspace across all sessions.'
+      },
+      {
+        heading: '2. Child-Friendly Mode for Young Learners',
         text: 'For early learners (Ages 5-8 and 9-14), EduBridge provides a simplified interface mode that replaces technical menus with large, friendly buttons, phonics soundboards, and illustrated word builders.',
         steps: [
           'Open "My Profile & Preferences" from the top navigation.',
@@ -522,7 +538,7 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
         ]
       },
       {
-        heading: '2. Modular Visibility Customizer',
+        heading: '3. Modular Visibility Customizer',
         text: 'Every student and parent has complete control over which modules appear in the navigation bar. You can individually enable or disable Cohorts, Question Solver, Language Trees, Exam Prep, Vocabulary Quizzes, AI Tutor, and Leaderboards.',
         tip: 'Disabling a module hides its navigation tab without deleting your saved progress or XP history.'
       }

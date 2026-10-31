@@ -25,9 +25,11 @@ import {
   IELTSPracticeTest,
   IngestedItemRecord,
   VoicePersona,
-  TestConductionRecord
+  TestConductionRecord,
+  ColorSchemeConfig
 } from '../types';
 import { ieltsAcademicUnits } from '../data/ieltsUnitsData';
+import { DEFAULT_COLOR_SCHEME } from '../utils/themeManager';
 import {
   initialProfile,
   initialUnits,
@@ -78,6 +80,7 @@ const KEYS = {
   VOICE_PERSONA: 'edubridge_voice_persona_v1',
   IELTS_UNITS: 'edubridge_ielts_units_v1',
   TEST_CONDUCTION_LOGS: 'edubridge_test_conduction_logs_v1',
+  COLOR_SCHEME: 'edubridge_color_scheme_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp'
 };
 
@@ -425,12 +428,16 @@ export const StorageService = {
     }
   },
 
+  getColorScheme: (): ColorSchemeConfig => safeGet<ColorSchemeConfig>(KEYS.COLOR_SCHEME, DEFAULT_COLOR_SCHEME),
+  saveColorScheme: (scheme: ColorSchemeConfig): void => safeSet(KEYS.COLOR_SCHEME, scheme),
+
   exportAllData: (): string => {
     const backup = {
       profile: StorageService.getProfile(),
       units: StorageService.getUnits(),
       ieltsUnits: StorageService.getIeltsUnits(),
       testConductionLogs: StorageService.getTestConductionLogs(),
+      colorScheme: StorageService.getColorScheme(),
       mockTests: StorageService.getMockTests(),
       academics: StorageService.getAcademicTopics(),
       careers: StorageService.getCareerRoadmaps(),
@@ -451,6 +458,7 @@ export const StorageService = {
       if (parsed.units) StorageService.saveUnits(parsed.units);
       if (parsed.ieltsUnits) StorageService.saveIeltsUnits(parsed.ieltsUnits);
       if (parsed.testConductionLogs) StorageService.saveTestConductionLogs(parsed.testConductionLogs);
+      if (parsed.colorScheme) StorageService.saveColorScheme(parsed.colorScheme);
       if (parsed.mockTests) StorageService.saveMockTests(parsed.mockTests);
       if (parsed.academics) StorageService.saveAcademicTopics(parsed.academics);
       if (parsed.careers) StorageService.saveCareerRoadmaps(parsed.careers);
