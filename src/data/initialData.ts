@@ -35,7 +35,7 @@ export const initialProfile: UserProfile = {
   targetBand: '8.0 Band',
   targetCareer: 'AI & Machine Learning Engineer',
   joinedDate: 'August 2026',
-  preferredLanguage: 'Spanish'
+  preferredLanguage: 'Academic English (IELTS Band 8.0)'
 };
 
 export const ollamaModels: OllamaModelInfo[] = [

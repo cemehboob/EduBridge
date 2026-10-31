@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { triggerCelebration } from '../../utils/celebration';
 import {
   CheckCircle2,
@@ -9,10 +10,12 @@ import {
   Award,
   ChevronRight,
   Flame,
-  PartyPopper
+  PartyPopper,
+  Globe
 } from 'lucide-react';
 import { Unit, Lesson, UserProfile } from '../../types';
 import { sound } from '../../utils/audio';
+import { ieltsAcademicUnits } from '../../data/ieltsUnitsData';
 
 interface LanguageTreeProps {
   units: Unit[];
@@ -29,6 +32,23 @@ export const LanguageTree: React.FC<LanguageTreeProps> = ({
 }) => {
   const isGoalReached = profile.todayXp >= profile.dailyGoalXp;
   const dailyProgress = Math.min(100, Math.round((profile.todayXp / profile.dailyGoalXp) * 100));
+
+  // Determine if student's primary educational target is IELTS / English Academic
+  const prefersIelts = Boolean(
+    profile.targetExam?.toLowerCase().includes('ielts') ||
+    profile.preferredLanguage?.toLowerCase().includes('ielts') ||
+    profile.preferredLanguage?.toLowerCase().includes('academic english')
+  );
+
+  const [activeTrack, setActiveTrack] = useState<'ielts' | 'spanish'>(
+    prefersIelts ? 'ielts' : 'spanish'
+  );
+
+  useEffect(() => {
+    setActiveTrack(prefersIelts ? 'ielts' : 'spanish');
+  }, [profile.targetExam, profile.preferredLanguage, prefersIelts]);
+
+  const displayedUnits = activeTrack === 'ielts' ? ieltsAcademicUnits : units;
 
   const handleCelebrateGoal = () => {
     sound.playClick();
@@ -113,25 +133,83 @@ export const LanguageTree: React.FC<LanguageTreeProps> = ({
 
       </div>
 
-      {/* Language Header Info */}
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
-            Target Course
-          </span>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Spanish &amp; Academic Discourse
-          </h2>
+      {/* Target Course & Track Switcher */}
+      <div className="space-y-4">
+        {/* Track Selection Pills */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100 p-2 rounded-2xl border border-slate-200">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                sound.playClick();
+                setActiveTrack('ielts');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTrack === 'ielts'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>IELTS Academic Track (Band 8.0+)</span>
+              {prefersIelts && (
+                <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded font-bold">Your Target</span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                sound.playClick();
+                setActiveTrack('spanish');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTrack === 'spanish'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Spanish Language Course</span>
+              {!prefersIelts && (
+                <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded font-bold">Your Target</span>
+              )}
+            </button>
+          </div>
+
+          <div className="text-[11px] text-slate-500 font-semibold px-2">
+            Target Exam: <span className="text-indigo-700 font-black">{profile.targetExam || 'IELTS Academic'}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-          <Award className="w-4 h-4 text-indigo-600" />
-          <span>CEFR Level B2 Path</span>
+
+        {/* Dynamic Course Header Banner */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+          <div>
+            <span className="text-xs font-black uppercase tracking-wider text-indigo-600 block">
+              {activeTrack === 'ielts' ? 'Official Exam Preparation Curriculum' : 'World Language Track'}
+            </span>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              {activeTrack === 'ielts' ? 'IELTS Academic & Formal Discourse' : 'Conversational Spanish & Discourse'}
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              {activeTrack === 'ielts'
+                ? 'Cohesive Task 1 visual synthesis, Band 9 Task 2 essays, and high-scoring lexical precision.'
+                : 'Interactive greetings, café dialogues, directions, and foundational syntax drills.'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 shrink-0">
+            <Award className="w-4 h-4 text-indigo-600" />
+            <span>
+              {activeTrack === 'ielts'
+                ? `Target Band: ${profile.targetBand || '8.0 Band'} • C1/C2 Rubric`
+                : 'CEFR Level B2 Path'}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Units Stack */}
       <div className="space-y-8">
-        {units.map((unit) => {
+        {displayedUnits.map((unit) => {
           const completedCount = unit.lessons.filter((l) => l.completed).length;
           const totalCount = unit.lessons.length;
           const isUnitDone = totalCount > 0 && completedCount === totalCount;

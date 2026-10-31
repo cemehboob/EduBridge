@@ -109,7 +109,12 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
   const tabs: { id: StudentTab; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'cohorts', label: 'Universal Arena (5–100+)', icon: <Sparkles className="w-4 h-4 text-amber-500" />, badge: '5 Cohorts' },
-    { id: 'language', label: 'Language Trees', icon: <TreePine className="w-4 h-4" /> },
+    {
+      id: 'language',
+      label: profile.targetExam ? `${profile.targetExam} Tree` : 'Language Trees',
+      icon: <TreePine className="w-4 h-4" />,
+      badge: profile.targetBand || undefined
+    },
     { id: 'exam', label: 'Exam Prep (IELTS/PTE)', icon: <Award className="w-4 h-4" /> },
     { id: 'vocab_quiz', label: 'Vocab Quiz', icon: <Brain className="w-4 h-4" />, badge: `${vocabularyWords.length} Words` },
     { id: 'academic', label: 'STEM Academics', icon: <BookOpen className="w-4 h-4" /> },

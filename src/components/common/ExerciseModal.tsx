@@ -69,7 +69,12 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
     if (SpeechRecognition) {
       try {
         const recognition = new SpeechRecognition();
-        recognition.lang = 'es-ES'; // Spanish or general
+        const isSpanish = Boolean(
+          currentEx?.audioText?.includes('ñ') ||
+          currentEx?.audioText?.includes('¿') ||
+          currentEx?.prompt?.toLowerCase().includes('spanish')
+        );
+        recognition.lang = isSpanish ? 'es-ES' : 'en-US';
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 

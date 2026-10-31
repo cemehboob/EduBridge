@@ -11,7 +11,9 @@ import {
   Briefcase,
   CheckCircle2,
   Shield,
-  Save
+  Save,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { UserAccount, AgeCohortId, FontScale } from '../../types';
 import { sound } from '../../utils/audio';
@@ -32,6 +34,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
 }) => {
   const [name, setName] = useState(user.name);
   const [password, setPassword] = useState(user.password);
+  const [showPassword, setShowPassword] = useState(false);
   const [dob, setDob] = useState(user.dateOfBirth);
   const [ageCohort, setAgeCohort] = useState<AgeCohortId>(
     user.preferences.ageCohort || calculateCohortFromDob(user.dateOfBirth)
@@ -157,12 +160,24 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
-                  type="text"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-mono"
+                  placeholder="Enter password..."
+                  className="w-full pl-9 pr-10 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    setShowPassword(!showPassword);
+                  }}
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 

@@ -12,7 +12,7 @@ export const initialUsers: UserAccount[] = [
     createdAt: '2026-08-15',
     lastLoginAt: '2026-10-31 05:15:20',
     preferences: {
-      preferredLanguage: 'Spanish',
+      preferredLanguage: 'Academic English (IELTS Band 8.0)',
       dailyGoalXp: 100,
       targetExam: 'IELTS Academic',
       targetExamDate: '2026-11-20',
@@ -339,8 +339,8 @@ export const initialFeedbackTickets: UserFeedbackTicket[] = [
     userRole: 'student',
     category: 'Bug Report',
     priority: 'High',
-    subject: 'Whisper STT mic permissions prompt on mobile Safari',
-    description: 'On mobile Safari, the microphone button required two taps before speech recognition was granted. Audio input worked correctly after that.',
+    subject: 'Whisper STT mic permissions prompt on Safari Web browser',
+    description: 'On Safari browser, the microphone button required two clicks before speech recognition was granted. Audio input worked correctly after that.',
     createdAt: '2026-10-31 03:20:10',
     status: 'Investigating',
     adminResponse: {

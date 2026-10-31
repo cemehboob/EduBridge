@@ -64,3 +64,4 @@ export function userAccountToProfile(user: UserAccount): UserProfile {
     educationLevel: educationLevel
   };
 }
+

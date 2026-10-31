@@ -1,6 +1,11 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * EduBridge Enterprise Core Architecture
+ * PLATFORM: Web Application Only (Desktop & Responsive Web Browser)
+ * NOTE: All mobileApp native wrappers, Capacitor/Cordova plugins, and mobile-only bridges
+ * are deferred and commented out until the complete web application is verified and operational.
  */
 
 import React, { useState, useEffect } from 'react';
