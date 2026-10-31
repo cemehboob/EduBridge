@@ -686,6 +686,14 @@ export default function App() {
             onUpdateResume={handleUpdateResume}
             onOpenResourceVault={() => setIsResourceVaultOpen(true)}
             onCelebrate={(type) => {
+              if (type === 'daily_goal') {
+                const todayKey = 'edubridge_daily_goal_celebrated_' + new Date().toISOString().slice(0, 10);
+                if (localStorage.getItem(todayKey)) {
+                  // Already celebrated daily goal today! Do not show modal repeatedly.
+                  return;
+                }
+                localStorage.setItem(todayKey, 'true');
+              }
               triggerCelebration(type);
               setCelebrationModal({
                 type: type === 'daily_goal' ? 'goal_reached' : 'streak_completed',

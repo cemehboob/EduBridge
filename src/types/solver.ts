@@ -69,3 +69,4 @@ export interface SpeechSettings {
   pitch: number;
   voiceName?: string;
 }
+

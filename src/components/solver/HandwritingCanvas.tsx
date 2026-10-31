@@ -355,3 +355,4 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
     </div>
   );
 };
+

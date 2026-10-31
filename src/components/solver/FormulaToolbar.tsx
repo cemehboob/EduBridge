@@ -87,3 +87,4 @@ export const FormulaToolbar: React.FC<FormulaToolbarProps> = ({ onInsertSymbol, 
     </div>
   );
 };
+

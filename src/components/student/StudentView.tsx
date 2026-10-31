@@ -534,9 +534,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
         {activeTab === 'solver' && (
           <QuestionSolverView
             onQuestionSolved={(subject) => {
-              if (onCelebrate) {
-                onCelebrate('daily_goal');
-              }
+              // Solver question completed cleanly without triggering modal spam
             }}
           />
         )}

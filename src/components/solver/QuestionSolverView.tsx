@@ -4,8 +4,9 @@
  * 
  * QuestionSolverView Component for EduBridge
  * AI-Powered Universal Question Solver & Interactive Digital Learning Assistant.
- * Provides Keyboard, Handwriting (Mouse as digital pen), Voice, and Image inputs,
- * step-by-step verified solutions, educational highlights, and multilingual speech narration.
+ * Layout:
+ * - Left Side: Question Input Workspace & Persistent Step-by-Step Solution Breakdown ("left side explanation remains there")
+ * - Right Side: Dedicated "Answer Palette" with verified final answer, voice controls, formulas, concepts, and practice.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -19,7 +20,6 @@ import {
   Sparkles,
   RotateCcw,
   Volume2,
-  VolumeX,
   Play,
   Pause,
   Square,
@@ -31,11 +31,12 @@ import {
   PenLine,
   HelpCircle,
   Lightbulb,
-  ExternalLink,
-  ChevronRight,
   Languages,
   Upload,
-  ArrowRight
+  ArrowRight,
+  Layers,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import {
   SolverSubject,
@@ -48,8 +49,7 @@ import { FormulaToolbar } from './FormulaToolbar';
 import { OCRService } from '../../services/ocrService';
 import {
   SpeechService,
-  SUPPORTED_LANGUAGES,
-  SpeechLanguage
+  SUPPORTED_LANGUAGES
 } from '../../services/speechService';
 import { sound } from '../../utils/audio';
 
@@ -104,7 +104,7 @@ const SAMPLE_QUESTIONS: { subject: SolverSubject; label: string; question: strin
 export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
   onQuestionSolved
 }) => {
-  // Input State
+  // Input State - initial question preserved in editor
   const [activeMode, setActiveMode] = useState<InputMode>('keyboard');
   const [questionText, setQuestionText] = useState<string>('Solve for x: 2x + 5 = 15');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -118,18 +118,20 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
   // Speech Narration State (TTS)
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
-  const [activeStepIndex, setActiveStepIndex] = useState<number | null>(null);
+
+  // Practice Example reveal toggle
+  const [showPracticeAnswer, setShowPracticeAnswer] = useState<boolean>(false);
 
   // Image Upload State
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
 
-  // Settings / API Key modal toggle (optional)
-  const [customApiKey, setCustomApiKey] = useState<string>('');
+  // Settings / API Key (optional)
+  const [customApiKey] = useState<string>('');
 
-  // Auto-solve default sample on first mount for instant gratification
+  // Auto-solve default sample on first mount without triggering external celebrations
   useEffect(() => {
-    handleSolveQuestion('Solve for x: 2x + 5 = 15', 'keyboard');
+    handleSolveQuestion('Solve for x: 2x + 5 = 15', 'keyboard', false);
   }, []);
 
   // Cleanup speech on unmount
@@ -143,16 +145,23 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
   /**
    * Solve Question Core Handler
    */
-  const handleSolveQuestion = async (textToSolve?: string, mode?: InputMode) => {
+  const handleSolveQuestion = async (
+    textToSolve?: string,
+    mode?: InputMode,
+    notifyParent: boolean = true
+  ) => {
     const raw = (textToSolve !== undefined ? textToSolve : questionText).trim();
     if (!raw) return;
+
+    if (textToSolve !== undefined) {
+      setQuestionText(textToSolve);
+    }
 
     sound.playClick();
     setIsProcessing(true);
     SpeechService.stopSpeaking();
     setIsSpeaking(false);
     setIsPaused(false);
-    setActiveStepIndex(null);
 
     try {
       const modeUsed = mode || activeMode;
@@ -163,7 +172,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
         speechLanguage
       );
       setSolverResult(result);
-      if (onQuestionSolved) {
+      if (notifyParent && onQuestionSolved) {
         onQuestionSolved(result.subject);
       }
       sound.playSuccess();
@@ -288,7 +297,6 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
       () => {
         setIsSpeaking(false);
         setIsPaused(false);
-        setActiveStepIndex(null);
       }
     );
   };
@@ -303,7 +311,6 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
     SpeechService.stopSpeaking();
     setIsSpeaking(false);
     setIsPaused(false);
-    setActiveStepIndex(null);
   };
 
   const getSubjectBadge = (subject: SolverSubject) => {
@@ -330,7 +337,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
   return (
     <div className="w-full space-y-6 pb-12">
       
-      {/* Header Banner - Digital Classroom Learning Assistant */}
+      {/* Top Banner - AI Universal Problem Solver */}
       <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-indigo-500/20 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -338,18 +345,17 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-black uppercase tracking-wider border border-indigo-400/30">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Universal AI Question Solver</span>
+              <span>Universal Question Solver &amp; Answer Palette</span>
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
               Interactive Digital Classroom &amp; Problem Solver
             </h1>
             <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-              Ask any educational question using keyboard, digital pen handwriting, speech, or images.
-              Receive rigorously verified solutions with step-by-step logic and multilingual voice narration.
+              Ask questions with keyboard, digital pen, voice, or image. Detailed step-by-step explanations remain right on your workspace, while final answers are delivered in the Answer Palette.
             </p>
           </div>
 
-          {/* Language Selector & Settings */}
+          {/* Voice Language Selector */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <div className="flex items-center gap-2 bg-slate-800/80 backdrop-blur-md px-3 py-2 rounded-2xl border border-slate-700 text-xs">
               <Languages className="w-4 h-4 text-indigo-400" />
@@ -370,15 +376,21 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
         </div>
       </div>
 
-      {/* Main Workspace Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Main Workspace Layout (Two Columns):
+          Left Column: Question Input + Step-by-Step Explanation ("left side explanation remains there")
+          Right Column: Dedicated Answer Palette ("answer in answer pallet")
+      */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left / Top Column: Input Workspace (7 cols on large screens for maximum space) */}
-        <div className="lg:col-span-7 space-y-4">
+        {/* ========================================================= */}
+        {/* LEFT COLUMN: Input Workspace & Persistent Step-by-Step Explanation */}
+        {/* ========================================================= */}
+        <div className="lg:col-span-7 space-y-6">
           
+          {/* Question Input Card */}
           <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
             
-            {/* Input Method Navigation Tabs */}
+            {/* Input Mode Navigation Tabs */}
             <div className="p-2 sm:p-3 bg-slate-50/80 border-b border-slate-200 flex flex-wrap items-center gap-1.5">
               {[
                 { id: 'keyboard', label: 'Keyboard Editor', icon: Keyboard },
@@ -419,7 +431,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                       value={questionText}
                       onChange={(e) => setQuestionText(e.target.value)}
                       placeholder="Type your question, equation, or essay prompt here..."
-                      rows={5}
+                      rows={4}
                       className="w-full p-4 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 font-mono text-sm sm:text-base text-slate-800 resize-none outline-none transition-all placeholder:text-slate-400"
                     />
                   </div>
@@ -461,8 +473,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                       {isRecording ? 'Listening carefully...' : 'Click to start speaking your question'}
                     </h3>
                     <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                      Speak clearly in your preferred language ({SUPPORTED_LANGUAGES.find((l) => l.code === speechLanguage)?.name}).
-                      Speech is automatically transcribed into the question confirmation box below.
+                      Speak in your preferred language ({SUPPORTED_LANGUAGES.find((l) => l.code === speechLanguage)?.name}). Speech is transcribed into the box below.
                     </p>
                   </div>
 
@@ -548,12 +559,12 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
               {/* Submit / Solve Action Bar */}
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs text-slate-400 font-medium">
-                  Press Solve to generate step-by-step verified explanation.
+                  Press Solve to generate step-by-step explanation and answer palette.
                 </span>
 
                 <button
                   type="button"
-                  onClick={() => handleSolveQuestion()}
+                  onClick={() => handleSolveQuestion(undefined, undefined, false)}
                   disabled={isProcessing || !questionText.trim()}
                   className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-sm shadow-md shadow-indigo-600/25 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
                 >
@@ -580,8 +591,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                   key={s.label}
                   type="button"
                   onClick={() => {
-                    setQuestionText(s.question);
-                    handleSolveQuestion(s.question, 'keyboard');
+                    handleSolveQuestion(s.question, 'keyboard', false);
                   }}
                   className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 text-slate-700 hover:text-indigo-800 border border-slate-200 text-xs font-bold transition-all cursor-pointer shadow-2xs"
                 >
@@ -591,17 +601,25 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
             </div>
           </div>
 
-        </div>
-
-        {/* Right Column: AI Solution Workspace & Interactive Step-by-Step Breakdown (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          
+          {/* ========================================================= */}
+          {/* LEFT-SIDE PERSISTENT STEP-BY-STEP EXPLANATION SECTION     */}
+          {/* "left side explanation should remain there"               */}
+          {/* ========================================================= */}
           {solverResult ? (
-            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden space-y-5 p-5 sm:p-6">
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-sm space-y-5">
               
-              {/* Subject & Difficulty Classification Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
+              {/* Active Problem Statement Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                    Active Problem Statement
+                  </span>
+                  <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
+                    {solverResult.recognizedQuestion}
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
                   {(() => {
                     const badge = getSubjectBadge(solverResult.subject);
                     const Icon = badge.icon;
@@ -612,201 +630,287 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                       </span>
                     );
                   })()}
-                  <span className="text-xs font-extrabold text-slate-600">
-                    {solverResult.topic}
-                  </span>
                 </div>
+              </div>
 
-                <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
-                  {solverResult.difficulty} Level
+              {/* Step-by-Step Breakdown Heading */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-indigo-600" />
+                  <h4 className="font-black text-slate-900 text-sm sm:text-base">
+                    Step-by-Step Solution &amp; Detailed Explanation
+                  </h4>
+                </div>
+                <span className="text-xs text-slate-500 font-semibold">
+                  {solverResult.steps.length} Logical Steps
                 </span>
               </div>
 
-              {/* Ambiguity Alert Prompt (if clarification needed) */}
-              {solverResult.isAmbiguous && (
-                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <h4 className="font-extrabold text-amber-900 text-sm">
-                      Clarification Needed
-                    </h4>
-                    <p className="text-xs text-amber-800 leading-relaxed">
-                      {solverResult.clarificationPrompt}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Multilingual Spoken Audio Response Controls (Phase 5) */}
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Volume2 className={`w-4 h-4 ${isSpeaking ? 'text-indigo-600 animate-pulse' : 'text-slate-500'}`} />
-                  <span className="text-xs font-black text-slate-800">
-                    Voice Explanation
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  {!isSpeaking ? (
-                    <button
-                      type="button"
-                      onClick={handlePlayVoiceResponse}
-                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs flex items-center gap-1 cursor-pointer shadow-2xs"
-                    >
-                      <Play className="w-3 h-3 fill-white" />
-                      <span>{isPaused ? 'Resume' : 'Listen'}</span>
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handlePauseVoice}
-                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-extrabold text-xs flex items-center gap-1 cursor-pointer"
-                      >
-                        <Pause className="w-3 h-3" />
-                        <span>Pause</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleStopVoice}
-                        className="p-1.5 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 cursor-pointer"
-                        title="Stop speech"
-                      >
-                        <Square className="w-3 h-3 fill-rose-600" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Prominent Final Answer Card */}
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-lg shadow-indigo-600/20 space-y-1.5">
-                <div className="text-[11px] font-black uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Verified Final Answer</span>
-                </div>
-                <div className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
-                  {solverResult.finalAnswer}
-                </div>
-                <p className="text-xs text-indigo-100/90 font-medium">
-                  {solverResult.summary}
-                </p>
-              </div>
-
-              {/* Step-by-Step Explanation Section */}
+              {/* Steps List */}
               <div className="space-y-3">
-                <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-indigo-600" />
-                  <span>Step-by-Step Solution Breakdown</span>
-                </h4>
-
-                <div className="space-y-2.5">
-                  {solverResult.steps.map((step) => (
-                    <div
-                      key={step.stepNumber}
-                      className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:bg-white transition-all space-y-2 shadow-2xs"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                          {step.stepNumber}
-                        </span>
-                        <h5 className="font-bold text-slate-900 text-xs sm:text-sm">
-                          {step.title}
-                        </h5>
-                      </div>
-
-                      <p className="text-xs text-slate-700 leading-relaxed pl-8">
-                        {step.explanation}
-                      </p>
-
-                      {step.formulaOrCalculation && (
-                        <div className="ml-8 p-2 rounded-xl bg-white border border-slate-200 font-mono text-xs text-indigo-900 font-bold">
-                          {step.formulaOrCalculation}
-                        </div>
-                      )}
-
-                      {step.intermediateResult && (
-                        <div className="ml-8 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 inline-block">
-                          Result: {step.intermediateResult}
-                        </div>
-                      )}
-
-                      {step.tip && (
-                        <div className="ml-8 text-[11px] font-medium text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 flex items-center gap-1.5">
-                          <Lightbulb className="w-3 h-3 text-amber-600 shrink-0" />
-                          <span>{step.tip}</span>
-                        </div>
-                      )}
+                {solverResult.steps.map((step) => (
+                  <div
+                    key={step.stepNumber}
+                    className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:bg-white transition-all space-y-2.5 shadow-2xs"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-7 h-7 rounded-xl bg-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                        {step.stepNumber}
+                      </span>
+                      <h5 className="font-black text-slate-900 text-sm">
+                        {step.title}
+                      </h5>
                     </div>
-                  ))}
-                </div>
+
+                    <p className="text-xs sm:text-sm text-slate-700 leading-relaxed pl-9">
+                      {step.explanation}
+                    </p>
+
+                    {step.formulaOrCalculation && (
+                      <div className="ml-9 p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-xs text-indigo-900 font-bold shadow-2xs">
+                        {step.formulaOrCalculation}
+                      </div>
+                    )}
+
+                    {step.intermediateResult && (
+                      <div className="ml-9 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200 inline-block">
+                        Intermediate Result: {step.intermediateResult}
+                      </div>
+                    )}
+
+                    {step.tip && (
+                      <div className="ml-9 text-xs font-medium text-amber-900 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 flex items-center gap-2">
+                        <Lightbulb className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>{step.tip}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
 
-              {/* Highlighted Concepts & Definitions */}
-              {solverResult.highlightedConcepts && solverResult.highlightedConcepts.length > 0 && (
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
-                  <h5 className="text-xs font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Important Concepts &amp; Definitions:</span>
-                  </h5>
-
-                  <div className="space-y-2">
-                    {solverResult.highlightedConcepts.map((c) => (
-                      <div key={c.term} className="text-xs space-y-0.5">
-                        <span className="font-extrabold text-slate-900">{c.term}: </span>
-                        <span className="text-slate-600">{c.definition}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Learning Assistance: Rationale, Pitfalls & Formulas */}
-              {solverResult.learningAssistance && (
-                <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-2 text-xs">
+              {/* Method Rationale Card */}
+              {solverResult.learningAssistance?.methodRationale && (
+                <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-1.5 text-xs">
                   <div className="font-extrabold text-indigo-950 flex items-center gap-1.5">
-                    <HelpCircle className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Why this method was chosen:</span>
+                    <HelpCircle className="w-4 h-4 text-indigo-600" />
+                    <span>Why this solution method was chosen:</span>
                   </div>
                   <p className="text-indigo-900 leading-relaxed">
                     {solverResult.learningAssistance.methodRationale}
                   </p>
-
-                  {solverResult.learningAssistance.commonPitfalls.length > 0 && (
-                    <div className="pt-2 border-t border-indigo-100 space-y-1">
-                      <span className="font-bold text-rose-800">Common Mistake to Avoid:</span>
-                      <p className="text-slate-600">
-                        {solverResult.learningAssistance.commonPitfalls[0]}
-                      </p>
-                    </div>
-                  )}
-
-                  {solverResult.learningAssistance.practiceExample && (
-                    <div className="pt-2 border-t border-indigo-100 space-y-1">
-                      <span className="font-bold text-emerald-800">Follow-up Practice:</span>
-                      <p className="text-slate-800 font-semibold">
-                        {solverResult.learningAssistance.practiceExample.question}
-                      </p>
-                      <p className="text-emerald-700 text-[11px] font-bold">
-                        Answer: {solverResult.learningAssistance.practiceExample.answer}
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
 
             </div>
           ) : (
             <div className="p-8 rounded-3xl bg-white border border-slate-200 text-center space-y-3">
-              <Brain className="w-12 h-12 text-slate-300 mx-auto animate-pulse" />
-              <h3 className="text-base font-extrabold text-slate-800">
-                AI Solver Ready
-              </h3>
-              <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                Submit any question from the workspace on the left to view full step-by-step solutions, concepts, and audio narration.
+              <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
+              <h4 className="text-sm font-extrabold text-slate-700">
+                Explanation Workspace Ready
+              </h4>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Submit a question or click any multi-subject example to generate and study its complete step-by-step breakdown.
               </p>
             </div>
           )}
+
+        </div>
+
+        {/* ========================================================= */}
+        {/* RIGHT COLUMN: Dedicated "Answer Palette" ("Answer Pallet") */}
+        {/* ========================================================= */}
+        <div className="lg:col-span-5 space-y-5">
+          
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden p-5 sm:p-6 space-y-5">
+            
+            {/* Answer Palette Header */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-xs">
+                  <Layers className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="font-black text-slate-900 text-base tracking-tight">
+                    Answer Palette
+                  </h3>
+                  <span className="text-[11px] text-slate-400 font-semibold block">
+                    Verified solutions &amp; core concepts
+                  </span>
+                </div>
+              </div>
+
+              {solverResult && (
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                  {solverResult.difficulty} Level
+                </span>
+              )}
+            </div>
+
+            {solverResult ? (
+              <>
+                {/* Ambiguity Alert (if clarification is needed) */}
+                {solverResult.isAmbiguous && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="font-extrabold text-amber-900 text-sm">
+                        Clarification Needed
+                      </h4>
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        {solverResult.clarificationPrompt}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Prominent Verified Final Answer Card */}
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 text-white shadow-lg shadow-indigo-600/20 space-y-2">
+                  <div className="text-[11px] font-black uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Verified Final Answer</span>
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
+                    {solverResult.finalAnswer}
+                  </div>
+                  <p className="text-xs text-indigo-100/90 font-medium leading-relaxed">
+                    {solverResult.summary}
+                  </p>
+                </div>
+
+                {/* Multilingual Voice Explanation Controls (TTS) */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Volume2 className={`w-4 h-4 ${isSpeaking ? 'text-indigo-600 animate-pulse' : 'text-slate-500'}`} />
+                    <span className="text-xs font-black text-slate-800">
+                      Spoken Narration
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {!isSpeaking ? (
+                      <button
+                        type="button"
+                        onClick={handlePlayVoiceResponse}
+                        className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs flex items-center gap-1 cursor-pointer shadow-2xs"
+                      >
+                        <Play className="w-3 h-3 fill-white" />
+                        <span>{isPaused ? 'Resume' : 'Listen'}</span>
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handlePauseVoice}
+                          className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-extrabold text-xs flex items-center gap-1 cursor-pointer"
+                        >
+                          <Pause className="w-3 h-3" />
+                          <span>Pause</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleStopVoice}
+                          className="p-1.5 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 cursor-pointer"
+                          title="Stop speech"
+                        >
+                          <Square className="w-3 h-3 fill-rose-600" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Key Formulas Palette */}
+                {solverResult.learningAssistance?.keyFormulas && solverResult.learningAssistance.keyFormulas.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">
+                      Core Formulas Applied:
+                    </span>
+                    <div className="space-y-1">
+                      {solverResult.learningAssistance.keyFormulas.map((f, idx) => (
+                        <div key={idx} className="p-2 rounded-xl bg-white border border-slate-200 font-mono text-xs font-bold text-slate-800">
+                          {f}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Important Concepts & Definitions Palette */}
+                {solverResult.highlightedConcepts && solverResult.highlightedConcepts.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                    <h5 className="text-xs font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Important Concepts &amp; Definitions:</span>
+                    </h5>
+
+                    <div className="space-y-2">
+                      {solverResult.highlightedConcepts.map((c) => (
+                        <div key={c.term} className="text-xs space-y-0.5">
+                          <span className="font-extrabold text-slate-900">{c.term}: </span>
+                          <span className="text-slate-600">{c.definition}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Common Pitfalls to Avoid Palette */}
+                {solverResult.learningAssistance?.commonPitfalls && solverResult.learningAssistance.commonPitfalls.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-100 space-y-1 text-xs">
+                    <span className="font-bold text-rose-800 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                      Common Mistake to Avoid:
+                    </span>
+                    <p className="text-slate-700 leading-relaxed">
+                      {solverResult.learningAssistance.commonPitfalls[0]}
+                    </p>
+                  </div>
+                )}
+
+                {/* Follow-up Practice Example Palette */}
+                {solverResult.learningAssistance?.practiceExample && (
+                  <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-emerald-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                        Follow-up Practice Problem
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowPracticeAnswer(!showPracticeAnswer)}
+                        className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>{showPracticeAnswer ? 'Hide Answer' : 'Show Answer'}</span>
+                        {showPracticeAnswer ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      </button>
+                    </div>
+
+                    <p className="text-slate-800 font-semibold">
+                      {solverResult.learningAssistance.practiceExample.question}
+                    </p>
+
+                    {showPracticeAnswer && (
+                      <div className="p-2.5 rounded-xl bg-white border border-emerald-200 text-emerald-800 font-bold">
+                        Answer: {solverResult.learningAssistance.practiceExample.answer}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              </>
+            ) : (
+              <div className="p-8 text-center space-y-3 text-slate-400">
+                <Brain className="w-12 h-12 mx-auto text-slate-300 animate-pulse" />
+                <h4 className="text-sm font-extrabold text-slate-700">
+                  Answer Palette Standing By
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Your final verified answers and voice narration will appear here.
+                </p>
+              </div>
+            )}
+
+          </div>
 
         </div>
 
