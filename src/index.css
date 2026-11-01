@@ -151,19 +151,57 @@ html[data-theme-surface="dark"] .bg-white {
   border-color: #1f2937 !important;
 }
 
+/* Translucent & Fractional White Cards */
+html.theme-midnight-dark .bg-white\/60,
+html.theme-midnight-dark .bg-white\/70,
+html.theme-midnight-dark .bg-white\/80,
+html.theme-midnight-dark .bg-white\/90,
+html.theme-midnight-dark .bg-white\/95,
+html.dark .bg-white\/60,
+html.dark .bg-white\/70,
+html.dark .bg-white\/80,
+html.dark .bg-white\/90,
+html.dark .bg-white\/95,
+html[data-color-scheme="midnight-dark"] .bg-white\/80,
+html[data-color-scheme="midnight-dark"] .bg-white\/90 {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+/* Subtle Slate Backgrounds */
 html.theme-midnight-dark .bg-slate-50,
 html.theme-midnight-dark .bg-slate-100,
-html.theme-midnight-dark .bg-slate-50\/80,
+html.theme-midnight-dark .bg-slate-50\/50,
+html.theme-midnight-dark .bg-slate-50\/60,
 html.theme-midnight-dark .bg-slate-50\/70,
+html.theme-midnight-dark .bg-slate-50\/80,
+html.theme-midnight-dark .bg-slate-50\/90,
+html.theme-midnight-dark .bg-slate-100\/50,
+html.theme-midnight-dark .bg-slate-100\/60,
+html.theme-midnight-dark .bg-slate-100\/70,
+html.theme-midnight-dark .bg-slate-100\/80,
+html.theme-midnight-dark .bg-slate-100\/90,
 html.dark .bg-slate-50,
 html.dark .bg-slate-100,
+html.dark .bg-slate-50\/50,
+html.dark .bg-slate-50\/60,
+html.dark .bg-slate-50\/70,
+html.dark .bg-slate-50\/80,
+html.dark .bg-slate-50\/90,
+html.dark .bg-slate-100\/50,
+html.dark .bg-slate-100\/60,
+html.dark .bg-slate-100\/70,
+html.dark .bg-slate-100\/80,
+html.dark .bg-slate-100\/90,
 html[data-color-scheme="midnight-dark"] .bg-slate-50,
 html[data-theme-surface="dark"] .bg-slate-50 {
   background-color: #1e293b !important;
   color: #f8fafc !important;
+  border-color: #334155 !important;
 }
 
-/* Primary High-Contrast Text Colors */
+/* Primary High-Contrast Text Colors (Headings & Core Labels) */
 html.theme-midnight-dark .text-slate-950,
 html.theme-midnight-dark .text-slate-900,
 html.theme-midnight-dark .text-slate-800,
@@ -177,34 +215,44 @@ html.theme-midnight-dark .text-neutral-900,
 html.dark .text-slate-950,
 html.dark .text-slate-900,
 html.dark .text-slate-800,
+html.dark .text-gray-950,
+html.dark .text-gray-900,
+html.dark .text-gray-800,
 html[data-color-scheme="midnight-dark"] .text-slate-950,
 html[data-color-scheme="midnight-dark"] .text-slate-900,
-html[data-theme-surface="dark"] .text-slate-900 {
+html[data-color-scheme="midnight-dark"] .text-slate-800,
+html[data-theme-surface="dark"] .text-slate-900,
+html[data-theme-surface="dark"] .text-slate-800 {
   color: #f8fafc !important;
 }
 
-/* Secondary Text Colors */
+/* Secondary High-Contrast Text Colors (Readable Descriptions) */
 html.theme-midnight-dark .text-slate-700,
 html.theme-midnight-dark .text-slate-600,
 html.theme-midnight-dark .text-gray-700,
 html.theme-midnight-dark .text-gray-600,
 html.dark .text-slate-700,
 html.dark .text-slate-600,
+html.dark .text-gray-700,
+html.dark .text-gray-600,
 html[data-color-scheme="midnight-dark"] .text-slate-700,
+html[data-color-scheme="midnight-dark"] .text-slate-600,
 html[data-theme-surface="dark"] .text-slate-700 {
-  color: #cbd5e1 !important;
+  color: #e2e8f0 !important;
 }
 
-/* Tertiary & Muted Text */
+/* Tertiary & Muted Text (Labels & Timestamps) */
 html.theme-midnight-dark .text-slate-500,
 html.theme-midnight-dark .text-slate-400,
 html.theme-midnight-dark .text-gray-500,
 html.theme-midnight-dark .text-gray-400,
 html.dark .text-slate-500,
 html.dark .text-slate-400,
+html.dark .text-gray-500,
+html.dark .text-gray-400,
 html[data-color-scheme="midnight-dark"] .text-slate-500,
 html[data-theme-surface="dark"] .text-slate-500 {
-  color: #94a3b8 !important;
+  color: #cbd5e1 !important;
 }
 
 /* Heading Tags inside Dark Containers */
@@ -223,45 +271,101 @@ html.dark h6 {
   color: #f8fafc !important;
 }
 
-/* Specific Dark-Toned Accents that would become invisible on dark backgrounds */
+/* Luminous High-Contrast Accents in Dark Mode */
 html.theme-midnight-dark .text-indigo-950,
 html.theme-midnight-dark .text-indigo-900,
 html.theme-midnight-dark .text-indigo-800,
 html.dark .text-indigo-950,
-html.dark .text-indigo-900 {
+html.dark .text-indigo-900,
+html.dark .text-indigo-800 {
   color: #e0e7ff !important;
+}
+
+html.theme-midnight-dark .text-indigo-700,
+html.theme-midnight-dark .text-indigo-600,
+html.dark .text-indigo-700,
+html.dark .text-indigo-600 {
+  color: #a5b4fc !important;
 }
 
 html.theme-midnight-dark .text-amber-950,
 html.theme-midnight-dark .text-amber-900,
 html.theme-midnight-dark .text-amber-800,
 html.dark .text-amber-950,
-html.dark .text-amber-900 {
+html.dark .text-amber-900,
+html.dark .text-amber-800 {
   color: #fef3c7 !important;
+}
+
+html.theme-midnight-dark .text-amber-700,
+html.theme-midnight-dark .text-amber-600,
+html.dark .text-amber-700,
+html.dark .text-amber-600 {
+  color: #fde68a !important;
 }
 
 html.theme-midnight-dark .text-emerald-950,
 html.theme-midnight-dark .text-emerald-900,
 html.theme-midnight-dark .text-emerald-800,
 html.dark .text-emerald-950,
-html.dark .text-emerald-900 {
+html.dark .text-emerald-900,
+html.dark .text-emerald-800 {
   color: #d1fae5 !important;
+}
+
+html.theme-midnight-dark .text-emerald-700,
+html.theme-midnight-dark .text-emerald-600,
+html.dark .text-emerald-700,
+html.dark .text-emerald-600 {
+  color: #6ee7b7 !important;
+}
+
+html.theme-midnight-dark .text-teal-950,
+html.theme-midnight-dark .text-teal-900,
+html.theme-midnight-dark .text-teal-800,
+html.dark .text-teal-950,
+html.dark .text-teal-900,
+html.dark .text-teal-800 {
+  color: #ccfbf1 !important;
+}
+
+html.theme-midnight-dark .text-teal-700,
+html.theme-midnight-dark .text-teal-600,
+html.dark .text-teal-700,
+html.dark .text-teal-600 {
+  color: #5eead4 !important;
 }
 
 html.theme-midnight-dark .text-rose-950,
 html.theme-midnight-dark .text-rose-900,
 html.theme-midnight-dark .text-rose-800,
 html.dark .text-rose-950,
-html.dark .text-rose-900 {
+html.dark .text-rose-900,
+html.dark .text-rose-800 {
   color: #ffe4e6 !important;
+}
+
+html.theme-midnight-dark .text-rose-700,
+html.theme-midnight-dark .text-rose-600,
+html.dark .text-rose-700,
+html.dark .text-rose-600 {
+  color: #fda4af !important;
 }
 
 html.theme-midnight-dark .text-blue-950,
 html.theme-midnight-dark .text-blue-900,
 html.theme-midnight-dark .text-blue-800,
 html.dark .text-blue-950,
-html.dark .text-blue-900 {
+html.dark .text-blue-900,
+html.dark .text-blue-800 {
   color: #dbeafe !important;
+}
+
+html.theme-midnight-dark .text-blue-700,
+html.theme-midnight-dark .text-blue-600,
+html.dark .text-blue-700,
+html.dark .text-blue-600 {
+  color: #93c5fd !important;
 }
 
 html.theme-midnight-dark .text-purple-950,
@@ -272,12 +376,20 @@ html.dark .text-purple-900 {
   color: #f3e8ff !important;
 }
 
+html.theme-midnight-dark .text-purple-700,
+html.theme-midnight-dark .text-purple-600,
+html.dark .text-purple-700,
+html.dark .text-purple-600 {
+  color: #d8b4fe !important;
+}
+
 /* Border Overrides for Dark Scheme */
 html.theme-midnight-dark .border-slate-200,
 html.theme-midnight-dark .border-slate-100,
 html.theme-midnight-dark .border-slate-300,
 html.dark .border-slate-200,
-html.dark .border-slate-100 {
+html.dark .border-slate-100,
+html.dark .border-slate-300 {
   border-color: #334155 !important;
 }
 
@@ -297,43 +409,86 @@ html.theme-midnight-dark input::placeholder,
 html.theme-midnight-dark textarea::placeholder,
 html.dark input::placeholder,
 html.dark textarea::placeholder {
-  color: #94a3b8 !important;
+  color: #cbd5e1 !important;
 }
 
 /* Tinted Badges & Alert Containers in Dark Mode */
 html.theme-midnight-dark .bg-amber-50,
-html.dark .bg-amber-50 {
-  background-color: rgba(120, 53, 15, 0.35) !important;
+html.theme-midnight-dark .bg-amber-100,
+html.dark .bg-amber-50,
+html.dark .bg-amber-100 {
+  background-color: rgba(120, 53, 15, 0.45) !important;
   border-color: #b45309 !important;
   color: #fef3c7 !important;
 }
 
 html.theme-midnight-dark .bg-emerald-50,
-html.dark .bg-emerald-50 {
-  background-color: rgba(6, 78, 59, 0.35) !important;
+html.theme-midnight-dark .bg-emerald-100,
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-100 {
+  background-color: rgba(6, 78, 59, 0.45) !important;
   border-color: #047857 !important;
   color: #d1fae5 !important;
 }
 
 html.theme-midnight-dark .bg-indigo-50,
-html.dark .bg-indigo-50 {
-  background-color: rgba(49, 46, 129, 0.35) !important;
+html.theme-midnight-dark .bg-indigo-100,
+html.dark .bg-indigo-50,
+html.dark .bg-indigo-100 {
+  background-color: rgba(49, 46, 129, 0.45) !important;
   border-color: #4338ca !important;
   color: #e0e7ff !important;
 }
 
+html.theme-midnight-dark .bg-teal-50,
+html.theme-midnight-dark .bg-teal-100,
+html.dark .bg-teal-50,
+html.dark .bg-teal-100 {
+  background-color: rgba(19, 78, 74, 0.45) !important;
+  border-color: #0f766e !important;
+  color: #ccfbf1 !important;
+}
+
 html.theme-midnight-dark .bg-rose-50,
-html.dark .bg-rose-50 {
-  background-color: rgba(136, 19, 55, 0.35) !important;
+html.theme-midnight-dark .bg-rose-100,
+html.dark .bg-rose-50,
+html.dark .bg-rose-100 {
+  background-color: rgba(136, 19, 55, 0.45) !important;
   border-color: #be123c !important;
   color: #ffe4e6 !important;
 }
 
+html.theme-midnight-dark .bg-blue-50,
+html.theme-midnight-dark .bg-blue-100,
+html.dark .bg-blue-50,
+html.dark .bg-blue-100 {
+  background-color: rgba(30, 58, 138, 0.45) !important;
+  border-color: #1d4ed8 !important;
+  color: #dbeafe !important;
+}
+
 html.theme-midnight-dark .bg-purple-50,
-html.dark .bg-purple-50 {
-  background-color: rgba(88, 28, 135, 0.35) !important;
+html.theme-midnight-dark .bg-purple-100,
+html.dark .bg-purple-50,
+html.dark .bg-purple-100 {
+  background-color: rgba(88, 28, 135, 0.45) !important;
   border-color: #7e22ce !important;
   color: #f3e8ff !important;
+}
+
+/* Symmetric Document & Study Sheet Paper (Resource Vault & Guides) */
+.resource-vault-sheet {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border-color: #e2e8f0;
+}
+
+html.theme-midnight-dark .resource-vault-sheet,
+html.dark .resource-vault-sheet,
+html[data-color-scheme="midnight-dark"] .resource-vault-sheet {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
 }
 
 /* High Contrast Accessibility Mode */

@@ -366,6 +366,39 @@ export const initialFeedbackTickets: UserFeedbackTicket[] = [
 
 export const initialUserGuideArticles: UserGuideArticle[] = [
   {
+    id: 'guide_activity_board',
+    title: 'Activity Board & Past/Current History',
+    category: 'Activity & Progress',
+    icon: 'History',
+    minRole: 'student',
+    summary: 'First-page landing dashboard tracking real-time and historical learning activities with exact timestamps, status indicators, and one-click "Perform Activity Again" replay.',
+    keywords: ['activity board', 'timeline', 'history', 'timestamp', 'perform again', 'dashboard', 'replay', 'recent activities', 'past activities'],
+    screenshotUrl: '/assets/guide/getting_started_dashboard.jpg',
+    screenshotCaption: 'Activity Board & Timeline: Real-time and historical learning activities with ISO timestamps, status badges, and one-click "Perform Activity Again" replay.',
+    imagePlaceholder: {
+      title: 'Activity Board & Timeline Architecture',
+      caption: 'Chronological activity stream with timestamps, activity status, and direct replay actions.',
+      badge: 'Landing Dashboard',
+      accentColor: 'from-indigo-600 to-cyan-700'
+    },
+    contentSections: [
+      {
+        heading: '1. Top-Level First Page Landing & Real-Time Timeline',
+        text: 'The Activity Board is positioned as the primary landing dashboard at the very top of EduBridge. It maintains a persistent chronological record of all your current and past learning activities, such as completed mock tests, vocabulary practice, question solver queries, and milestone completions.',
+        steps: [
+          'Log in to instantly view your Activity Board as the primary home screen.',
+          'Every study event records an immutable date and time stamp (e.g. "Nov 1, 2026, 10:15 PM") stored in the local JSON activity ledger.',
+          'Filter between "All Activities", "Completed", "In Progress", or "Milestones" to inspect your learning trajectory.'
+        ]
+      },
+      {
+        heading: '2. One-Click Replay: "Perform Activity Again"',
+        text: 'Learners can repeat any past exercise, exam, or quiz upon their ease. Every recorded timeline card features a dedicated "Perform Again" action button that reopens the exact activity directly, allowing continuous reinforcement.',
+        tip: 'Repeating an activity reinforces cognitive memory and contributes toward your daily XP study goal without overwriting your original completion history.'
+      }
+    ]
+  },
+  {
     id: 'guide_getting_started',
     title: 'Getting Started with EduBridge',
     category: 'Platform Basics',
@@ -400,17 +433,27 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
   },
   {
     id: 'guide_question_solver',
-    title: 'AI-Powered Universal Question Solver',
+    title: 'AI-Powered Universal Question Solver & Classroom',
     category: 'AI Problem Solving',
     icon: 'BrainCircuit',
     minRole: 'student',
-    summary: 'Ask academic and real-world questions using Keyboard, Digital Pen, Voice Speech, or Image OCR with step-by-step verified explanations and Answer Palette.',
-    keywords: ['solver', 'math', 'physics', 'chemistry', 'biology', 'handwriting', 'ocr', 'voice', 'palette', 'explanation'],
+    summary: 'Ask academic and real-world questions using Keyboard, Digital Pen, Voice Speech, or Image OCR with human-like understanding, proactive clarification, step-by-step breakdown, and spoken audio reading.',
+    keywords: ['solver', 'math', 'physics', 'chemistry', 'biology', 'handwriting', 'ocr', 'voice', 'palette', 'explanation', 'clarification', 'human', 'listen'],
     screenshotUrl: '/assets/guide/solver_multimodal_overview.jpg',
-    screenshotCaption: 'Interactive Digital Classroom Workspace with Formula Quick Palette, Handwriting Canvas, Multilingual Voice, and Verified Step-by-Step Breakdown.',
+    screenshotCaption: 'Interactive Digital Classroom Workspace with Formula Quick Palette, Handwriting Canvas, Multilingual Voice, Proactive Clarification, and Natural Spoken Audio.',
     contentSections: [
       {
-        heading: '1. Multimodal Question Input Methods',
+        heading: '1. Human-Like Problem Understanding & Proactive Clarification',
+        text: 'EduBridge cognitive AI evaluates questions in a natural, human-like manner. If a submitted problem lacks key parameters, coefficients, or contextual constraints (e.g., asking to solve an unspecified quadratic or ambiguous word problem), the tutor proactively asks targeted clarification questions before producing the final deduction.',
+        steps: [
+          'Submit a question in natural language, mathematical notation, or conversational prompt.',
+          'If information is missing, the AI suggests options or asks specific questions to establish the needed parameters.',
+          'Once clarified, the solver delivers verified reasoning steps, intermediate working, and final conclusion.'
+        ],
+        tip: 'Click the "Listen to Explanation" audio speaker button to have the verified answer and step-by-step rationale read aloud with articulate pronunciation.'
+      },
+      {
+        heading: '2. Multimodal Question Input Methods',
         text: 'EduBridge functions as an intelligent digital classroom providing 4 distinct input methods with maximum workspace area:',
         steps: [
           'Keyboard Editor: Type equations, scientific notation, and prompts with the formula quick palette (powers, roots, fractions, Greek letters, chemical formulas).',
@@ -420,9 +463,9 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
         ]
       },
       {
-        heading: '2. Two-Column Workspace: Persistent Explanation & Answer Palette',
+        heading: '3. Two-Column Workspace: Persistent Explanation & Answer Palette',
         text: 'The interface is ergonomically organized into two focused columns: the comprehensive step-by-step solution remains anchored on the left workspace, while the verified final answer, core formulas, voice narration, and common mistakes appear in the right Answer Palette.',
-        tip: 'If a question lacks necessary parameters (e.g. asking to solve an unspecified quadratic), the AI tutor prompts a helpful clarification question rather than guessing.'
+        tip: 'The listening audio feature reads directly from the verified result, allowing auditory learners to internalize complex solutions effortlessly.'
       }
     ]
   },
@@ -582,34 +625,73 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
   },
   {
     id: 'guide_exam_prep',
-    title: 'Standardized Exam Prep & Practice Tests Hub',
+    title: 'Standardized Exam Prep & Multi-Question Tests Suite',
     category: 'Exam Prep',
     icon: 'Award',
     minRole: 'student',
-    summary: 'Practice Tests Hub with 1,100+ tests across PTE, TOEFL, OET, DET, Cambridge English & IELTS, plus timed mock exams and instant rubric analytics.',
-    keywords: ['ielts', 'pte', 'toefl', 'oet', 'det', 'cambridge', 'mock', 'reading', 'writing', 'speaking', 'listening', 'practice hub'],
+    summary: 'Practice Tests Hub featuring at least 10 in-depth questions per practice test under the same subject, question stepper [1] [2] ... [10], aggregate score evaluations, and dual AI 10-Question Synthesizers.',
+    keywords: ['ielts', 'pte', 'toefl', 'oet', 'det', 'cambridge', 'mock', 'reading', 'writing', 'speaking', 'listening', 'practice hub', '10 questions', 'stepper', 'synthesizer'],
     screenshotUrl: '/assets/guide/standardized_test_prep.jpg',
-    screenshotCaption: 'Standardized Test Prep with Practice Tests Hub (1,100+ Tests across PTE, TOEFL, OET, DET, Cambridge & IELTS), Passages, Answers, and Explanations.',
+    screenshotCaption: 'Standardized Test Prep with Practice Tests Hub: At least 10 Questions under the Same Subject, Question Stepper [1]..[10], and Dual AI Synthesizers.',
     imagePlaceholder: {
       title: 'Standardized Test Simulator & Practice Hub',
-      caption: 'Practice Tests Hub with 1,100+ sets, audio transcripts, countdown clock, and rubric score prediction.',
+      caption: 'Practice Tests Hub with 10-question sets, audio transcripts, countdown clock, and rubric score prediction.',
       badge: 'Multi-Exam Simulator',
       accentColor: 'from-amber-600 to-orange-700'
     },
     contentSections: [
       {
-        heading: '1. Practice Tests Hub (1,100+ Authentic Tests)',
-        text: 'Access over 1,100 verified practice tests spanning IELTS Academic, General Training, PTE, TOEFL, OET, DET, and Cambridge English. Tests include authentic academic reading excerpts, Piper audio transcripts, multiple-choice questions, and detailed paragraph-referenced explanations.',
+        heading: '1. Multi-Question Sets (At least 10 Questions Per Test)',
+        text: 'All practice tests across IELTS, PTE, TOEFL, OET, DET, and Cambridge English feature at least 10 comprehensive questions grouped under the same subject area, related to each other for deep contextual understanding. An interactive Question Stepper ([1] [2] ... [10]) lets learners freely move between questions, review flagged answers, and submit for overall score calculation.',
         steps: [
           'Choose your target exam from the exam selector pills (PTE, TOEFL, OET, DET, Cambridge, IELTS).',
           'Switch between Reading, Listening, Writing, and Speaking modules.',
-          'Solve questions and click "Submit Practice Answer" for instant validation, audio feedback, and analytical reasoning.'
+          'Navigate through questions 1 to 10 using the question stepper buttons.',
+          'Submit individual questions or evaluate the complete 10-question set for your aggregate band score.'
         ]
       },
       {
-        heading: '2. Official Timed Mock Exam Simulator',
+        heading: '2. Dual AI 10-Question Synthesizers: Same-Subject & Mix & Match',
+        text: 'Generate fresh 10-question standardized tests on demand with single-click AI synthesizers: "AI Generate 10 Same-Subject Questions" (cohesive thematic questions exploring one domain in depth) or "AI Generate 10 Mix & Match Questions" (diverse variety of questions testing multiple skills).',
+        tip: 'All practice tests and AI-synthesized tests are permanently stored in your offline JSON test bank.'
+      },
+      {
+        heading: '3. Official Timed Mock Exam Simulator',
         text: 'Experience authentic test-day pacing with section-by-section countdown timers, essay word counters, and automatic band score prediction rubrics.',
         tip: 'All practice tests and mock simulations are cached offline, allowing study sessions anywhere without internet connectivity.'
+      }
+    ]
+  },
+  {
+    id: 'guide_resource_vault',
+    title: 'Universal Resource Vault & Symmetric Theming',
+    category: 'Study Materials & Vault',
+    icon: 'BookOpen',
+    minRole: 'student',
+    summary: 'Explore printable study sheets, formula cheat sheets, and cognitive exercises across all 5 age cohorts (Ages 5–100+) with symmetric light/dark readability and direct printing.',
+    keywords: ['resource vault', 'printable', 'cheat sheet', 'study sheets', 'offline', 'dark mode', 'high contrast', 'symmetric', 'oled'],
+    screenshotUrl: '/assets/guide/dashboard_learning_arena.jpg',
+    screenshotCaption: 'Universal Resource Vault: Printable study sheets, cheat sheets, and developmental learning tools with symmetric light/dark mode formatting.',
+    imagePlaceholder: {
+      title: 'Universal Resource Vault & Study Guides',
+      caption: 'Curated printable reference documents and cheat sheets formatted for clean physical printout.',
+      badge: 'Resource Vault',
+      accentColor: 'from-emerald-600 to-indigo-700'
+    },
+    contentSections: [
+      {
+        heading: '1. Printable Study Sheets Across 5 Age Cohorts',
+        text: 'The Resource Vault provides authentic printable study guides, formula cheat sheets, phonics charts, and cognitive vitality exercises tailored to each age cohort from Early Childhood (Ages 5–8) up to Golden Age Scholars (Ages 55+).',
+        steps: [
+          'Open the Resource Vault from the Cohort arena or navigation bar.',
+          'Select a study sheet (e.g. Phonics & Sight Words, STEM Formulas, Essay Structures, Executive Frameworks).',
+          'Click "Print / Download PDF" to generate a clean, printer-friendly study reference.'
+        ]
+      },
+      {
+        heading: '2. Symmetric Color Architecture & Dark Mode Readability',
+        text: 'EduBridge uses a symmetric theming engine across all 8 color schemes (Oceanic Indigo, Emerald Forest, Royal Amethyst, Sunset Terracotta, Rose Blossom, Cyberpunk Cyan, Midnight OLED, and High-Contrast Ink). In dark mode, all document preview boxes, cards, and text use high-contrast luminous styling (.resource-vault-sheet) ensuring text is always 100% visible with zero black-on-black or white-on-white clipping.',
+        tip: 'Modifications to color schemes adapt symmetrically throughout the app without one component breaking another.'
       }
     ]
   },

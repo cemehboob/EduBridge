@@ -225,8 +225,8 @@ export const ResourceVaultModal: React.FC<ResourceVaultModalProps> = ({
               </div>
             </div>
 
-            {/* Document Content View */}
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 font-mono text-xs sm:text-sm text-slate-800 bg-slate-900 text-emerald-300 leading-relaxed rounded-b-2xl m-3 whitespace-pre-wrap selection:bg-emerald-500 selection:text-black">
+            {/* Document Content View - Symmetric High-Contrast Document Paper */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 font-mono text-xs sm:text-sm leading-relaxed rounded-2xl m-3 whitespace-pre-wrap border resource-vault-sheet shadow-2xs selection:bg-indigo-500 selection:text-white">
               {activeItem.printableContent}
             </div>
           </div>

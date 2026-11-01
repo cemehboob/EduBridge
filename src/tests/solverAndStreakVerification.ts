@@ -3,6 +3,7 @@
  */
 
 import fs from 'fs';
+import path from 'path';
 import { StreakService } from '../services/streakService';
 import { QuestionSolverService } from '../services/questionSolverService';
 import { OCRService } from '../services/ocrService';
@@ -921,7 +922,95 @@ async function runTests() {
     console.log(`PASS: AI Mix & Match Generator synthesized 10 cross-disciplinary questions (${aiMixMatchTest.title}).`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 50 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 51: Verifying Symmetric Theming, Resource Vault Contrast, and User Guide Documentation
+  console.log('\nTest 51: Verifying Symmetric Theming, Resource Vault Paper Contrast, and User Guide Updates...');
+  
+  // 1. ResourceVaultModal symmetric styling check
+  const vaultModalCode = fs.readFileSync('src/components/cohorts/ResourceVaultModal.tsx', 'utf-8');
+  if (!vaultModalCode.includes('resource-vault-sheet')) {
+    console.error('FAIL: ResourceVaultModal missing symmetric .resource-vault-sheet class.');
+    failures++;
+  } else if (vaultModalCode.includes('bg-slate-900 text-slate-800 text-emerald-300')) {
+    console.error('FAIL: ResourceVaultModal still contains conflicting hardcoded dark-on-dark color classes.');
+    failures++;
+  } else {
+    console.log('PASS: ResourceVaultModal uses symmetric .resource-vault-sheet styling without conflicting color classes.');
+  }
+
+  // 2. CSS Symmetric Theming & High-Contrast Dark Mode check
+  const fullIndexCss = fs.readFileSync('src/index.css', 'utf-8');
+  const hasVaultSheetLight = fullIndexCss.includes('.resource-vault-sheet');
+  const hasVaultSheetDark = fullIndexCss.includes('html.dark .resource-vault-sheet') || fullIndexCss.includes('html.theme-midnight-dark .resource-vault-sheet');
+  const hasFractionalWhiteDark = fullIndexCss.includes('.bg-white\\/80') && fullIndexCss.includes('.bg-white\\/90');
+  const hasFractionalSlateDark = fullIndexCss.includes('.bg-slate-50\\/50') && fullIndexCss.includes('.bg-slate-100\\/50');
+  const hasHighContrastTextDark = fullIndexCss.includes('.text-slate-900') && fullIndexCss.includes('#f8fafc !important');
+
+  if (!hasVaultSheetLight || !hasVaultSheetDark || !hasFractionalWhiteDark || !hasFractionalSlateDark || !hasHighContrastTextDark) {
+    console.error('FAIL: index.css missing required symmetric dark mode rules or sheet contrast styling.', {
+      hasVaultSheetLight,
+      hasVaultSheetDark,
+      hasFractionalWhiteDark,
+      hasFractionalSlateDark,
+      hasHighContrastTextDark
+    });
+    failures++;
+  } else {
+    console.log('PASS: index.css includes comprehensive symmetric dark mode rules, fractional background overrides, and luminous text colors.');
+  }
+
+  // 3. User Guide Articles verification
+  const activityArticle = initialUserGuideArticles.find((a) => a.id === 'guide_activity_board');
+  const examArticle = initialUserGuideArticles.find((a) => a.id === 'guide_exam_prep');
+  const vaultArticle = initialUserGuideArticles.find((a) => a.id === 'guide_resource_vault');
+  const solverArticle = initialUserGuideArticles.find((a) => a.id === 'guide_question_solver');
+
+  if (!activityArticle || !activityArticle.summary.includes('timestamps') || !activityArticle.summary.includes('Perform Activity Again')) {
+    console.error('FAIL: User guide missing or incomplete guide_activity_board article.');
+    failures++;
+  } else {
+    console.log(`PASS: Verified user guide article "${activityArticle.title}" covers activity history, timestamps, and replay.`);
+  }
+
+  if (!examArticle || !examArticle.summary.includes('10 in-depth questions') || !examArticle.summary.includes('stepper')) {
+    console.error('FAIL: User guide missing or incomplete guide_exam_prep multi-question coverage.');
+    failures++;
+  } else {
+    console.log(`PASS: Verified user guide article "${examArticle.title}" covers >=10 questions, question stepper, and AI synthesizers.`);
+  }
+
+  if (!vaultArticle || !vaultArticle.summary.includes('Ages 5–100+') || !vaultArticle.summary.includes('symmetric')) {
+    console.error('FAIL: User guide missing or incomplete guide_resource_vault article.');
+    failures++;
+  } else {
+    console.log(`PASS: Verified user guide article "${vaultArticle.title}" covers 5 cohorts and symmetric readability.`);
+  }
+
+  if (!solverArticle || !solverArticle.summary.includes('human-like') || !solverArticle.summary.includes('clarification')) {
+    console.error('FAIL: User guide missing or incomplete guide_question_solver article.');
+    failures++;
+  } else {
+    console.log(`PASS: Verified user guide article "${solverArticle.title}" covers human-like analysis, proactive clarification, and spoken audio.`);
+  }
+
+  // 4. Verify all screenshots in user guide articles physically exist in public/assets/guide/
+  let missingScreenshots = 0;
+  for (const art of initialUserGuideArticles) {
+    if (art.screenshotUrl) {
+      const fullPath = path.join(process.cwd(), 'public', art.screenshotUrl);
+      if (!fs.existsSync(fullPath)) {
+        console.error(`FAIL: Article "${art.id}" screenshot does not exist at "${fullPath}".`);
+        missingScreenshots++;
+      }
+    }
+  }
+
+  if (missingScreenshots > 0) {
+    failures++;
+  } else {
+    console.log(`PASS: All ${initialUserGuideArticles.length} user guide articles have verified live screenshot assets.`);
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 51 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 
