@@ -790,7 +790,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
         {activeTab === 'academic' && (
           isKidMode ? (
-            <KidScienceMathFun onEarnXp={() => onCelebrate && onCelebrate('daily_goal')} />
+            <KidScienceMathFun profile={profile} onEarnXp={() => onCelebrate && onCelebrate('daily_goal')} />
           ) : (
             <AcademicView
               topics={academicTopics}
@@ -810,7 +810,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
         {activeTab === 'planner' && (
           isKidMode ? (
-            <KidDailySchedule onEarnXp={() => onCelebrate && onCelebrate('daily_goal')} />
+            <KidDailySchedule profile={profile} onEarnXp={() => onCelebrate && onCelebrate('daily_goal')} />
           ) : (
             <StudyPlannerView
               tasks={dailyTasks}
