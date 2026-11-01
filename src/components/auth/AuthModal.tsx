@@ -343,6 +343,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  🔒 Verified legal identity: cannot be modified once registered.
+                </p>
               </div>
 
               <div>
@@ -410,6 +413,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  🔒 Establishes developmental age cohort: locked permanently after registration.
+                </p>
               </div>
 
               {/* Role Selection */}

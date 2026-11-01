@@ -45,6 +45,10 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [dob, setDob] = useState(user.dateOfBirth);
+
+  // Identity Lock: Name and Date of Birth are disabled if already filled by user while user creation
+  const isNameDisabled = Boolean(user.name && user.name.trim().length > 0);
+  const isDobDisabled = Boolean(user.dateOfBirth && user.dateOfBirth.trim().length > 0);
   const [ageCohort, setAgeCohort] = useState<AgeCohortId>(
     user.preferences.ageCohort || calculateCohortFromDob(user.dateOfBirth)
   );
@@ -95,13 +99,19 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
 
     sound.playSuccess();
 
-    const calculatedEdu = calculateEducationLevel(dob);
+    // Preserve original name and date of birth if already filled by user during creation
+    const isNameDisabled = Boolean(user.name && user.name.trim().length > 0);
+    const isDobDisabled = Boolean(user.dateOfBirth && user.dateOfBirth.trim().length > 0);
+    const finalName = isNameDisabled ? user.name : (name.trim() || user.name);
+    const finalDob = isDobDisabled ? user.dateOfBirth : (dob || user.dateOfBirth);
+
+    const calculatedEdu = calculateEducationLevel(finalDob);
 
     const updated: UserAccount = {
       ...user,
-      name: name.trim(),
+      name: finalName,
       password: isChangingPassword && newPassword.trim() ? newPassword.trim() : user.password,
-      dateOfBirth: dob,
+      dateOfBirth: finalDob,
       preferences: {
         ...user.preferences,
         preferredLanguage: prefLanguage,
@@ -170,17 +180,37 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
           {/* Full Name & Email */}
           <div className="space-y-3">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Full Name</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-bold text-slate-700">
+                  Full Legal Name {isNameDisabled && <span className="text-[10px] font-normal text-slate-400">(Read-Only)</span>}
+                </label>
+                {isNameDisabled && (
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1">
+                    🔒 Locked · Set during User Creation
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   required
+                  disabled={isNameDisabled}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500"
+                  className={`w-full pl-9 pr-3 py-2 rounded-xl text-xs transition-all ${
+                    isNameDisabled
+                      ? 'border border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                      : 'border border-slate-300 focus:ring-2 focus:ring-indigo-500'
+                  }`}
+                  title={isNameDisabled ? 'Legal name was set during user creation and cannot be changed' : undefined}
                 />
               </div>
+              {isNameDisabled && (
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Legal name was registered during account creation and is locked to maintain certificate and portfolio integrity.
+                </p>
+              )}
             </div>
 
             <div>
@@ -191,7 +221,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
                   type="email"
                   disabled
                   value={user.email}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 text-xs"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 text-xs cursor-not-allowed select-none"
                 />
               </div>
             </div>
@@ -199,21 +229,43 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
 
           {/* Date of Birth & Live Developmental Age */}
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Date of Birth (DOB)</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-bold text-slate-700">
+                Date of Birth (DOB) {isDobDisabled && <span className="text-[10px] font-normal text-slate-400">(Read-Only)</span>}
+              </label>
+              {isDobDisabled && (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1">
+                  🔒 Locked · Set during User Creation
+                </span>
+              )}
+            </div>
             <div className="relative">
               <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="date"
                 required
+                disabled={isDobDisabled}
                 value={dob}
                 onChange={(e) => {
-                  setDob(e.target.value);
-                  const inferred = calculateCohortFromDob(e.target.value);
-                  setAgeCohort(inferred);
+                  if (!isDobDisabled) {
+                    setDob(e.target.value);
+                    const inferred = calculateCohortFromDob(e.target.value);
+                    setAgeCohort(inferred);
+                  }
                 }}
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500"
+                className={`w-full pl-9 pr-3 py-2 rounded-xl text-xs transition-all ${
+                  isDobDisabled
+                    ? 'border border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+                    : 'border border-slate-300 focus:ring-2 focus:ring-indigo-500'
+                }`}
+                title={isDobDisabled ? 'Date of birth was verified during account creation and cannot be changed' : undefined}
               />
             </div>
+            {isDobDisabled && (
+              <p className="text-[10px] text-slate-400 mt-1">
+                Date of birth was registered during account creation to verify age cohort and curriculum pathways.
+              </p>
+            )}
             <div className="mt-1.5 text-[11px] text-indigo-700 font-bold flex items-center gap-1.5">
               <span>Calculated Age: {calculateAge(dob)} years old</span>
               <span>•</span>

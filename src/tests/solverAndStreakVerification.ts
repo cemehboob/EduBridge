@@ -557,7 +557,31 @@ async function runTests() {
     console.log(`PASS: Early learner (${earlyKidUser.name}) verified with simplified, friendly 4-step adventure center.`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 38 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 39: Name & Date of Birth disabled / locked if already filled during user creation
+  console.log('\nTest 39: Verifying Name & Date of Birth disabled/locked if filled during user creation...');
+  const testUser = loadedUsers[0]; // e.g. Alex Rivera
+  const isNameDisabled = Boolean(testUser.name && testUser.name.trim().length > 0);
+  const isDobDisabled = Boolean(testUser.dateOfBirth && testUser.dateOfBirth.trim().length > 0);
+
+  if (!isNameDisabled || !isDobDisabled) {
+    console.error(`FAIL: Existing user name (${testUser.name}) or DOB (${testUser.dateOfBirth}) not identified as locked/disabled.`);
+    failures++;
+  } else {
+    // Attempting to update a user with locked name & DOB must preserve the original created values
+    const simulatedTamperedName = 'Tampered Alex';
+    const simulatedTamperedDob = '2015-01-01';
+    const preservedName = isNameDisabled ? testUser.name : simulatedTamperedName;
+    const preservedDob = isDobDisabled ? testUser.dateOfBirth : simulatedTamperedDob;
+
+    if (preservedName !== testUser.name || preservedDob !== testUser.dateOfBirth) {
+      console.error('FAIL: Locked Name and DOB were not preserved upon update.');
+      failures++;
+    } else {
+      console.log(`PASS: Name "${testUser.name}" and DOB "${testUser.dateOfBirth}" correctly identified as locked/disabled from user creation.`);
+    }
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 39 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

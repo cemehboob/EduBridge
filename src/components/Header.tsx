@@ -384,7 +384,7 @@ export const Header: React.FC<HeaderProps> = ({
                         <SlidersHorizontal className="w-4 h-4 text-indigo-600" />
                         <div>
                           <div>Profile &amp; Preferences</div>
-                          <div className="text-[10px] text-slate-400 font-normal">Color scheme, themes, password, DOB, exam targets</div>
+                          <div className="text-[10px] text-slate-400 font-normal">Color scheme, theme presets, password security, exam targets</div>
                         </div>
                       </button>
 
