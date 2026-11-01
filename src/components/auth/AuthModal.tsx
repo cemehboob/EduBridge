@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Lock,
@@ -13,10 +13,14 @@ import {
   EyeOff,
   Sparkles,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  Key,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { UserAccount, UserRole, FontScale } from '../../types';
 import { sound } from '../../utils/audio';
+import { StorageService } from '../../services/storage';
 import { calculateAge, calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 
 interface AuthModalProps {
@@ -25,6 +29,7 @@ interface AuthModalProps {
   users: UserAccount[];
   onLogin: (user: UserAccount) => void;
   onRegister: (newUser: UserAccount) => void;
+  onResetPassword?: (email: string, newPassword: string) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -32,11 +37,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   users,
   onLogin,
-  onRegister
+  onRegister,
+  onResetPassword
 }) => {
-  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [tab, setTab] = useState<'login' | 'register' | 'forgot_password'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Login form state
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -52,14 +59,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [regTargetExam, setRegTargetExam] = useState('IELTS Academic');
   const [regLanguage, setRegLanguage] = useState('Spanish');
 
-  if (!isOpen) return null;
+  // Forgot password & 6-digit OTP state
+  const [forgotStep, setForgotStep] = useState<'email' | 'otp' | 'new_password'>('email');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [enteredOtp, setEnteredOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [simulatedEmailNotice, setSimulatedEmailNotice] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  // Single click login is strictly allowed ONLY for the root system administrator
-  const adminUser = users.find((u) => u.role === 'admin');
+  // OTP resend countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
+  if (!isOpen) return null;
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     const cleanId = loginIdentifier.trim().toLowerCase();
     if (!cleanId || !loginPassword.trim()) {
@@ -88,13 +112,94 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     if (user.password !== loginPassword) {
       sound.playError();
-      setErrorMsg('Incorrect password. Please verify your credentials.');
+      setErrorMsg('Incorrect password. Please verify your credentials or click "Forgot Password?".');
       return;
     }
 
     sound.playSuccess();
     onLogin(user);
     onClose();
+  };
+
+  const handleSendOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    const cleanEmail = forgotEmail.trim().toLowerCase();
+    if (!cleanEmail) {
+      setErrorMsg('Please enter your registered email address.');
+      return;
+    }
+
+    const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (!user) {
+      sound.playError();
+      setErrorMsg(`No account found for "${cleanEmail}". Please check the spelling or create a new account.`);
+      return;
+    }
+
+    // Generate 6-digit numeric OTP code
+    const generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+    StorageService.savePasswordResetOtp(cleanEmail, generatedOtp);
+
+    setSimulatedEmailNotice(
+      `📬 Dispatched to ${cleanEmail}: Your 6-Digit EduBridge Password Reset OTP is [ ${generatedOtp} ] (Expires in 10 minutes)`
+    );
+    setEnteredOtp(generatedOtp); // Pre-fill for convenient inspection in offline sandbox
+    setResendCooldown(60);
+    sound.playSuccess();
+    setForgotStep('otp');
+  };
+
+  const handleVerifyOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const cleanEmail = forgotEmail.trim().toLowerCase();
+    const cleanOtp = enteredOtp.trim();
+
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      setErrorMsg('Please enter the complete 6-digit OTP code sent to your email.');
+      return;
+    }
+
+    const record = StorageService.getPasswordResetOtp(cleanEmail);
+    if (!record || record.otp !== cleanOtp) {
+      sound.playError();
+      setErrorMsg('Invalid or expired 6-digit code. Please request a new code.');
+      return;
+    }
+
+    sound.playSuccess();
+    setForgotStep('new_password');
+  };
+
+  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    if (newPassword.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setErrorMsg('Passwords do not match. Please verify both entries.');
+      return;
+    }
+
+    const cleanEmail = forgotEmail.trim().toLowerCase();
+    onResetPassword?.(cleanEmail, newPassword);
+    StorageService.clearPasswordResetOtp(cleanEmail);
+
+    sound.playLevelUp();
+    setSuccessMsg('Your password has been reset successfully! Please sign in with your new password.');
+    setLoginIdentifier(cleanEmail);
+    setLoginPassword('');
+    setTab('login');
+    setForgotStep('email');
+    setSimulatedEmailNotice(null);
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
@@ -186,12 +291,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const handleAdminQuickLogin = (admin: UserAccount) => {
-    sound.playClick();
-    onLogin(admin);
-    onClose();
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
@@ -215,10 +314,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </div>
 
-        {/* Tab Switcher: Login vs Register */}
+        {/* Tab Switcher: Login vs Register vs Forgot Password */}
         <div className="flex border-b border-slate-200 bg-slate-50 px-6 pt-3">
           <button
-            onClick={() => { sound.playClick(); setTab('login'); setErrorMsg(null); }}
+            onClick={() => { sound.playClick(); setTab('login'); setErrorMsg(null); setSuccessMsg(null); }}
             className={`pb-3 px-4 text-xs font-black uppercase tracking-wider transition-all border-b-2 ${
               tab === 'login'
                 ? 'border-indigo-600 text-indigo-600'
@@ -228,7 +327,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             Sign In with Password
           </button>
           <button
-            onClick={() => { sound.playClick(); setTab('register'); setErrorMsg(null); }}
+            onClick={() => { sound.playClick(); setTab('register'); setErrorMsg(null); setSuccessMsg(null); }}
             className={`pb-3 px-4 text-xs font-black uppercase tracking-wider transition-all border-b-2 ${
               tab === 'register'
                 ? 'border-indigo-600 text-indigo-600'
@@ -237,20 +336,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           >
             Create New Account
           </button>
+          {tab === 'forgot_password' && (
+            <button
+              className="pb-3 px-4 text-xs font-black uppercase tracking-wider transition-all border-b-2 border-amber-600 text-amber-700"
+            >
+              Reset Password (OTP)
+            </button>
+          )}
         </div>
 
         {/* Form Body */}
         <div className="p-6 overflow-y-auto space-y-5">
           {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700">
-              {errorMsg}
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              <span>{successMsg}</span>
             </div>
           )}
 
           {tab === 'login' ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 text-[11px] text-indigo-900 leading-relaxed">
-                🔒 <strong>Secure Account Access:</strong> All learners, parents, and teachers must sign in with their unique username and password.
+                🔒 <strong>Strict Password Authentication:</strong> Single-click bypasses are disabled. All learners, parents, teachers, and administrators must authenticate with their verified password.
               </div>
 
               <div>
@@ -265,13 +379,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={loginIdentifier}
                     onChange={(e) => setLoginIdentifier(e.target.value)}
                     placeholder="e.g. alex.rivera or alex.rivera@edubridge.org"
-                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Password</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700">Account Password</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setTab('forgot_password');
+                      setForgotStep('email');
+                      setForgotEmail(loginIdentifier.includes('@') ? loginIdentifier : '');
+                      setErrorMsg(null);
+                      setSuccessMsg(null);
+                    }}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
@@ -280,7 +410,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="Enter account password..."
-                    className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                   />
                   <button
                     type="button"
@@ -294,40 +424,184 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm shadow-sm transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Sign In with Credentials</span>
+                <span>Verify Credentials &amp; Sign In</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
+            </form>
+          ) : tab === 'forgot_password' ? (
+            <div className="space-y-4">
+              <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-950 space-y-1">
+                <div className="font-extrabold flex items-center gap-1.5 text-amber-900">
+                  <Key className="w-4 h-4 text-amber-600" />
+                  <span>Secure 6-Digit OTP Password Reset</span>
+                </div>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  Enter your registered email address to receive an instant 6-digit one-time passcode (OTP) for password recovery.
+                </p>
+              </div>
 
-              {/* Single-Click Login: STRICTLY RESERVED FOR ROOT ADMINISTRATOR ONLY */}
-              {adminUser && (
-                <div className="pt-4 border-t border-slate-100">
-                  <div className="p-3.5 bg-amber-50/80 border border-amber-200/90 rounded-2xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-950">
-                        <Shield className="w-4 h-4 text-amber-600" />
-                        <span>Single-Click Login (Admin Only)</span>
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-200 text-amber-900">
-                        Admin Only
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-amber-900 leading-relaxed">
-                      Single-click login is available only for the root system administrator. Learners and teachers must use their username and password.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => handleAdminQuickLogin(adminUser)}
-                      className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 font-extrabold text-xs shadow-xs transition-all flex items-center justify-center gap-2"
-                    >
-                      <Shield className="w-4 h-4" />
-                      <span>Single-Click Sign In as {adminUser.name}</span>
-                    </button>
+              {simulatedEmailNotice && (
+                <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-xs text-indigo-950 space-y-2 animate-in fade-in">
+                  <div className="font-bold flex items-center gap-1.5 text-indigo-900">
+                    <Mail className="w-4 h-4 text-indigo-600" />
+                    <span>Simulated Email Delivery Dispatch</span>
+                  </div>
+                  <div className="font-mono text-[11px] bg-white p-2.5 rounded-xl border border-indigo-100 text-indigo-800 break-all">
+                    {simulatedEmailNotice}
                   </div>
                 </div>
               )}
-            </form>
+
+              {/* Step 1: Enter Email */}
+              {forgotStep === 'email' && (
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Registered Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <input
+                        type="email"
+                        required
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="e.g. alex.rivera@edubridge.org"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setTab('login');
+                      }}
+                      className="px-4 py-2.5 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-100"
+                    >
+                      Back to Sign In
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition-all flex items-center gap-2"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      <span>Send 6-Digit OTP</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Step 2: Verify 6-digit OTP */}
+              {forgotStep === 'otp' && (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Enter 6-Digit Verification Code
+                    </label>
+                    <div className="relative">
+                      <Key className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <input
+                        type="text"
+                        maxLength={6}
+                        required
+                        value={enteredOtp}
+                        onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
+                        placeholder="e.g. 748192"
+                        className="w-full pl-9 pr-3.5 py-3 rounded-xl border border-slate-300 text-lg font-mono tracking-widest text-center font-black focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Check your email ({forgotEmail}) for the 6-digit verification code.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2">
+                    <button
+                      type="button"
+                      disabled={resendCooldown > 0}
+                      onClick={handleSendOtp}
+                      className={`text-xs font-bold flex items-center gap-1 ${
+                        resendCooldown > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-800'
+                      }`}
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>{resendCooldown > 0 ? `Resend Code in ${resendCooldown}s` : 'Resend Code'}</span>
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition-all flex items-center gap-2"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Verify 6-Digit Code</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Step 3: Set New Password */}
+              {forgotStep === 'new_password' && (
+                <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      New Account Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password (min. 6 characters)..."
+                        className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Confirm New Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Re-enter new password..."
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="submit"
+                      className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs transition-all flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Save New Password &amp; Continue</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           ) : (
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
               <div>

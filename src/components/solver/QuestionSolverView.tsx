@@ -65,6 +65,7 @@ import { sound } from '../../utils/audio';
 
 interface QuestionSolverViewProps {
   initialSubject?: SolverSubject;
+  initialQuestion?: string;
   onQuestionSolved?: (subject: SolverSubject) => void;
 }
 
@@ -147,11 +148,18 @@ const SAMPLE_QUESTIONS: { subject: SolverSubject; label: string; question: strin
 ];
 
 export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
+  initialQuestion,
   onQuestionSolved
 }) => {
   // Input State - initial question preserved in editor
   const [activeMode, setActiveMode] = useState<InputMode>('keyboard');
-  const [questionText, setQuestionText] = useState<string>('Solve for x: 2x + 5 = 15');
+  const [questionText, setQuestionText] = useState<string>(initialQuestion || 'Solve for x: 2x + 5 = 15');
+
+  React.useEffect(() => {
+    if (initialQuestion) {
+      setQuestionText(initialQuestion);
+    }
+  }, [initialQuestion]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [solverResult, setSolverResult] = useState<SolverResponse | null>(null);
 

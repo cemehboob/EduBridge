@@ -26,8 +26,11 @@ import {
   IngestedItemRecord,
   VoicePersona,
   TestConductionRecord,
-  ColorSchemeConfig
+  ColorSchemeConfig,
+  UserActivityRecord,
+  PasswordResetRecord
 } from '../types';
+import { initialActivities } from '../data/activityData';
 import { ieltsAcademicUnits } from '../data/ieltsUnitsData';
 import { DEFAULT_COLOR_SCHEME } from '../utils/themeManager';
 import {
@@ -81,15 +84,27 @@ const KEYS = {
   IELTS_UNITS: 'edubridge_ielts_units_v1',
   TEST_CONDUCTION_LOGS: 'edubridge_test_conduction_logs_v1',
   COLOR_SCHEME: 'edubridge_color_scheme_v1',
+  ACTIVITIES: 'edubridge_user_activities_v1',
+  PASSWORD_RESETS: 'edubridge_password_resets_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp'
 };
 
+const inMemoryStore = new Map<string, string>();
+
 function safeGet<T>(key: string, fallback: T): T {
   try {
-    if (typeof localStorage === 'undefined') return fallback;
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw);
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) return JSON.parse(raw);
+      } catch {
+        // Fallback to in-memory store
+      }
+    }
+    if (inMemoryStore.has(key)) {
+      return JSON.parse(inMemoryStore.get(key)!);
+    }
+    return fallback;
   } catch (e) {
     console.warn(`[EduBridge Storage] Failed to load key ${key}:`, e);
     return fallback;
@@ -98,9 +113,16 @@ function safeGet<T>(key: string, fallback: T): T {
 
 function safeSet<T>(key: string, value: T): void {
   try {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(key, JSON.stringify(value));
-    localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
+    const serialized = JSON.stringify(value);
+    inMemoryStore.set(key, serialized);
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(key, serialized);
+        localStorage.setItem(KEYS.LAST_SYNC, new Date().toISOString());
+      } catch {
+        // storage quota exceeded or disabled in sandbox/node
+      }
+    }
   } catch (e) {
     console.error(`[EduBridge Storage] Failed to save key ${key}:`, e);
   }
@@ -464,6 +486,63 @@ export const StorageService = {
 
   getColorScheme: (): ColorSchemeConfig => safeGet<ColorSchemeConfig>(KEYS.COLOR_SCHEME, DEFAULT_COLOR_SCHEME),
   saveColorScheme: (scheme: ColorSchemeConfig): void => safeSet(KEYS.COLOR_SCHEME, scheme),
+
+  // User Activities (Chronological History & Dashboard Board)
+  getUserActivities: (userId?: string): UserActivityRecord[] => {
+    const all = safeGet<UserActivityRecord[]>(KEYS.ACTIVITIES, initialActivities);
+    if (!userId) return all;
+    return all.filter((a) => a.userId === userId);
+  },
+
+  saveUserActivities: (activities: UserActivityRecord[]): void => {
+    safeSet(KEYS.ACTIVITIES, activities);
+  },
+
+  recordUserActivity: (act: Omit<UserActivityRecord, 'id' | 'timestamp'> & { id?: string; timestamp?: string }): UserActivityRecord => {
+    const existing = StorageService.getUserActivities();
+    const newRecord: UserActivityRecord = {
+      ...act,
+      id: act.id || `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: act.timestamp || new Date().toISOString().replace('T', ' ').slice(0, 19),
+      relativeTime: 'Just now'
+    };
+    const updated = [newRecord, ...existing];
+    StorageService.saveUserActivities(updated);
+    return newRecord;
+  },
+
+  // Password Reset 6-Digit OTP Management
+  savePasswordResetOtp: (email: string, otp: string): void => {
+    const resets = safeGet<PasswordResetRecord[]>(KEYS.PASSWORD_RESETS, []);
+    const cleanEmail = email.trim().toLowerCase();
+    const newRecord: PasswordResetRecord = {
+      email: cleanEmail,
+      otp,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes expiry
+      used: false
+    };
+    // Keep only most recent OTP for this email
+    const filtered = resets.filter((r) => r.email !== cleanEmail);
+    filtered.unshift(newRecord);
+    safeSet(KEYS.PASSWORD_RESETS, filtered);
+  },
+
+  getPasswordResetOtp: (email: string): PasswordResetRecord | null => {
+    const resets = safeGet<PasswordResetRecord[]>(KEYS.PASSWORD_RESETS, []);
+    const cleanEmail = email.trim().toLowerCase();
+    const found = resets.find((r) => r.email === cleanEmail && !r.used);
+    if (!found) return null;
+    if (Date.now() > found.expiresAt) return null; // expired
+    return found;
+  },
+
+  clearPasswordResetOtp: (email: string): void => {
+    const resets = safeGet<PasswordResetRecord[]>(KEYS.PASSWORD_RESETS, []);
+    const cleanEmail = email.trim().toLowerCase();
+    const updated = resets.map((r) => (r.email === cleanEmail ? { ...r, used: true } : r));
+    safeSet(KEYS.PASSWORD_RESETS, updated);
+  },
 
   exportAllData: (): string => {
     const backup = {

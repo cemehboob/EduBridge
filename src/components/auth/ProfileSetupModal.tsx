@@ -61,6 +61,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
       : (ageCohort === 'early' || ageCohort === 'junior')
   );
   const [visibleModules, setVisibleModules] = useState<Required<VisibleModulesConfig>>({
+    dashboard: user.preferences.visibleModules?.dashboard ?? true,
     cohorts: user.preferences.visibleModules?.cohorts ?? true,
     solver: user.preferences.visibleModules?.solver ?? true,
     language: user.preferences.visibleModules?.language ?? true,

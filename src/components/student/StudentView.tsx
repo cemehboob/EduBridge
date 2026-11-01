@@ -22,11 +22,14 @@ import {
   Grid,
   Brain,
   Play,
-  Volume2
+  Volume2,
+  Activity
 } from 'lucide-react';
 import { SpeechService } from '../../services/speechService';
 import {
   UserProfile,
+  UserAccount,
+  UserActivityRecord,
   Unit,
   Lesson,
   MockTest,
@@ -57,14 +60,17 @@ import { KidDailySchedule } from './kids/KidDailySchedule';
 import { KidFutureDreams } from './kids/KidFutureDreams';
 import { UniversalLearningArena } from '../cohorts/UniversalLearningArena';
 import { QuestionSolverView } from '../solver/QuestionSolverView';
+import { ActivityBoardView } from './ActivityBoardView';
 import { BadgeService } from '../../services/badgeService';
 import { StorageService } from '../../services/storage';
 import { sound } from '../../utils/audio';
 
-type StudentTab = 'language' | 'cohorts' | 'solver' | 'exam' | 'vocab_quiz' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges';
+type StudentTab = 'dashboard' | 'language' | 'cohorts' | 'solver' | 'exam' | 'vocab_quiz' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges';
 
 interface StudentViewProps {
   profile: UserProfile;
+  currentUser?: UserAccount | null;
+  activities?: UserActivityRecord[];
   units: Unit[];
   mockTests: MockTest[];
   academicTopics: AcademicTopic[];
@@ -87,10 +93,13 @@ interface StudentViewProps {
   onCelebrate?: (type: 'daily_goal' | 'streak') => void;
   onToggleSimplifiedInterface?: (simplified: boolean) => void;
   onMarkLessonCompleted?: (lesson: Lesson, score?: number) => void;
+  onRecordActivity?: (activity: Omit<UserActivityRecord, 'id' | 'timestamp'> & { timestamp?: string }) => void;
 }
 
 export const StudentView: React.FC<StudentViewProps> = ({
   profile,
+  currentUser,
+  activities = [],
   units,
   ieltsUnits,
   mockTests,
@@ -112,7 +121,8 @@ export const StudentView: React.FC<StudentViewProps> = ({
   onOpenResourceVault,
   onCelebrate,
   onToggleSimplifiedInterface,
-  onMarkLessonCompleted
+  onMarkLessonCompleted,
+  onRecordActivity
 }) => {
   const isKidMode = profile.simplifiedInterface !== undefined
     ? profile.simplifiedInterface
@@ -120,12 +130,12 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
   const visibleConfig = profile.visibleModules || {};
 
-  const defaultTab: StudentTab = isKidMode
-    ? (profile.ageCohort === 'early' ? 'cohorts' : 'language')
-    : (profile.ageCohort === 'early' || profile.ageCohort === 'senior' ? 'cohorts' : 'language');
+  // First screen after login is always the comprehensive Activity Board & History Dashboard
+  const defaultTab: StudentTab = 'dashboard';
   
   const [activeTab, setActiveTab] = useState<StudentTab>(defaultTab);
   const [tutorInitialPrompt, setTutorInitialPrompt] = useState<string | undefined>(undefined);
+  const [solverInitialQuery, setSolverInitialQuery] = useState<string | undefined>(undefined);
   const [isBadgeGridExpanded, setIsBadgeGridExpanded] = useState(false);
 
   // Compute live badges for summary showcase
@@ -133,6 +143,13 @@ export const StudentView: React.FC<StudentViewProps> = ({
   const unlockedBadgesCount = badges.filter((b) => b.unlocked).length;
 
   const allTabs: { id: StudentTab; label: string; icon: React.ReactNode; badge?: string; isKidDefault?: boolean }[] = [
+    {
+      id: 'dashboard',
+      label: isKidMode ? '🌟 Activity Board' : 'Activity Board & History',
+      icon: <Activity className="w-4 h-4 text-indigo-500" />,
+      badge: 'Dashboard',
+      isKidDefault: true
+    },
     {
       id: 'cohorts',
       label: isKidMode ? '🧸 Story & Phonics Arena' : 'Universal Arena (5–100+)',
@@ -212,6 +229,8 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
   // Filter tabs according to simplified mode and user's visibleModules preferences
   const visibleTabs = allTabs.filter((t) => {
+    // Activity Board Dashboard is the fundamental landing board and always visible
+    if (t.id === 'dashboard') return true;
     // If explicitly disabled in user preferences, hide
     if (visibleConfig[t.id] === false) return false;
     // If explicitly enabled in user preferences, show
@@ -222,6 +241,41 @@ export const StudentView: React.FC<StudentViewProps> = ({
     }
     return true;
   });
+
+  const handleReplayActivity = (activity: UserActivityRecord) => {
+    sound.playClick();
+    if (activity.type === 'lesson') {
+      const allLessons = [
+        ...units.flatMap((u) => u.lessons),
+        ...(ieltsUnits ? ieltsUnits.flatMap((u) => u.lessons) : [])
+      ];
+      const match = activity.replayPayload.subId
+        ? allLessons.find((l) => l.id === activity.replayPayload.subId)
+        : allLessons[0];
+      if (match) {
+        onStartLesson(match);
+        return;
+      }
+      setActiveTab('language');
+    } else if (activity.type === 'solver') {
+      if (activity.replayPayload.query) {
+        setSolverInitialQuery(activity.replayPayload.query);
+      }
+      setActiveTab('solver');
+    } else if (activity.type === 'mock_test') {
+      setActiveTab('exam');
+    } else if (activity.type === 'vocab_quiz') {
+      setActiveTab('vocab_quiz');
+    } else if (activity.type === 'stem_game') {
+      setActiveTab('cohorts');
+    } else if (activity.type === 'study_task' || activity.type === 'daily_schedule') {
+      setActiveTab('planner');
+    } else if (activity.type === 'career_cv') {
+      setActiveTab('career');
+    } else {
+      setActiveTab('language');
+    }
+  };
 
   // Guarantee activeTab is valid among visibleTabs
   useEffect(() => {
@@ -730,6 +784,20 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
       {/* Active Tab View */}
       <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+        {activeTab === 'dashboard' && (
+          <ActivityBoardView
+            profile={profile}
+            currentUser={currentUser || null}
+            activities={activities}
+            onReplayActivity={handleReplayActivity}
+            onNavigateTab={(tab) => {
+              sound.playClick();
+              setActiveTab(tab as StudentTab);
+            }}
+            isKidMode={isKidMode}
+          />
+        )}
+
         {activeTab === 'cohorts' && (
           <UniversalLearningArena
             initialCohort={profile?.ageCohort}
@@ -739,6 +807,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
         {activeTab === 'solver' && (
           <QuestionSolverView
+            initialQuestion={solverInitialQuery}
             onQuestionSolved={(subject) => {
               // Solver question completed cleanly without triggering modal spam
             }}

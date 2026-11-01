@@ -22,7 +22,8 @@ import {
   FeatureFlag,
   UserFeedbackTicket,
   UserGuideArticle,
-  FontScale
+  FontScale,
+  UserActivityRecord
 } from './types';
 import { StorageService } from './services/storage';
 import { systemMetrics } from './data/initialData';
@@ -110,6 +111,7 @@ export default function App() {
   const [scheduledJobs, setScheduledJobs] = useState(() => StorageService.getScheduledJobs());
   const [vocabularyWords, setVocabularyWords] = useState(() => StorageService.getVocabularyWords());
   const [ingestedLedger, setIngestedLedger] = useState<IngestedItemRecord[]>(() => StorageService.getIngestedItemsLedger());
+  const [activities, setActivities] = useState<UserActivityRecord[]>(() => StorageService.getUserActivities());
 
   // Interactive Exercise runner state
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
@@ -240,6 +242,23 @@ export default function App() {
     };
     setProfile(updatedProfile);
     StorageService.saveProfile(updatedProfile);
+
+    // Record activity to user activity history board
+    handleRecordActivity({
+      userId: currentUser?.id || 'usr_student_01',
+      userName: currentUser?.name || profile.name,
+      type: 'lesson',
+      title: `Completed Lesson: ${activeLesson.title}`,
+      category: isIelts ? 'IELTS Academic' : 'Language Arts',
+      score: `${score}%`,
+      xpEarned,
+      status: 'completed',
+      details: `Achieved ${score}% accuracy in ${activeLesson.title} and earned +${xpEarned} XP.`,
+      replayPayload: {
+        tab: 'language',
+        subId: activeLesson.id
+      }
+    });
 
     // Update child progress log for Parent Portal
     const updatedProgress = {
@@ -692,6 +711,36 @@ export default function App() {
     StorageService.saveAuditLogs(updatedLogs);
   };
 
+  const handleRecordActivity = (act: Omit<UserActivityRecord, 'id' | 'timestamp'> & { timestamp?: string }) => {
+    const newRecord = StorageService.recordUserActivity(act);
+    setActivities(StorageService.getUserActivities());
+    return newRecord;
+  };
+
+  const handleResetPassword = (email: string, newPassword: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const updatedUsers = users.map((u) => (u.email.toLowerCase() === cleanEmail ? { ...u, password: newPassword } : u));
+    setUsers(updatedUsers);
+    StorageService.saveUsers(updatedUsers);
+
+    if (currentUser && currentUser.email.toLowerCase() === cleanEmail) {
+      const updatedCurrent = { ...currentUser, password: newPassword };
+      setCurrentUser(updatedCurrent);
+    }
+
+    const newLog: AuditLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      user: cleanEmail,
+      action: `PASSWORD_RESET_VIA_OTP: User successfully reset password using verified 6-digit email OTP`,
+      category: 'AUTH',
+      status: 'SUCCESS'
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+    StorageService.saveAuditLogs(updatedLogs);
+  };
+
   const handleToggleFeatureFlag = (flagId: string) => {
     const updated = featureFlags.map((f) =>
       f.id === flagId ? { ...f, enabled: !f.enabled } : f
@@ -822,6 +871,8 @@ export default function App() {
           <StudentView
             key={currentUser?.id || 'guest'}
             profile={profile}
+            currentUser={currentUser}
+            activities={activities}
             units={units}
             ieltsUnits={ieltsUnits}
             mockTests={mockTests}
@@ -842,6 +893,7 @@ export default function App() {
             onUpdateResume={handleUpdateResume}
             onOpenResourceVault={() => setIsResourceVaultOpen(true)}
             onMarkLessonCompleted={handleMarkLessonCompleted}
+            onRecordActivity={handleRecordActivity}
             onCelebrate={(type) => {
               if (type === 'daily_goal') {
                 const todayKey = 'edubridge_daily_goal_celebrated_' + new Date().toISOString().slice(0, 10);
@@ -945,6 +997,7 @@ export default function App() {
         users={users}
         onLogin={handleLogin}
         onRegister={handleRegister}
+        onResetPassword={handleResetPassword}
       />
 
       {/* User Profile & Preferences Modal */}

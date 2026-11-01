@@ -111,6 +111,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [editRole, setEditRole] = useState<UserRole>('student');
   const [editError, setEditError] = useState<string | null>(null);
   const [showEditPassword, setShowEditPassword] = useState(false);
+  const [adminOtpNotice, setAdminOtpNotice] = useState<string | null>(null);
+
+  const handleAdminGenerateOtp = (u: UserAccount) => {
+    sound.playClick();
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    StorageService.savePasswordResetOtp(u.email, otp);
+    setAdminOtpNotice(`📬 6-Digit Password Reset OTP dispatched for ${u.name} (${u.email}): [ ${otp} ] · Valid for 10 minutes`);
+    sound.playSuccess();
+  };
 
   // Feedback reply state
   const [replyTicketId, setReplyTicketId] = useState<string | null>(null);
@@ -460,6 +469,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               />
             </div>
 
+            {adminOtpNotice && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-950 font-bold flex items-center justify-between animate-in fade-in">
+                <span>{adminOtpNotice}</span>
+                <button
+                  onClick={() => setAdminOtpNotice(null)}
+                  className="text-amber-700 hover:text-amber-900 ml-2 p-1 rounded hover:bg-amber-100"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             {/* Users Table */}
             <div className="border border-slate-200 rounded-2xl overflow-hidden">
               <table className="w-full text-left text-xs">
@@ -538,6 +559,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           >
                             <Edit className="w-3 h-3" />
                             <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleAdminGenerateOtp(u)}
+                            className="px-2.5 py-1 rounded-lg font-bold text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-all cursor-pointer flex items-center gap-1"
+                            title="Generate and send 6-digit password reset OTP to user email"
+                          >
+                            <Key className="w-3 h-3 text-amber-700" />
+                            <span>Send OTP</span>
                           </button>
                           <button
                             onClick={() => {

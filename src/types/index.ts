@@ -70,6 +70,7 @@ export interface UserProfile {
 }
 
 export interface VisibleModulesConfig {
+  dashboard?: boolean;
   cohorts?: boolean;
   solver?: boolean;
   language?: boolean;
@@ -481,6 +482,46 @@ export interface FeatureFlag {
   description: string;
   enabled: boolean;
   category: 'AI_MODELS' | 'EXAM_PREP' | 'VOICE_PIPER' | 'CAREER_HUB' | 'OFFLINE_MODE';
+}
+
+// User Activity Board & History Tracking
+export type ActivityType =
+  | 'lesson'
+  | 'mock_test'
+  | 'vocab_quiz'
+  | 'solver'
+  | 'stem_game'
+  | 'study_task'
+  | 'career_cv'
+  | 'daily_schedule';
+
+export interface UserActivityRecord {
+  id: string;
+  userId: string;
+  userName: string;
+  type: ActivityType;
+  title: string;
+  category: string;
+  timestamp: string; // e.g. "2026-11-01 19:30:15"
+  relativeTime?: string;
+  score?: number | string;
+  xpEarned?: number;
+  status: 'completed' | 'in_progress' | 'reviewed';
+  details: string;
+  replayPayload: {
+    tab: string;
+    subId?: string;
+    query?: string;
+    metadata?: Record<string, any>;
+  };
+}
+
+export interface PasswordResetRecord {
+  email: string;
+  otp: string; // 6-digit verification code
+  createdAt: number; // Date.now()
+  expiresAt: number; // Date.now() + 10 mins
+  used: boolean;
 }
 
 // User Feedback & Support Mechanism

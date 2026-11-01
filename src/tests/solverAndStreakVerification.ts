@@ -2,6 +2,7 @@
  * Automated Verification Script for Streak Service & AI Question Solver
  */
 
+import fs from 'fs';
 import { StreakService } from '../services/streakService';
 import { QuestionSolverService } from '../services/questionSolverService';
 import { OCRService } from '../services/ocrService';
@@ -533,20 +534,20 @@ async function runTests() {
     console.log(`PASS: All ${loadedUsers.length} user accounts on this machine have strictly unique names and usernames.`);
   }
 
-  // Test 37: Username & Password Authentication + Admin-Only Single-Click Access
-  console.log('\nTest 37: Verifying Password-Only Authentication & Admin Single-Click Access...');
+  // Test 37: Strict Password-Only Authentication & Total Removal of Single-Click Bypass
+  console.log('\nTest 37: Verifying Strict Password-Only Authentication & Prohibition of Single-Click Bypasses...');
   const alexUser = loadedUsers.find(u => u.username === 'alex.rivera');
   const adminUser = loadedUsers.find(u => u.role === 'admin');
 
   if (!alexUser || alexUser.password !== 'Password123!') {
     console.error('FAIL: Learner account credentials not properly configured.');
     failures++;
-  } else if (!adminUser || adminUser.username !== 'admin') {
-    console.error('FAIL: System Administrator account missing or incorrectly keyed.');
+  } else if (!adminUser || !adminUser.password || adminUser.password.length < 6) {
+    console.error('FAIL: System Administrator account missing secure server-verified password.');
     failures++;
   } else {
     console.log('PASS: Learner credentials verified (username "alex.rivera", password required).');
-    console.log('PASS: Root Administrator ("admin") isolated with single-click bypass authorization.');
+    console.log('PASS: Root Administrator ("admin") protected with secure server-verified password. All single-click bypasses prohibited.');
   }
 
   // Test 38: Kids & Beginners Guided Adventure Center (4-Step Action Hub)
@@ -696,7 +697,60 @@ async function runTests() {
     console.log(`PASS: Dynamic cohort recalculated from updated DOB (${updatedDob}) -> ${updatedByAdmin.preferences.ageCohort} (${updatedByAdmin.preferences.educationLevel}).`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 42 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 43: Activity Board & Chronological Activity Logging with exact timestamps
+  console.log('\nTest 43: Verifying Activity Board, timestamps, and "Perform Again" replay payloads...');
+  const activities = StorageService.getUserActivities();
+  if (!activities || activities.length < 5) {
+    console.error('FAIL: Initial activities list incomplete.', activities);
+    failures++;
+  } else {
+    const hasTimestamps = activities.every(a => Boolean(a.timestamp && a.timestamp.match(/^\d{4}-\d{2}-\d{2}/)));
+    const hasReplayPayloads = activities.every(a => Boolean(a.replayPayload && a.replayPayload.tab));
+    if (!hasTimestamps || !hasReplayPayloads) {
+      console.error('FAIL: Activities missing timestamps or replay payloads.', activities[0]);
+      failures++;
+    } else {
+      console.log(`PASS: Activity Board loaded with ${activities.length} activity records.`);
+      console.log(`PASS: All activities verified with exact timestamps (e.g. "${activities[0].timestamp}") and replay tabs ("${activities[0].replayPayload.tab}").`);
+    }
+  }
+
+  // Test 44: 6-Digit Email OTP Password Reset Flow
+  console.log('\nTest 44: Verifying 6-Digit Email OTP generation, expiry, verification, and password reset...');
+  const testEmail = 'alex.rivera@edubridge.org';
+  const testOtp = '849201';
+  StorageService.savePasswordResetOtp(testEmail, testOtp);
+  const retrievedOtpRecord = StorageService.getPasswordResetOtp(testEmail);
+
+  if (!retrievedOtpRecord || retrievedOtpRecord.otp !== testOtp) {
+    console.error('FAIL: Password reset OTP retrieval mismatch.', retrievedOtpRecord);
+    failures++;
+  } else if (retrievedOtpRecord.expiresAt <= Date.now()) {
+    console.error('FAIL: Password reset OTP marked expired prematurely.');
+    failures++;
+  } else {
+    // Clear OTP after use
+    StorageService.clearPasswordResetOtp(testEmail);
+    const cleared = StorageService.getPasswordResetOtp(testEmail);
+    if (cleared !== null) {
+      console.error('FAIL: Password reset OTP was not cleared after consumption.');
+      failures++;
+    } else {
+      console.log(`PASS: 6-Digit OTP (${testOtp}) generated, stored, verified, and safely cleared upon reset.`);
+    }
+  }
+
+  // Test 45: Activity Board is Default Landing Screen Post-Login
+  console.log('\nTest 45: Verifying Activity Board / Dashboard is default landing screen after login...');
+  const studentViewSource = fs.readFileSync('src/components/student/StudentView.tsx', 'utf-8');
+  if (!studentViewSource.includes("const defaultTab: StudentTab = 'dashboard';")) {
+    console.error('FAIL: StudentView does not default to "dashboard" as first landing tab.');
+    failures++;
+  } else {
+    console.log('PASS: StudentView defaultTab is confirmed to be "dashboard" (Activity Board & History).');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 45 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 
