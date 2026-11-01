@@ -447,10 +447,59 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
   };
 
   /**
+   * Generates a comprehensive, natural spoken narrative from the verified result,
+   * summary, and logical step calculations for the listening option.
+   */
+  const getSpokenScriptFromResult = (result: SolverResponse): string => {
+    if (result.isAmbiguous) {
+      let script = `Clarification needed. ${result.clarificationPrompt}. `;
+      if (result.missingParameters && result.missingParameters.length > 0) {
+        script += `The required parameters to solve this are: ${result.missingParameters.join(', ')}. `;
+      }
+      if (result.suggestedClarifications && result.suggestedClarifications.length > 0) {
+        script += `You can choose one of the ready presets: ${result.suggestedClarifications.slice(0, 3).join(', ')}.`;
+      }
+      return script;
+    }
+
+    // For essay writing or extensive descriptive content, read the full text smoothly
+    if (result.subject === 'Essay Writing' || result.finalAnswer.length > 220) {
+      return `${result.topic}. ${result.finalAnswer}`;
+    }
+
+    // For STEM, analytical, and computational solutions, articulate the verified final answer,
+    // followed by the summary and the step-by-step mathematical/scientific calculations:
+    let script = `The verified answer is: ${result.finalAnswer}. `;
+    if (result.summary && !result.finalAnswer.includes(result.summary)) {
+      script += `${result.summary}. `;
+    }
+    if (result.steps && result.steps.length > 0) {
+      script += `Here is the step-by-step breakdown: `;
+      result.steps.forEach((step) => {
+        script += `Step ${step.stepNumber}, ${step.title}: ${step.explanation}. `;
+        if (step.formulaOrCalculation) {
+          script += `Calculation: ${step.formulaOrCalculation}. `;
+        }
+        if (step.intermediateResult) {
+          script += `Intermediate result: ${step.intermediateResult}. `;
+        }
+      });
+    }
+    return script;
+  };
+
+  /**
    * Text-to-Speech Playback Controls (TTS)
    */
   const handlePlayVoiceResponse = () => {
     if (!solverResult) return;
+
+    if (isSpeaking) {
+      SpeechService.stopSpeaking();
+      setIsSpeaking(false);
+      setIsPaused(false);
+      return;
+    }
 
     if (isPaused) {
       SpeechService.resumeSpeaking();
@@ -463,8 +512,10 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
     setIsSpeaking(true);
     setIsPaused(false);
 
+    const scriptToSpeak = getSpokenScriptFromResult(solverResult);
+
     SpeechService.speak(
-      solverResult.voiceSpeechScript,
+      scriptToSpeak,
       speechLanguage,
       () => {
         setIsSpeaking(true);
@@ -936,13 +987,29 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                         <Bot className="w-6 h-6" />
                       </div>
                       <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="font-extrabold text-amber-950 text-sm">
-                            AI Proactive Clarification Center
-                          </h4>
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 uppercase tracking-wider">
-                            Need More Info
-                          </span>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-extrabold text-amber-950 text-sm">
+                              AI Proactive Clarification Center
+                            </h4>
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 uppercase tracking-wider">
+                              Need More Info
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handlePlayVoiceResponse}
+                            className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                              isSpeaking
+                                ? 'bg-amber-600 text-white animate-pulse'
+                                : 'bg-white hover:bg-amber-100 text-amber-900 border border-amber-300'
+                            }`}
+                            title="Listen to clarification question and options aloud"
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                            <span>{isSpeaking ? 'Stop Audio' : 'Listen to Questions'}</span>
+                          </button>
                         </div>
                         {solverResult.detectedIntent && (
                           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-900 text-xs font-bold shadow-2xs">
@@ -1040,8 +1107,31 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                           <span>Verified Answer / Solution</span>
                         </div>
 
-                    {/* Quick Action Toolbar (Download PDF, Word, Copy) */}
+                    {/* Quick Action Toolbar (Listen to Result, Download PDF, Word, Copy) */}
                     <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handlePlayVoiceResponse}
+                        className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] flex items-center gap-1 transition-all cursor-pointer backdrop-blur-sm shadow-2xs ${
+                          isSpeaking
+                            ? 'bg-emerald-500 text-white animate-pulse'
+                            : 'bg-white/20 hover:bg-white text-white hover:text-indigo-900'
+                        }`}
+                        title="Read verified answer and steps aloud properly"
+                      >
+                        {isSpeaking ? (
+                          <>
+                            <Square className="w-3 h-3 fill-white" />
+                            <span>Stop Audio</span>
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="w-3 h-3" />
+                            <span>Listen</span>
+                          </>
+                        )}
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => PDFExportService.exportToPDF(solverResult)}
@@ -1138,9 +1228,14 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                 <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Volume2 className={`w-4 h-4 ${isSpeaking ? 'text-indigo-600 animate-pulse' : 'text-slate-500'}`} />
-                    <span className="text-xs font-black text-slate-800">
-                      Spoken Narration
-                    </span>
+                    <div>
+                      <span className="text-xs font-black text-slate-800 block">
+                        Spoken Audio Narration
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500 block">
+                        {isSpeaking ? '🔊 Reading verified answer & steps aloud...' : isPaused ? '⏸️ Audio paused' : 'Reads complete result, summary & calculations'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -1152,7 +1247,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                         className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs flex items-center gap-1 cursor-pointer shadow-2xs"
                       >
                         <Play className="w-3 h-3 fill-white" />
-                        <span>{isPaused ? 'Resume' : 'Listen'}</span>
+                        <span>{isPaused ? 'Resume Audio' : 'Listen to Full Explanation'}</span>
                       </button>
                     ) : (
                       <div className="flex items-center gap-1.5">

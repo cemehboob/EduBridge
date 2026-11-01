@@ -291,6 +291,114 @@ export class QuestionSolverService {
       };
     }
 
+    // 11. Percentage without numbers
+    if (
+      (lower.includes('percentage') || lower.includes('calculate percent') || lower.includes('find percent')) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Percentage Calculation',
+        missingParameters: ['Part and total amount, or percentage rate and base value'],
+        clarificationPrompt: 'To calculate percentage, please specify the part and total amounts, or the percentage rate (e.g. 20% of 150, or 45 out of 60).',
+        suggestedOptions: [
+          'What is 20% of 150?',
+          '45 out of 60 as a percentage',
+          'Calculate 15% discount on $80'
+        ]
+      };
+    }
+
+    // 12. Density without numbers
+    if (
+      (lower.includes('calculate density') || lower.includes('find density') || lower === 'density') &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Density Calculation (ρ = m / V)',
+        missingParameters: ['Mass of the object (m in kg or g)', 'Volume of the object (V in m³ or cm³)'],
+        clarificationPrompt: 'To calculate density (density = mass / volume), please specify the object mass and volume, or select a preset below.',
+        suggestedOptions: [
+          'Mass: 500 g, Volume: 250 cm³',
+          'Mass: 10 kg, Volume: 0.02 m³',
+          'Mass: 1200 kg, Volume: 1.5 m³'
+        ]
+      };
+    }
+
+    // 13. Pressure without numbers
+    if (
+      (lower.includes('calculate pressure') || lower.includes('find pressure') || lower === 'pressure') &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Pressure Calculation (P = F / A)',
+        missingParameters: ['Applied Force (F in Newtons)', 'Contact Surface Area (A in m²)'],
+        clarificationPrompt: 'To calculate pressure (Pressure = Force / Area), please provide the magnitude of the force and contact surface area.',
+        suggestedOptions: [
+          'Force: 500 N, Area: 0.05 m²',
+          'Force: 1200 N, Area: 2 m²',
+          'Force: 80 N, Area: 0.01 m²'
+        ]
+      };
+    }
+
+    // 14. Molar Mass without formula
+    if (
+      (lower.includes('molar mass') || lower.includes('molecular weight')) &&
+      !/[A-Z]/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Molar Mass & Molecular Weight',
+        missingParameters: ['Chemical formula of the substance (e.g., H2O, H2SO4, NaCl)'],
+        clarificationPrompt: 'Please specify the chemical formula of the molecule or compound to calculate its molar mass.',
+        suggestedOptions: [
+          'Molar mass of H2SO4',
+          'Molar mass of NaCl',
+          'Molar mass of C6H12O6',
+          'Molar mass of H2O'
+        ]
+      };
+    }
+
+    // 15. Fraction operations without numbers
+    if (
+      (lower.includes('add fractions') || lower.includes('simplify fraction') || lower.includes('multiply fractions')) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Fraction Arithmetic & Simplification',
+        missingParameters: ['Fractions to calculate or simplify (e.g., 3/4 + 2/5)'],
+        clarificationPrompt: 'Please provide the fraction arithmetic expression you would like to compute or simplify.',
+        suggestedOptions: [
+          '3/4 + 2/5',
+          '5/8 * 4/15',
+          'Simplify 24/36'
+        ]
+      };
+    }
+
+    // 16. General broad single-word inquiry
+    const broadWords = ['math', 'physics', 'chemistry', 'biology', 'algebra', 'calculate', 'solve', 'formula', 'help', 'equation', 'science'];
+    if (broadWords.includes(lower) || lower.length < 5) {
+      return {
+        isAmbiguous: true,
+        intent: 'Interactive Digital Classroom Inquiry',
+        missingParameters: ['Specific problem statement, equation, or topic to investigate'],
+        clarificationPrompt: 'Welcome to the Interactive Digital Classroom! Please enter your specific question, problem, or equation, or choose an instant topic below.',
+        suggestedOptions: [
+          'Solve for x: 2x + 5 = 15',
+          'Calculate kinetic energy: mass 1200 kg, velocity 25 m/s',
+          'Balance H2 + O2 -> H2O',
+          'Write a paragraph on Pakistan'
+        ]
+      };
+    }
+
     return { isAmbiguous: false, clarificationPrompt: '', suggestedOptions: [] };
   }
 
@@ -1983,6 +2091,16 @@ Output ONLY raw valid JSON. Do not wrap in markdown quotes if possible, or use s
       refined = `Calculate hypotenuse for ${clarClean}`;
     } else if (origLower.includes('balance')) {
       refined = `Balance the chemical reaction: ${clarClean}`;
+    } else if (origLower.includes('density')) {
+      refined = `Calculate density: ${clarClean}`;
+    } else if (origLower.includes('pressure')) {
+      refined = `Calculate pressure: ${clarClean}`;
+    } else if (origLower.includes('molar mass') || origLower.includes('molecular weight')) {
+      refined = `Calculate molar mass of ${clarClean}`;
+    } else if (origLower.includes('percent')) {
+      refined = `Calculate percentage: ${clarClean}`;
+    } else if (origLower === 'math' || origLower === 'physics' || origLower === 'chemistry' || origLower === 'biology' || origLower === 'solve' || origLower === 'calculate' || origLower === 'help') {
+      refined = clarClean;
     } else if (origLower.includes('write') || origLower.includes('paragraph') || origLower.includes('essay')) {
       if (clarClean.toLowerCase().startsWith('on ') || clarClean.toLowerCase().startsWith('about ')) {
         refined = `${origClean} ${clarClean}`;

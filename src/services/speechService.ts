@@ -254,27 +254,65 @@ export class SpeechService {
   }
 
   /**
-   * Format math and science symbols into intelligible spoken phrases
+   * Format math and science symbols, LaTeX markup, and units into intelligible spoken phrases
    */
-  private static prepareTextForSpeech(text: string): string {
+  public static prepareTextForSpeech(text: string): string {
+    if (!text) return '';
+
     return text
+      // Clean markdown tags
+      .replace(/[*_#`~]/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // markdown links
+      // LaTeX fractions: \frac{a}{b} -> a over b
+      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 over $2')
+      // LaTeX square roots: \sqrt{a} -> square root of a
+      .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
+      // LaTeX operators and symbols
+      .replace(/\\implies/g, ' implies ')
+      .replace(/\\times/g, ' times ')
+      .replace(/\\cdot/g, ' times ')
+      .replace(/\\pm/g, ' plus or minus ')
+      .replace(/\\text\{([^}]+)\}/g, '$1')
+      .replace(/\\quad/g, ' ')
+      .replace(/\\Delta/g, ' delta ')
+      .replace(/\\/g, '') // remove remaining backslashes
+      // Math exponents and powers
       .replace(/x\^2/g, 'x squared')
       .replace(/x\^3/g, 'x cubed')
       .replace(/\^(\d+)/g, ' to the power of $1')
+      .replace(/²|\^2/g, ' squared')
+      .replace(/³|\^3/g, ' cubed')
+      // Square root symbol
       .replace(/√(\w+|\([^)]+\))/g, 'square root of $1')
-      .replace(/(\w+)\/(\w+)/g, '$1 over $2')
+      // Physics and Math units for natural pronunciation
+      .replace(/\bm\/s\^2\b|\bm\/s²\b/gi, ' meters per second squared ')
+      .replace(/\bm\/s\b/gi, ' meters per second ')
+      .replace(/\bkm\/h\b/gi, ' kilometers per hour ')
+      .replace(/(\d+)\s*kg\b/gi, '$1 kilograms ')
+      .replace(/(\d+)\s*kJ\b/gi, '$1 kilojoules ')
+      .replace(/(\d+)\s*J\b/gi, '$1 Joules ')
+      .replace(/(\d+)\s*N\b/gi, '$1 Newtons ')
+      .replace(/(\d+)\s*m\b(?!\s*[a-zA-Z^])/gi, '$1 meters ')
+      .replace(/(\d+)\s*s\b/gi, '$1 seconds ')
+      .replace(/(\d+)\s*Ω\b|(\d+)\s*ohms?\b/gi, '$1 ohms ')
+      // Greek symbols
       .replace(/π/g, 'pi')
       .replace(/θ/g, 'theta')
       .replace(/∑/g, 'sum of')
       .replace(/∫/g, 'integral of')
-      .replace(/→/g, 'yields')
-      .replace(/⇌/g, 'in equilibrium with')
-      .replace(/H2O/g, 'H 2 O water')
-      .replace(/CO2/g, 'C O 2 carbon dioxide')
-      .replace(/≠/g, 'is not equal to')
-      .replace(/≤/g, 'less than or equal to')
-      .replace(/≥/g, 'greater than or equal to')
-      .replace(/±/g, 'plus or minus');
+      .replace(/→/g, ' yields ')
+      .replace(/⇌/g, ' in equilibrium with ')
+      .replace(/≠/g, ' is not equal to ')
+      .replace(/≤/g, ' less than or equal to ')
+      .replace(/≥/g, ' greater than or equal to ')
+      .replace(/±/g, ' plus or minus ')
+      .replace(/·/g, ' times ')
+      // Chemistry formulas
+      .replace(/\bH2O\b/g, 'H 2 O water')
+      .replace(/\bCO2\b/g, 'C O 2 carbon dioxide')
+      // Clean extra spaces
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 }
 

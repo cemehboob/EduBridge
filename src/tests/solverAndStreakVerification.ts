@@ -6,7 +6,7 @@ import fs from 'fs';
 import { StreakService } from '../services/streakService';
 import { QuestionSolverService } from '../services/questionSolverService';
 import { OCRService } from '../services/ocrService';
-import { SUPPORTED_LANGUAGES } from '../services/speechService';
+import { SpeechService, SUPPORTED_LANGUAGES } from '../services/speechService';
 import {
   generateFivePracticeTestsBatch,
   generatePracticeTestsBatch,
@@ -784,7 +784,28 @@ async function runTests() {
     }
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 46 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 47: Interactive Digital Classroom & Listening Option Verification
+  console.log('\nTest 47: Verifying Interactive Digital Classroom & Listening Option Result Reading...');
+  // 1. Verify broad classroom query understanding and option suggestions
+  const densityQuery = await QuestionSolverService.solveQuestion('calculate density');
+  if (!densityQuery.isAmbiguous || !densityQuery.suggestedClarifications || densityQuery.suggestedClarifications.length === 0) {
+    console.error('FAIL: "calculate density" did not prompt for mass/volume options.', densityQuery);
+    failures++;
+  } else {
+    console.log(`PASS: Classroom query "calculate density" understood. Intent: "${densityQuery.detectedIntent}", Suggested: [${densityQuery.suggestedClarifications.slice(0, 2).join('; ')}]`);
+  }
+
+  // 2. Verify Speech Service text preparation converts LaTeX, units, and formulas into smooth natural spoken audio
+  const rawScientificText = 'The kinetic energy is \\frac{1}{2} m v^2 = 375,000 J for mass 1200 kg moving at 25 m/s²';
+  const naturalSpeech = SpeechService.prepareTextForSpeech(rawScientificText);
+  if (naturalSpeech.includes('\\frac') || naturalSpeech.includes('\\') || !naturalSpeech.includes('1 over 2') || !naturalSpeech.includes('Joules') || !naturalSpeech.includes('kilograms')) {
+    console.error('FAIL: SpeechService.prepareTextForSpeech failed to convert scientific notation into natural spoken audio.', naturalSpeech);
+    failures++;
+  } else {
+    console.log(`PASS: Scientific text converted to natural spoken script for listening option: "${naturalSpeech}"`);
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 47 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 
