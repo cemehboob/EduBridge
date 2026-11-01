@@ -436,6 +436,7 @@ export interface VocabularyWord {
 export interface UserAccount {
   id: string;
   name: string;
+  username?: string;
   email: string;
   password: string; // simulated credentials
   dateOfBirth: string; // e.g. "2002-05-14"

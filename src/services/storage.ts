@@ -351,8 +351,42 @@ export const StorageService = {
     }
   },
 
-  // User Management stored in JSON
-  getUsers: (): UserAccount[] => safeGet<UserAccount[]>(KEYS.USERS, initialUsers),
+  // User Management stored in JSON with strict unique name & username deduplication
+  getUsers: (): UserAccount[] => {
+    const raw = safeGet<UserAccount[]>(KEYS.USERS, initialUsers);
+    const seenNames = new Set<string>();
+    const seenUsernames = new Set<string>();
+    const seenEmails = new Set<string>();
+    const seenIds = new Set<string>();
+    const deduplicated: UserAccount[] = [];
+
+    for (const u of raw) {
+      const cleanName = (u.name || '').trim().toLowerCase();
+      const cleanEmail = (u.email || '').trim().toLowerCase();
+      const cleanUsername = (u.username || u.email.split('@')[0] || '').trim().toLowerCase();
+      const cleanId = u.id || `usr_${Math.random()}`;
+
+      // Prevent duplicate users with same name, username, email, or id on this machine
+      if (seenNames.has(cleanName) || seenUsernames.has(cleanUsername) || seenEmails.has(cleanEmail) || seenIds.has(cleanId)) {
+        continue;
+      }
+
+      seenNames.add(cleanName);
+      seenUsernames.add(cleanUsername);
+      seenEmails.add(cleanEmail);
+      seenIds.add(cleanId);
+
+      deduplicated.push({
+        ...u,
+        username: u.username || cleanUsername
+      });
+    }
+
+    if (deduplicated.length !== raw.length) {
+      safeSet(KEYS.USERS, deduplicated);
+    }
+    return deduplicated;
+  },
   saveUsers: (users: UserAccount[]): void => safeSet(KEYS.USERS, users),
 
   getActiveUserId: (): string | null => {

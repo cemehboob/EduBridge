@@ -39,11 +39,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Login form state
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
   // Register form state
   const [regName, setRegName] = useState('');
+  const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regDob, setRegDob] = useState('2004-09-18');
@@ -53,17 +54,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Single click login is strictly allowed ONLY for the root system administrator
+  const adminUser = users.find((u) => u.role === 'admin');
+
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
+    const cleanId = loginIdentifier.trim().toLowerCase();
+    if (!cleanId || !loginPassword.trim()) {
+      setErrorMsg('Please enter both your username/email and password.');
+      return;
+    }
+
     const user = users.find(
-      (u) => u.email.toLowerCase() === loginEmail.trim().toLowerCase()
+      (u) =>
+        (u.username && u.username.toLowerCase() === cleanId) ||
+        u.email.toLowerCase() === cleanId ||
+        u.name.toLowerCase() === cleanId
     );
 
     if (!user) {
       sound.playError();
-      setErrorMsg('No user account found with this email address.');
+      setErrorMsg(`No account found for "${loginIdentifier.trim()}". Please verify your username or email.`);
       return;
     }
 
@@ -88,17 +101,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!regName.trim() || !regEmail.trim() || !regPassword.trim() || !regDob) {
+    const cleanName = regName.trim();
+    const cleanUsername = (regUsername.trim() || cleanName.toLowerCase().replace(/\s+/g, '.')).toLowerCase();
+    const cleanEmail = regEmail.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail || !regPassword.trim() || !regDob) {
       setErrorMsg('Please fill in all required fields including Date of Birth.');
       return;
     }
 
-    const existing = users.find(
-      (u) => u.email.toLowerCase() === regEmail.trim().toLowerCase()
+    // 1. Strict Unique Full Name Validation
+    const duplicateName = users.find(
+      (u) => u.name.trim().toLowerCase() === cleanName.toLowerCase()
     );
-    if (existing) {
+    if (duplicateName) {
       sound.playError();
-      setErrorMsg('An account with this email address already exists. Please log in.');
+      setErrorMsg(`A user with the name "${cleanName}" already exists on this machine. Each user must have a unique name.`);
+      return;
+    }
+
+    // 2. Strict Unique Username Validation
+    const duplicateUsername = users.find(
+      (u) => (u.username || u.email.split('@')[0] || '').toLowerCase() === cleanUsername
+    );
+    if (duplicateUsername) {
+      sound.playError();
+      setErrorMsg(`The username "${cleanUsername}" is already taken. Please choose another username.`);
+      return;
+    }
+
+    // 3. Strict Unique Email Validation
+    const duplicateEmail = users.find(
+      (u) => u.email.toLowerCase() === cleanEmail
+    );
+    if (duplicateEmail) {
+      sound.playError();
+      setErrorMsg(`An account with email "${cleanEmail}" already exists. Please log in with your password.`);
       return;
     }
 
@@ -108,8 +146,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     const newUser: UserAccount = {
       id: `usr_${Date.now()}`,
-      name: regName.trim(),
-      email: regEmail.trim().toLowerCase(),
+      name: cleanName,
+      username: cleanUsername,
+      email: cleanEmail,
       password: regPassword,
       dateOfBirth: regDob,
       role: regRole,
@@ -147,9 +186,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const handleQuickLogin = (demoUser: UserAccount) => {
+  const handleAdminQuickLogin = (admin: UserAccount) => {
     sound.playClick();
-    onLogin(demoUser);
+    onLogin(admin);
     onClose();
   };
 
@@ -210,16 +249,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {tab === 'login' ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 text-[11px] text-indigo-900 leading-relaxed">
+                🔒 <strong>Secure Account Access:</strong> All learners, parents, and teachers must sign in with their unique username and password.
+              </div>
+
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Email Address</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Username or Email Address
+                </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
-                    type="email"
+                    type="text"
                     required
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="e.g. alex.rivera@edubridge.org"
+                    value={loginIdentifier}
+                    onChange={(e) => setLoginIdentifier(e.target.value)}
+                    placeholder="e.g. alex.rivera or alex.rivera@edubridge.org"
                     className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -234,7 +279,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     required
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="Enter password..."
+                    placeholder="Enter account password..."
                     className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   <button
@@ -251,74 +296,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="submit"
                 className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm shadow-sm transition-all flex items-center justify-center gap-2"
               >
-                <span>Sign In</span>
+                <span>Sign In with Credentials</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
-              {/* Quick One-Click Demo Role Accounts */}
-              <div className="pt-3 border-t border-slate-100 space-y-3">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 block mb-1.5">
-                    👶 Learner Developmental Cohorts (Ages 5–100+)
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {users.filter((u) => u.role === 'student').map((u) => {
-                      const age = calculateAge(u.dateOfBirth);
-                      const cohort = u.preferences.ageCohort || calculateCohortFromDob(u.dateOfBirth);
-                      const cohortEmoji: Record<string, string> = {
-                        early: '🧸',
-                        junior: '🎒',
-                        academy: '🎓',
-                        pro: '💼',
-                        senior: '🌿'
-                      };
-                      return (
-                        <button
-                          key={u.id}
-                          type="button"
-                          onClick={() => handleQuickLogin(u)}
-                          className="p-2 rounded-xl border border-slate-200 hover:border-indigo-500 bg-slate-50/70 hover:bg-white text-left transition-all group"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs flex items-center justify-center shrink-0">
-                              {cohortEmoji[cohort] || '📚'}
-                            </div>
-                            <div className="truncate min-w-0">
-                              <p className="text-xs font-bold text-slate-900 truncate group-hover:text-indigo-600">
-                                {u.name}
-                              </p>
-                              <p className="text-[10px] text-slate-500 font-medium truncate">
-                                Age {age} · {u.preferences.educationLevel || cohort}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+              {/* Single-Click Login: STRICTLY RESERVED FOR ROOT ADMINISTRATOR ONLY */}
+              {adminUser && (
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="p-3.5 bg-amber-50/80 border border-amber-200/90 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-950">
+                        <Shield className="w-4 h-4 text-amber-600" />
+                        <span>Single-Click Login (Admin Only)</span>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-200 text-amber-900">
+                        Admin Only
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-900 leading-relaxed">
+                      Single-click login is available only for the root system administrator. Learners and teachers must use their username and password.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleAdminQuickLogin(adminUser)}
+                      className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 font-extrabold text-xs shadow-xs transition-all flex items-center justify-center gap-2"
+                    >
+                      <Shield className="w-4 h-4" />
+                      <span>Single-Click Sign In as {adminUser.name}</span>
+                    </button>
                   </div>
                 </div>
-
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1.5">
-                    👥 Staff &amp; Administrator Portals
-                  </span>
-                  <div className="grid grid-cols-3 gap-2">
-                    {users.filter((u) => u.role !== 'student').map((u) => (
-                      <button
-                        key={u.id}
-                        type="button"
-                        onClick={() => handleQuickLogin(u)}
-                        className="p-2 rounded-xl border border-slate-200 hover:border-purple-400 bg-slate-50 hover:bg-white text-left transition-all"
-                      >
-                        <div className="truncate">
-                          <p className="text-xs font-bold text-slate-900 truncate">{u.name.split(' ')[0]}</p>
-                          <p className="text-[10px] text-purple-700 font-bold uppercase">{u.role}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              )}
             </form>
           ) : (
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
@@ -335,6 +343,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Unique Username
+                </label>
+                <div className="relative">
+                  <span className="text-slate-400 font-bold text-sm absolute left-3.5 top-2.5">@</span>
+                  <input
+                    type="text"
+                    required
+                    value={regUsername}
+                    onChange={(e) => setRegUsername(e.target.value)}
+                    placeholder={regName ? regName.toLowerCase().replace(/\s+/g, '.') : 'jordan.lee'}
+                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Used for sign in. Must be unique on this machine.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

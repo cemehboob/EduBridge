@@ -20,8 +20,11 @@ import {
   Lock,
   Zap,
   Grid,
-  Brain
+  Brain,
+  Play,
+  Volume2
 } from 'lucide-react';
+import { SpeechService } from '../../services/speechService';
 import {
   UserProfile,
   Unit,
@@ -240,6 +243,18 @@ export const StudentView: React.FC<StudentViewProps> = ({
     sound.playClick();
   };
 
+  // Find the first available lesson so a 5-year-old kid can launch with 1 click
+  const firstAvailableLesson: Lesson | null = (() => {
+    for (const unit of units) {
+      if (!unit.locked) {
+        const uncompleted = unit.lessons.find((l) => !l.completed);
+        if (uncompleted) return uncompleted;
+        if (unit.lessons[0]) return unit.lessons[0];
+      }
+    }
+    return units[0]?.lessons[0] || null;
+  })();
+
   return (
     <div className="space-y-6">
       
@@ -335,6 +350,182 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
       {/* Prominent Streak Counter & Monthly Activity Heatmap Dashboard */}
       <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-4">
+
+        {/* 🌟 Kids & Beginners Adventure Hub: What to Do & How to Do It */}
+        <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-indigo-500/10 rounded-3xl p-5 sm:p-6 border-2 border-amber-300 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-400 text-amber-950 flex items-center justify-center text-2xl shadow-xs shrink-0 animate-pulse">
+                🌟
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                    Start Here! What Should I Do Today?
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-200 text-amber-900">
+                    Ages 5+ Easy Guide
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 font-medium">
+                  Follow these 4 simple steps to learn, ask questions, collect stars, and win trophies!
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  SpeechService.speak(
+                    "Hello little learner! Welcome to EduBridge! Step 1: Click the big green button to start your fun lesson. Step 2: Click the purple button to ask the AI Magic Teacher any question. Step 3: Click the yellow button to play the Word Quiz and collect shiny stars!"
+                  );
+                }}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-indigo-700 text-xs font-bold border border-indigo-200 shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Listen to spoken instructions"
+              >
+                <Volume2 className="w-4 h-4 text-indigo-600" />
+                <span>🔊 Read to Me</span>
+              </button>
+
+              {onToggleSimplifiedInterface && (
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    onToggleSimplifiedInterface(!isKidMode);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer flex items-center gap-1 ${
+                    isKidMode
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>{isKidMode ? '🧸 5-Yr Kid Mode ON' : '🧸 Switch to Kid Mode'}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 4 Big Action Cards for 5-Year-Old & Beginner Learners */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Step 1: Play Lesson Journey */}
+            <div className="bg-white rounded-2xl p-4 border-2 border-emerald-300 shadow-xs flex flex-col justify-between hover:border-emerald-400 hover:shadow-md transition-all group">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl">🚀</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                    Step 1 · Play
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
+                  1. Play Fun Lesson
+                </h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Learn new sounds, stories, and words with interactive games!
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  if (firstAvailableLesson) {
+                    onStartLesson(firstAvailableLesson);
+                  } else {
+                    setActiveTab('language');
+                  }
+                }}
+                className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>START PLAYING (+30 XP)</span>
+              </button>
+            </div>
+
+            {/* Step 2: Ask Magic AI Helper */}
+            <div className="bg-white rounded-2xl p-4 border-2 border-purple-300 shadow-xs flex flex-col justify-between hover:border-purple-400 hover:shadow-md transition-all group">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl">🪄</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-purple-100 text-purple-800">
+                    Step 2 · Ask
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-slate-900 group-hover:text-purple-700 transition-colors">
+                  2. Magic AI Helper
+                </h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Have a question or drawing? The AI teacher will show you how!
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setActiveTab('solver');
+                }}
+                className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>ASK MAGIC TEACHER</span>
+              </button>
+            </div>
+
+            {/* Step 3: Play Fun Word Quiz */}
+            <div className="bg-white rounded-2xl p-4 border-2 border-amber-300 shadow-xs flex flex-col justify-between hover:border-amber-400 hover:shadow-md transition-all group">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl">⭐</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                    Step 3 · Quiz
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-slate-900 group-hover:text-amber-700 transition-colors">
+                  3. Collect Gold Stars
+                </h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Match pictures and words to win shiny gold stars and level up!
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setActiveTab('vocab_quiz');
+                }}
+                className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                <span>PLAY WORD QUIZ (+20 XP)</span>
+              </button>
+            </div>
+
+            {/* Step 4: Badges & Trophies */}
+            <div className="bg-white rounded-2xl p-4 border-2 border-rose-300 shadow-xs flex flex-col justify-between hover:border-rose-400 hover:shadow-md transition-all group">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl">🏆</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-rose-100 text-rose-800">
+                    Step 4 · Win
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-slate-900 group-hover:text-rose-700 transition-colors">
+                  4. Open Trophy Box
+                </h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  See all the shiny badges, medals, and secret honors you unlocked!
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setActiveTab('badges');
+                }}
+                className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Medal className="w-3.5 h-3.5" />
+                <span>MY BADGES ({unlockedBadgesCount} WON)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <StreakCounter
           profile={profile}
           onCelebrate={onCelebrate ? () => onCelebrate('streak') : undefined}

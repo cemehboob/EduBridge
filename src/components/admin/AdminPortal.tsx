@@ -101,10 +101,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [userSearch, setUserSearch] = useState('');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserName, setNewUserName] = useState('');
+  const [newUserUsername, setNewUserUsername] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('Password123!');
   const [newUserDob, setNewUserDob] = useState('2002-05-14');
   const [newUserRole, setNewUserRole] = useState<UserRole>('student');
+  const [createUserError, setCreateUserError] = useState<string | null>(null);
 
   // Feedback reply state
   const [replyTicketId, setReplyTicketId] = useState<string | null>(null);
@@ -144,13 +146,44 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim() || !newUserDob) return;
+    setCreateUserError(null);
+
+    const cleanName = newUserName.trim();
+    const cleanUsername = (newUserUsername.trim() || cleanName.toLowerCase().replace(/\s+/g, '.')).toLowerCase();
+    const cleanEmail = newUserEmail.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail || !newUserPassword.trim() || !newUserDob) {
+      setCreateUserError('Please fill in all required fields.');
+      return;
+    }
+
+    // 1. Strict duplicate name check (no two users with same name on same machine)
+    if (users.some((u) => u.name.trim().toLowerCase() === cleanName.toLowerCase())) {
+      sound.playError();
+      setCreateUserError(`A user with the name "${cleanName}" already exists on this machine. Duplicate user names are not allowed.`);
+      return;
+    }
+
+    // 2. Strict duplicate username check
+    if (users.some((u) => (u.username || u.email.split('@')[0] || '').toLowerCase() === cleanUsername)) {
+      sound.playError();
+      setCreateUserError(`The username "${cleanUsername}" is already taken.`);
+      return;
+    }
+
+    // 3. Strict duplicate email check
+    if (users.some((u) => u.email.trim().toLowerCase() === cleanEmail)) {
+      sound.playError();
+      setCreateUserError(`An account with the email "${cleanEmail}" already exists.`);
+      return;
+    }
 
     sound.playSuccess();
     const newUser: UserAccount = {
       id: `usr_${Date.now()}`,
-      name: newUserName.trim(),
-      email: newUserEmail.trim().toLowerCase(),
+      name: cleanName,
+      username: cleanUsername,
+      email: cleanEmail,
       password: newUserPassword.trim(),
       dateOfBirth: newUserDob,
       role: newUserRole,
@@ -182,7 +215,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
     onAddUser(newUser);
     setNewUserName('');
+    setNewUserUsername('');
     setNewUserEmail('');
+    setCreateUserError(null);
     setShowAddUserModal(false);
   };
 
@@ -368,7 +403,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             {u.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <span className="font-bold text-slate-900 block">{u.name}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-slate-900 block">{u.name}</span>
+                              {u.username && (
+                                <span className="text-[10px] font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100 font-bold">
+                                  @{u.username}
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[11px] text-slate-500 font-mono">{u.email}</span>
                           </div>
                         </div>
@@ -1269,6 +1311,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
             <h3 className="text-lg font-black text-slate-900">Add New User to JSON Repository</h3>
             
+            {createUserError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700">
+                {createUserError}
+              </div>
+            )}
+
             <form onSubmit={handleCreateUser} className="space-y-3.5 text-xs">
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Full Name</label>
@@ -1280,6 +1328,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   placeholder="e.g. Jordan Lee"
                   className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500"
                 />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Unique Username</label>
+                <div className="relative">
+                  <span className="text-slate-400 font-bold text-xs absolute left-3 top-2.5">@</span>
+                  <input
+                    type="text"
+                    required
+                    value={newUserUsername}
+                    onChange={(e) => setNewUserUsername(e.target.value)}
+                    placeholder={newUserName ? newUserName.toLowerCase().replace(/\s+/g, '.') : 'jordan.lee'}
+                    className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 font-mono"
+                  />
+                </div>
               </div>
 
               <div>

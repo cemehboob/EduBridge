@@ -88,3 +88,4 @@ export interface CVAuditMetrics {
   quantifiedImpactScore: number;
   regionalComplianceScore: number;
 }
+

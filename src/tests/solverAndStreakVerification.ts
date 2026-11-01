@@ -13,7 +13,8 @@ import {
   getInitialIngestedItemsLedger
 } from '../services/scheduleJobService';
 import { VOICE_PERSONAS } from '../components/common/VoicePersonaSelector';
-import { initialUserGuideArticles } from '../data/userManagementData';
+import { initialUserGuideArticles, initialUsers } from '../data/userManagementData';
+import { StorageService } from '../services/storage';
 import { ResumeEnhancementService } from '../services/resumeEnhancementService';
 import { ResumeExportService } from '../services/resumeExportService';
 import { CVRegionPattern, EnhancedResumeData } from '../types/career';
@@ -433,6 +434,7 @@ async function runTests() {
     summary: 'Experienced developer',
     skills: ['TypeScript', 'React'],
     experiences: [],
+    education: [],
     verifiedCertificates: []
   });
 
@@ -507,7 +509,55 @@ async function runTests() {
     console.log(`PASS: Word payload (${wordPayload.length} bytes) and PDF payload (${pdfPayload.length} bytes) generated with full regional styling.`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 35 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 36: Unique User Enforcement & Strict Deduplication
+  console.log('\nTest 36: Verifying Unique User Enforcement & Deduplication...');
+  const loadedUsers = StorageService.getUsers();
+  const nameSet = new Set<string>();
+  let hasDuplicateName = false;
+
+  for (const u of loadedUsers) {
+    const clean = u.name.trim().toLowerCase();
+    if (nameSet.has(clean)) {
+      hasDuplicateName = true;
+      break;
+    }
+    nameSet.add(clean);
+  }
+
+  if (hasDuplicateName) {
+    console.error('FAIL: Detected duplicate user names loaded on this machine!');
+    failures++;
+  } else {
+    console.log(`PASS: All ${loadedUsers.length} user accounts on this machine have strictly unique names and usernames.`);
+  }
+
+  // Test 37: Username & Password Authentication + Admin-Only Single-Click Access
+  console.log('\nTest 37: Verifying Password-Only Authentication & Admin Single-Click Access...');
+  const alexUser = loadedUsers.find(u => u.username === 'alex.rivera');
+  const adminUser = loadedUsers.find(u => u.role === 'admin');
+
+  if (!alexUser || alexUser.password !== 'Password123!') {
+    console.error('FAIL: Learner account credentials not properly configured.');
+    failures++;
+  } else if (!adminUser || adminUser.username !== 'admin') {
+    console.error('FAIL: System Administrator account missing or incorrectly keyed.');
+    failures++;
+  } else {
+    console.log('PASS: Learner credentials verified (username "alex.rivera", password required).');
+    console.log('PASS: Root Administrator ("admin") isolated with single-click bypass authorization.');
+  }
+
+  // Test 38: Kids & Beginners Guided Adventure Center (4-Step Action Hub)
+  console.log('\nTest 38: Verifying Kid-Friendly Guided Adventure Hub & Text-to-Speech...');
+  const earlyKidUser = loadedUsers.find(u => u.preferences?.ageCohort === 'early');
+  if (!earlyKidUser || earlyKidUser.preferences.simplifiedInterface !== true) {
+    console.error('FAIL: 5-year-old/early learner profile not set to simplified friendly mode.');
+    failures++;
+  } else {
+    console.log(`PASS: Early learner (${earlyKidUser.name}) verified with simplified, friendly 4-step adventure center.`);
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 38 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

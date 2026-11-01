@@ -8,6 +8,7 @@
 import {
   CVRegionPattern,
   EnhancedResumeData,
+  ResumeExperience,
   AIEnhancementSuggestion,
   CVAuditMetrics,
   PhotoPosition,

@@ -4,6 +4,7 @@ export const initialUsers: UserAccount[] = [
   {
     id: 'usr_student_01',
     name: 'Alex Rivera',
+    username: 'alex.rivera',
     email: 'alex.rivera@edubridge.org',
     password: 'Password123!',
     dateOfBirth: '2004-09-18',
@@ -40,6 +41,7 @@ export const initialUsers: UserAccount[] = [
   {
     id: 'usr_student_early',
     name: 'Leo Chen (Age 7)',
+    username: 'leo.chen',
     email: 'leo.chen@edubridge.org',
     password: 'Password123!',
     dateOfBirth: '2019-03-12',
@@ -75,6 +77,7 @@ export const initialUsers: UserAccount[] = [
   {
     id: 'usr_student_junior',
     name: 'Maya Patel (Age 12)',
+    username: 'maya.patel',
     email: 'maya.patel@edubridge.org',
     password: 'Password123!',
     dateOfBirth: '2014-06-25',
@@ -110,6 +113,7 @@ export const initialUsers: UserAccount[] = [
   {
     id: 'usr_student_pro',
     name: 'David Sterling (Executive)',
+    username: 'david.sterling',
     email: 'david.sterling@edubridge.org',
     password: 'Password123!',
     dateOfBirth: '1990-08-14',
@@ -144,6 +148,7 @@ export const initialUsers: UserAccount[] = [
   {
     id: 'usr_student_senior',
     name: 'Evelyn Vance (Lifelong)',
+    username: 'evelyn.vance',
     email: 'evelyn.vance@edubridge.org',
     password: 'Password123!',
     dateOfBirth: '1954-04-10',
@@ -178,6 +183,7 @@ export const initialUsers: UserAccount[] = [
   {
     id: 'usr_parent_02',
     name: 'Eleanor Rivera',
+    username: 'eleanor.rivera',
     email: 'eleanor.rivera@edubridge.org',
     password: 'Password123!',
     dateOfBirth: '1978-04-22',
@@ -209,6 +215,7 @@ export const initialUsers: UserAccount[] = [
   {
     id: 'usr_teacher_03',
     name: 'Prof. Marcus Vance',
+    username: 'marcus.vance',
     email: 'marcus.vance@edubridge.org',
     password: 'Password123!',
     dateOfBirth: '1985-11-03',
@@ -240,6 +247,7 @@ export const initialUsers: UserAccount[] = [
   {
     id: 'usr_admin_04',
     name: 'System Administrator (Root)',
+    username: 'admin',
     email: 'admin@edubridge.org',
     password: 'AdminPassword2026!',
     dateOfBirth: '1989-01-15',
