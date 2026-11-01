@@ -1962,19 +1962,24 @@ In summary, comprehensive analysis of ${question} demonstrates that consistent o
     language: string
   ): Promise<SolverResponse | null> {
     const prompt = `You are EduBridge's AI Master Educator and Universal Problem Solver.
+Understand the student's question in a warm, human, and pedagogical way.
 A student submitted the following question: "${question}".
 Input method used: ${inputMode}.
 Detected subject: ${subject}.
 Target language code: ${language}.
 
-Please solve this thoroughly and return a valid JSON object with the following EXACT schema:
+Evaluate if you have enough information to compute an exact verified answer, or if you need more details from the student to reach the answer.
+Return a valid JSON object with the following EXACT schema:
 {
   "recognizedQuestion": string (the cleaned, verified question statement),
   "subject": string (one of: "Mathematics", "Physics", "Chemistry", "Biology", "English", "Essay Writing", "Computer Science", "General Knowledge", "Interdisciplinary"),
   "topic": string (specific educational topic),
+  "detectedIntent": string (human-friendly statement of what the student is trying to achieve),
   "difficulty": string ("Foundation", "Standard", or "Advanced"),
-  "isAmbiguous": boolean (true if vital numbers or context are missing, false if complete),
-  "clarificationPrompt": string (if isAmbiguous is true, ask the exact clarification question; else empty string),
+  "isAmbiguous": boolean (true if vital numbers, equations, or context are missing to reach the answer; false if complete and ready to solve),
+  "clarificationPrompt": string (if isAmbiguous is true, ask a friendly, supportive question asking for the exact missing information; else empty string),
+  "missingParameters": string[] (if isAmbiguous is true, list the 1-3 specific details needed from the user; else empty array),
+  "suggestedClarifications": string[] (if isAmbiguous is true, provide 3 ready-to-click presets the student can choose to solve immediately; else empty array),
   "finalAnswer": string (prominent, bold, crystal-clear final solution/answer),
   "summary": string (concise 1-2 sentence overview of the result),
   "steps": [
@@ -2043,7 +2048,10 @@ Output ONLY raw valid JSON. Do not wrap in markdown quotes if possible, or use s
       topic: parsed.topic || topic,
       difficulty: parsed.difficulty || 'Standard',
       isAmbiguous: !!parsed.isAmbiguous,
+      detectedIntent: parsed.detectedIntent || parsed.topic,
+      missingParameters: parsed.missingParameters || [],
       clarificationPrompt: parsed.clarificationPrompt,
+      suggestedClarifications: parsed.suggestedClarifications || [],
       finalAnswer: parsed.finalAnswer || '',
       summary: parsed.summary || '',
       steps: parsed.steps || [],

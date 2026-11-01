@@ -140,6 +140,13 @@ export function applyThemeToDom(config: ColorSchemeConfig): void {
   classesToRemove.forEach((c) => root.classList.remove(c));
   root.classList.add(`theme-${preset}`);
 
+  const isDark = preset === 'midnight-dark' || (preset === 'custom' && config.custom?.surfaceTone === 'dark');
+  if (isDark) {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
+
   if (preset === 'custom' && config.custom) {
     const { primaryColor, accentColor, surfaceTone } = config.custom;
     root.style.setProperty('--color-primary', primaryColor);

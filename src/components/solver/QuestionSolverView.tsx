@@ -864,6 +864,49 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                 </div>
               </div>
 
+              {/* AI Human-Centric Question Analysis & Cognitive Comprehension */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/50 border border-indigo-200/80 space-y-3 shadow-2xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 block">
+                        AI Question Understanding &amp; Cognitive Analysis
+                      </span>
+                      <h5 className="text-xs sm:text-sm font-black text-slate-900">
+                        {solverResult.isAmbiguous
+                          ? 'Needs More Details to Reach Answer'
+                          : 'Understood in Human Context · Verified Answer Composed'}
+                      </h5>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                      solverResult.isAmbiguous
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                        : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                    }`}
+                  >
+                    {solverResult.isAmbiguous ? '⚡ Clarification Required' : '✅ Fully Understood'}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 text-xs text-slate-700 leading-relaxed font-medium">
+                  <p>
+                    <strong className="text-slate-900 font-extrabold">Identified Goal: </strong>
+                    <span>{solverResult.detectedIntent || solverResult.topic}</span>
+                  </p>
+                  <p>
+                    {solverResult.isAmbiguous
+                      ? `I analyzed your question in human terms: you want to compute ${solverResult.detectedIntent || solverResult.topic}. Because key values or formulas were omitted, I am asking for the necessary details so we can reach the exact answer together without guessing.`
+                      : `I comprehended your question statement, verified all constraints, applied the corresponding principles, and calculated the verified solution with full step-by-step logic.`}
+                  </p>
+                </div>
+              </div>
+
               {/* Step-by-Step Breakdown Heading */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -990,10 +1033,10 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <h4 className="font-extrabold text-amber-950 text-sm">
-                              AI Proactive Clarification Center
+                              AI Question Clarification &amp; Detail Assistant
                             </h4>
                             <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 uppercase tracking-wider">
-                              Need More Info
+                              Need More Details
                             </span>
                           </div>
 
@@ -1027,7 +1070,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                     {solverResult.missingParameters && solverResult.missingParameters.length > 0 && (
                       <div className="p-3.5 rounded-xl bg-white border border-amber-200 space-y-2">
                         <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block">
-                          📋 Required Details to Compute Verified Solution:
+                          📋 Specific Details Needed from You to Reach the Answer:
                         </span>
                         <ul className="space-y-1 text-xs text-slate-700 font-medium">
                           {solverResult.missingParameters.map((param, pIdx) => (

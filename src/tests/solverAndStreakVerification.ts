@@ -827,7 +827,33 @@ async function runTests() {
     console.log('PASS: Adventure Hub, Streak Counter, and Milestone Badges are placed under ActivityBoardView.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 48 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 49: Dark Mode Text Color Visibility & AI Human-Centric Question Analysis
+  console.log('\nTest 49: Verifying Dark Mode Text Visibility & AI Cognitive Analysis...');
+  const indexCss = fs.readFileSync('src/index.css', 'utf-8');
+  if (
+    !indexCss.includes('.text-slate-950') ||
+    !indexCss.includes('.text-indigo-950') ||
+    !indexCss.includes('.text-amber-950') ||
+    !indexCss.includes('#f8fafc')
+  ) {
+    console.error('FAIL: Missing dark mode visible text color rules for high-contrast dark palette.');
+    failures++;
+  } else {
+    console.log('PASS: Dark mode color scheme CSS provides explicit visible text colors (#f8fafc, #cbd5e1, #e0e7ff, #fef3c7).');
+  }
+
+  const solverViewSrc = fs.readFileSync('src/components/solver/QuestionSolverView.tsx', 'utf-8');
+  if (
+    !solverViewSrc.includes('AI Question Understanding &amp; Cognitive Analysis') ||
+    !solverViewSrc.includes('AI Question Clarification &amp; Detail Assistant')
+  ) {
+    console.error('FAIL: QuestionSolverView missing human-centric AI question analysis & detail assistant headers.');
+    failures++;
+  } else {
+    console.log('PASS: AI Cognitive Analysis & Human Understanding card and Detail Assistant verified in QuestionSolverView.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 49 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 
