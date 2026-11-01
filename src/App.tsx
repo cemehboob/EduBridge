@@ -665,6 +665,33 @@ export default function App() {
     StorageService.saveAuditLogs(updatedLogs);
   };
 
+  const handleAdminUpdateUser = (updatedUser: UserAccount) => {
+    const updatedUsers = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
+    setUsers(updatedUsers);
+    StorageService.saveUsers(updatedUsers);
+
+    // If currently logged-in user is updated, keep current session and active profile in sync
+    if (currentUser && currentUser.id === updatedUser.id) {
+      setCurrentUser(updatedUser);
+      StorageService.setActiveUser(updatedUser.id);
+      const newProfile = userAccountToProfile(updatedUser);
+      setProfile(newProfile);
+      StorageService.saveProfile(newProfile);
+    }
+
+    const newLog: AuditLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      user: currentUser?.email || 'admin@edubridge.org',
+      action: `USER_CREDENTIALS_UPDATED: Admin updated credentials for user ${updatedUser.name} (${updatedUser.email})`,
+      category: 'RBAC_CHANGE',
+      status: 'SUCCESS'
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+    StorageService.saveAuditLogs(updatedLogs);
+  };
+
   const handleToggleFeatureFlag = (flagId: string) => {
     const updated = featureFlags.map((f) =>
       f.id === flagId ? { ...f, enabled: !f.enabled } : f
@@ -872,6 +899,7 @@ export default function App() {
               onRunScheduledJob={handleRunScheduledJob}
               onToggleUserStatus={handleToggleUserStatus}
               onAddUser={handleAddUser}
+              onUpdateUser={handleAdminUpdateUser}
               onToggleFeatureFlag={handleToggleFeatureFlag}
               onRespondFeedback={handleRespondFeedback}
             />

@@ -17,7 +17,11 @@ import {
   Send,
   Mail,
   ShieldCheck,
-  X
+  X,
+  Edit,
+  Key,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import {
   OllamaModelInfo,
@@ -34,6 +38,7 @@ import {
 } from '../../types';
 import { sound } from '../../utils/audio';
 import { StorageService } from '../../services/storage';
+import { calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 
 interface AdminPortalProps {
   models: OllamaModelInfo[];
@@ -51,6 +56,7 @@ interface AdminPortalProps {
   onRunScheduledJob: (jobId: string) => Promise<void>;
   onToggleUserStatus: (userId: string) => void;
   onAddUser: (newUser: UserAccount) => void;
+  onUpdateUser?: (updatedUser: UserAccount) => void;
   onToggleFeatureFlag: (flagId: string) => void;
   onRespondFeedback: (ticketId: string, replyMessage: string, newStatus: 'Resolved' | 'Investigating') => void;
 }
@@ -71,6 +77,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onRunScheduledJob,
   onToggleUserStatus,
   onAddUser,
+  onUpdateUser,
   onToggleFeatureFlag,
   onRespondFeedback
 }) => {
@@ -93,6 +100,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [newUserDob, setNewUserDob] = useState('2002-05-14');
   const [newUserRole, setNewUserRole] = useState<UserRole>('student');
   const [createUserError, setCreateUserError] = useState<string | null>(null);
+
+  // Admin User Edit Credentials state
+  const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editDob, setEditDob] = useState('');
+  const [editRole, setEditRole] = useState<UserRole>('student');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   // Feedback reply state
   const [replyTicketId, setReplyTicketId] = useState<string | null>(null);
@@ -205,6 +223,81 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setNewUserEmail('');
     setCreateUserError(null);
     setShowAddUserModal(false);
+  };
+
+  const openEditUser = (u: UserAccount) => {
+    sound.playClick();
+    setEditingUser(u);
+    setEditName(u.name);
+    setEditUsername(u.username || u.email.split('@')[0] || '');
+    setEditEmail(u.email);
+    setEditPassword(u.password || '');
+    setEditDob(u.dateOfBirth || '2000-01-01');
+    setEditRole(u.role);
+    setEditError(null);
+    setShowEditPassword(false);
+  };
+
+  const handleSaveUserEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setEditError(null);
+
+    const cleanName = editName.trim();
+    const cleanUsername = (editUsername.trim() || cleanName.toLowerCase().replace(/\s+/g, '.')).toLowerCase();
+    const cleanEmail = editEmail.trim().toLowerCase();
+    const cleanPassword = editPassword.trim();
+    const cleanDob = editDob;
+
+    if (!cleanName || !cleanEmail || !cleanPassword || !cleanDob) {
+      sound.playError();
+      setEditError('Please fill in all required credentials.');
+      return;
+    }
+
+    // 1. Strict duplicate name check (excluding the user being edited)
+    if (users.some((u) => u.id !== editingUser.id && u.name.trim().toLowerCase() === cleanName.toLowerCase())) {
+      sound.playError();
+      setEditError(`A user with the name "${cleanName}" already exists on this machine. Duplicate user names are not allowed.`);
+      return;
+    }
+
+    // 2. Strict duplicate username check
+    if (users.some((u) => u.id !== editingUser.id && (u.username || u.email.split('@')[0] || '').toLowerCase() === cleanUsername)) {
+      sound.playError();
+      setEditError(`The username "${cleanUsername}" is already taken by another user.`);
+      return;
+    }
+
+    // 3. Strict duplicate email check
+    if (users.some((u) => u.id !== editingUser.id && u.email.trim().toLowerCase() === cleanEmail)) {
+      sound.playError();
+      setEditError(`An account with the email "${cleanEmail}" already exists.`);
+      return;
+    }
+
+    // Recalculate cohort and education level when DOB is updated by admin
+    const newAgeCohort = calculateCohortFromDob(cleanDob);
+    const newEducationLevel = calculateEducationLevel(cleanDob);
+
+    const updatedAccount: UserAccount = {
+      ...editingUser,
+      name: cleanName,
+      username: cleanUsername,
+      email: cleanEmail,
+      password: cleanPassword,
+      dateOfBirth: cleanDob,
+      role: editRole,
+      preferences: {
+        ...editingUser.preferences,
+        ageCohort: newAgeCohort,
+        educationLevel: newEducationLevel
+      }
+    };
+
+    sound.playSuccess();
+    onUpdateUser?.(updatedAccount);
+    setEditingUser(null);
   };
 
   const handleSendFeedbackReply = (e: React.FormEvent) => {
@@ -437,6 +530,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             title="Inspect user registration credentials and locked records"
                           >
                             Inspect
+                          </button>
+                          <button
+                            onClick={() => openEditUser(u)}
+                            className="px-2.5 py-1 rounded-lg font-bold text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all cursor-pointer flex items-center gap-1"
+                            title="Admin Override: Update Name, Date of Birth, Password, Email, and Role"
+                          >
+                            <Edit className="w-3 h-3" />
+                            <span>Edit</span>
                           </button>
                           <button
                             onClick={() => {
@@ -1445,18 +1546,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl text-xs text-amber-900 flex items-start gap-2">
               <span className="text-base">🔒</span>
               <div>
-                <strong>Immutable Identity Credentials:</strong> Name and Date of Birth were populated during user creation/registration and are permanently disabled from modification to protect learning history and certificates.
+                <strong>Identity Credentials:</strong> Locked for regular users. Administrators have full authorization to modify credentials below via <strong>Edit Credentials</strong>.
               </div>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-bold text-slate-700">Full Legal Name</label>
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                    🔒 Disabled (Set during User Creation)
-                  </span>
-                </div>
+                <label className="font-bold text-slate-700 block mb-1">Full Legal Name</label>
                 <input
                   type="text"
                   disabled
@@ -1467,12 +1563,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-slate-700">Date of Birth</label>
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                      🔒 Disabled
-                    </span>
-                  </div>
+                  <label className="font-bold text-slate-700 block mb-1">Date of Birth</label>
                   <input
                     type="date"
                     disabled
@@ -1492,7 +1583,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Registered Email (Read-Only)</label>
+                <label className="font-bold text-slate-700 block mb-1">Registered Email</label>
                 <input
                   type="email"
                   disabled
@@ -1525,15 +1616,167 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = inspectingUser;
+                  setInspectingUser(null);
+                  openEditUser(target);
+                }}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                <span>Edit Credentials as Admin</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setInspectingUser(null)}
-                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs"
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition-all"
               >
                 Close Record
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Edit User Credentials Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-800 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Admin Credential Override</h3>
+                  <p className="text-xs text-slate-500">Updating credentials for {editingUser.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingUser(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {editError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveUserEdit} className="space-y-3.5 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Full Legal Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="e.g. Alex Chen"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Date of Birth (DOB)
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={editDob}
+                    onChange={(e) => setEditDob(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <p className="text-[10px] text-indigo-600 mt-1 font-semibold">
+                    Age cohort &amp; learning tiers will re-sync automatically.
+                  </p>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Assigned Role</label>
+                  <select
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value as UserRole)}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="student">Student (Learner)</option>
+                    <option value="teacher">Teacher (Instructor)</option>
+                    <option value="parent">Parent (Supervisor)</option>
+                    <option value="admin">Administrator (Cluster Overseer)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Login Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="e.g. alex@edubridge.org"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Username Handle</label>
+                  <input
+                    type="text"
+                    required
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value)}
+                    placeholder="e.g. alex.chen"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Account Password</label>
+                  <div className="relative">
+                    <input
+                      type={showEditPassword ? 'text' : 'password'}
+                      required
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      className="w-full p-2.5 pr-9 rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                    >
+                      {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs transition-all flex items-center gap-1.5"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>Save Updated Credentials</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
