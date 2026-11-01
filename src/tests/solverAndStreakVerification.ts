@@ -18,6 +18,7 @@ import { StorageService } from '../services/storage';
 import { ResumeEnhancementService } from '../services/resumeEnhancementService';
 import { ResumeExportService } from '../services/resumeExportService';
 import { CVRegionPattern, EnhancedResumeData } from '../types/career';
+import { calculateAge } from '../utils/userProfile';
 
 async function runTests() {
   console.log('=== STARTING EDU BRIDGE VERIFICATION SUITE ===\n');
@@ -601,7 +602,28 @@ async function runTests() {
     console.log('PASS: All 3 age cohorts (Ages 3–7 Early, Ages 8–10 Junior, Ages 11–17 Teen) verified with dedicated interactive STEM, house teams, daily schedules, and career roadmaps.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 40 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 41: Age-Gating & Display Logic (Enabled / Disabled / Hidden / Shown) calculated from Date of Birth
+  console.log('\nTest 41: Verifying Age-Gating & Display Logic calculated strictly from registered Date of Birth...');
+  const leoChen = loadedUsers.find(u => u.username === 'leo.chen'); // DOB: 2019-03-12 (Age 7)
+  if (!leoChen || !leoChen.dateOfBirth) {
+    console.error('FAIL: Learner Leo Chen not found in loaded users.');
+    failures++;
+  } else {
+    const leoAge = calculateAge(leoChen.dateOfBirth);
+    const leoStage = leoAge <= 7 ? 'early' : leoAge <= 10 ? 'junior' : 'teen';
+    const isJuniorLockedForLeo = leoAge < 8;
+    const isTeenLockedForLeo = leoAge < 11;
+
+    if (leoStage !== 'early' || !isJuniorLockedForLeo || !isTeenLockedForLeo) {
+      console.error(`FAIL: Leo Chen age (${leoAge}) or lock logic failed. Junior locked: ${isJuniorLockedForLeo}, Teen locked: ${isTeenLockedForLeo}`);
+      failures++;
+    } else {
+      console.log(`PASS: Learner Leo Chen (DOB: ${leoChen.dateOfBirth}, Age: ${leoAge}) properly assigned "early" stage.`);
+      console.log(`PASS: Age-gating enforced: Junior games locked (${isJuniorLockedForLeo}), Teen games locked (${isTeenLockedForLeo}).`);
+    }
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 41 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

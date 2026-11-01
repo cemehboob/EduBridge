@@ -15,7 +15,8 @@ import {
   Pause,
   RotateCcw,
   Zap,
-  Target
+  Target,
+  Lock
 } from 'lucide-react';
 import { UserProfile } from '../../../types';
 import { sound } from '../../../utils/audio';
@@ -43,8 +44,20 @@ interface KidDailyScheduleProps {
 
 export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onEarnXp }) => {
   const userAge = calculateAge(profile?.dateOfBirth);
-  const defaultStage: KidAgeStage = userAge <= 7 ? 'early' : userAge <= 10 ? 'junior' : 'teen';
-  const [currentStage, setCurrentStage] = useState<KidAgeStage>(defaultStage);
+  const registeredDob = profile?.dateOfBirth || '2019-03-12';
+  const userCalculatedStage: KidAgeStage = userAge <= 7 ? 'early' : userAge <= 10 ? 'junior' : 'teen';
+
+  const [currentStage, setCurrentStage] = useState<KidAgeStage>(userCalculatedStage);
+  const [filterToMyAgeOnly, setFilterToMyAgeOnly] = useState<boolean>(userAge <= 7);
+
+  const isStageLocked = (stage: KidAgeStage) => {
+    if (stage === 'early') return false;
+    if (stage === 'junior') return userAge < 8;
+    if (stage === 'teen') return userAge < 11;
+    return false;
+  };
+
+  const currentIsLocked = isStageLocked(currentStage);
 
   const [tasks, setTasks] = useState<KidRoutineTask[]>([
     // STAGE 1: AGES 3–7
@@ -66,7 +79,6 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
     { id: 'j5', stage: 'junior', period: 'afternoon', title: 'Outdoor Sports / Cycling / Active Play', emoji: '⚽', xpReward: 25, completed: false, voicePrompt: 'Get outside for soccer, cycling, or active exercise.', estimatedMinutes: 45 },
     { id: 'j6', stage: 'junior', period: 'evening', title: 'Creative Hobby (LEGO, Sketching, Music)', emoji: '🎨', xpReward: 20, completed: false, voicePrompt: 'Spend creative time drawing, building, or playing an instrument.', estimatedMinutes: 30 },
     { id: 'j7', stage: 'junior', period: 'evening', title: 'Chapter Book Reading (20 Pages)', emoji: '📚', xpReward: 25, completed: false, voicePrompt: 'Read twenty pages of your adventure chapter book.', estimatedMinutes: 30 },
-    { id: 'j8', stage: 'junior', period: 'evening', title: 'Screen-Off Winding Down & Prep for Sleep', emoji: '🌙', xpReward: 20, completed: false, voicePrompt: 'Turn off screens 30 minutes before sleep for restorative rest.', estimatedMinutes: 15 },
 
     // STAGE 3: AGES 11–17 (Teen Sprints)
     { id: 't1', stage: 'teen', period: 'morning', title: 'Review Daily Academic Goals & Priority Queue', emoji: '🎯', xpReward: 25, completed: true, voicePrompt: 'Set your top three focus priorities for today.', estimatedMinutes: 10 },
@@ -74,8 +86,7 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
     { id: 't3', stage: 'teen', period: 'afternoon', title: 'Science Lab / Computer Science Coding Sprint', emoji: '💻', xpReward: 40, completed: false, voicePrompt: 'Work on your programming project or biology lab write-up.', estimatedMinutes: 50 },
     { id: 't4', stage: 'teen', period: 'afternoon', title: 'Essay Writing & Critical Argumentation Draft', emoji: '📝', xpReward: 35, completed: false, voicePrompt: 'Draft or revise your persuasive academic essay.', estimatedMinutes: 40 },
     { id: 't5', stage: 'teen', period: 'afternoon', title: 'Cardio / Strength Training / Team Athletics', emoji: '🏋️', xpReward: 30, completed: false, voicePrompt: 'Engage in 45 minutes of vigorous cardiovascular exercise.', estimatedMinutes: 45 },
-    { id: 't6', stage: 'teen', period: 'evening', title: 'Language Vocab Flashcards & Exam Drill', emoji: '🗂️', xpReward: 25, completed: false, voicePrompt: 'Review 30 spaced-repetition vocabulary flashcards.', estimatedMinutes: 20 },
-    { id: 't7', stage: 'teen', period: 'evening', title: 'Mindful Decompression & Digital Disconnect', emoji: '🧘', xpReward: 20, completed: false, voicePrompt: 'Practice 15 minutes of screen-free reflection before sleep.', estimatedMinutes: 20 }
+    { id: 't6', stage: 'teen', period: 'evening', title: 'Language Vocab Flashcards & Exam Drill', emoji: '🗂️', xpReward: 25, completed: false, voicePrompt: 'Review 30 spaced-repetition vocabulary flashcards.', estimatedMinutes: 20 }
   ]);
 
   // Pomodoro Focus Timer for Teens
@@ -91,7 +102,7 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
     } else if (pomodoroSeconds === 0 && isTimerRunning) {
       sound.playLevelUp();
       setIsTimerRunning(false);
-      speak('Pomodoro focus sprint complete! Take a well-earned 5-minute break.');
+      speak('Pomodoro focus sprint complete! Take a 5-minute break.');
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -106,6 +117,11 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
   };
 
   const handleToggleTask = (task: KidRoutineTask) => {
+    if (currentIsLocked) {
+      sound.playError();
+      speak(`This schedule block is locked. Based on your birthdate, you are age ${userAge}.`);
+      return;
+    }
     const nextVal = !task.completed;
     if (nextVal) {
       sound.playSuccess();
@@ -129,20 +145,19 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Header with Age Stage Switcher */}
+      {/* Header with Date of Birth & Age Verification Indicator */}
       <div className="bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 rounded-3xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
         <div className="absolute right-3 top-3 opacity-15 text-8xl select-none pointer-events-none">
           📅
         </div>
         <div className="relative z-10 max-w-2xl space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-wider text-teal-100 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/30">
-              Daily Schedule &amp; Habit Master
+            <span className="text-xs font-black uppercase tracking-wider text-teal-100 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/30 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Registered DOB: {registeredDob} (Age {userAge})</span>
             </span>
             <span className="text-xs font-bold text-teal-100">
-              {currentStage === 'early' && '• Level 1: Morning, Afternoon & Bedtime'}
-              {currentStage === 'junior' && '• Level 2: School, STEM Homework & Sports'}
-              {currentStage === 'teen' && '• Level 3: Deep Pomodoro Focus & Academic Sprints'}
+              • Verified Cohort: {userCalculatedStage === 'early' ? 'Ages 3–7' : userCalculatedStage === 'junior' ? 'Ages 8–10' : 'Ages 11–17 Teen'}
             </span>
           </div>
 
@@ -151,34 +166,75 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
             <span className="text-3xl">⏰🎯</span>
           </h2>
           <p className="text-sm font-medium text-teal-100 leading-relaxed">
-            Organize productive study sessions, build daily habits, track focus time, and stay in peak momentum!
+            Habit tracking and time management calibrated to your registered developmental age!
           </p>
 
           {/* Age Tier Selector Tabs */}
           <div className="pt-2 flex flex-wrap items-center gap-2">
             {[
-              { id: 'early', label: '🧸 Ages 3–7 (Early Explorers)' },
-              { id: 'junior', label: '🚀 Ages 8–10 (Junior Inventors)' },
-              { id: 'teen', label: '⚡ Ages 11–17 (Teen Titans & Sprints)' }
-            ].map((st) => (
-              <button
-                key={st.id}
-                onClick={() => {
+              { id: 'early', label: '🧸 Ages 3–7 (Early Explorers)', minAge: 3, maxAge: 7 },
+              { id: 'junior', label: '🚀 Ages 8–10 (Junior Inventors)', minAge: 8, maxAge: 10 },
+              { id: 'teen', label: '⚡ Ages 11–17 (Teen Titans & Sprints)', minAge: 11, maxAge: 17 }
+            ].map((st) => {
+              const locked = isStageLocked(st.id as KidAgeStage);
+              const isMatch = userCalculatedStage === st.id;
+
+              if (filterToMyAgeOnly && !isMatch) return null;
+
+              return (
+                <button
+                  key={st.id}
+                  onClick={() => {
+                    sound.playClick();
+                    setCurrentStage(st.id as KidAgeStage);
+                  }}
+                  className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xs flex items-center gap-1.5 ${
+                    currentStage === st.id
+                      ? 'bg-amber-400 text-slate-950 ring-2 ring-white scale-102 font-extrabold'
+                      : locked
+                      ? 'bg-white/10 text-white/70 hover:bg-white/20 border border-white/20'
+                      : 'bg-white/20 text-white hover:bg-white/30 border border-white/25'
+                  }`}
+                >
+                  <span>{st.label}</span>
+                  {locked && <span className="text-amber-300 font-extrabold text-[10px]">🔒 Locked</span>}
+                  {isMatch && <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.2 rounded font-extrabold">Active</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="pt-1 flex items-center gap-2 text-xs text-teal-100">
+            <label className="flex items-center gap-2 cursor-pointer font-bold select-none">
+              <input
+                type="checkbox"
+                checked={filterToMyAgeOnly}
+                onChange={(e) => {
                   sound.playClick();
-                  setCurrentStage(st.id as KidAgeStage);
+                  setFilterToMyAgeOnly(e.target.checked);
+                  if (e.target.checked) setCurrentStage(userCalculatedStage);
                 }}
-                className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xs ${
-                  currentStage === st.id
-                    ? 'bg-amber-400 text-slate-950 ring-2 ring-white scale-102 font-extrabold'
-                    : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-md border border-white/25'
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
+                className="rounded accent-white w-4 h-4 cursor-pointer"
+              />
+              <span>Show strictly routines for my age group (Age {userAge})</span>
+            </label>
           </div>
         </div>
       </div>
+
+      {currentIsLocked && (
+        <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-3xl text-xs text-amber-950 flex items-start gap-3">
+          <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <div className="font-black text-sm text-amber-900">
+              🔒 Age-Gated Routine (Calibrated for {currentStage === 'junior' ? 'Ages 8–10' : 'Ages 11–17'})
+            </div>
+            <p className="text-slate-600 mt-0.5">
+              These advanced task blocks are locked for your registered age of <strong>{userAge} years old</strong>.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Progress Bar */}
       <div className="bg-white rounded-3xl p-5 border-2 border-teal-100 shadow-sm space-y-2">
@@ -201,13 +257,13 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
 
       {/* Teen Pomodoro Special Widget */}
       {currentStage === 'teen' && (
-        <div className="bg-slate-950 rounded-3xl p-6 text-white border-2 border-indigo-400 shadow-md flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className={`bg-slate-950 rounded-3xl p-6 text-white border-2 border-indigo-400 shadow-md flex flex-col sm:flex-row items-center justify-between gap-6 ${currentIsLocked ? 'opacity-60' : ''}`}>
           <div className="space-y-1 text-center sm:text-left">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-300 font-mono text-[11px] uppercase tracking-wider font-bold">
-              <span>⏱️ Pomodoro Deep Focus Engine</span>
+              <span>⏱️ Pomodoro Deep Focus Engine (Ages 11–17)</span>
             </div>
             <h4 className="text-lg font-black text-white">25-Minute High-Yield Study Sprint</h4>
-            <p className="text-xs text-slate-400">Zero distractions. Scientifically proven 25 min focus / 5 min rest interval.</p>
+            <p className="text-xs text-slate-400">Zero distractions. 25 min focus / 5 min rest interval.</p>
           </div>
 
           <div className="flex items-center gap-4">
@@ -218,24 +274,31 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
+                  if (currentIsLocked) return;
                   sound.playClick();
                   setIsTimerRunning(!isTimerRunning);
                 }}
-                className={`p-3 rounded-2xl font-black text-xs shadow-md transition-all cursor-pointer ${
-                  isTimerRunning ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'bg-emerald-600 text-white hover:bg-emerald-500'
+                disabled={currentIsLocked}
+                className={`p-3 rounded-2xl font-black text-xs shadow-md transition-all ${
+                  currentIsLocked
+                    ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                    : isTimerRunning
+                    ? 'bg-amber-500 text-slate-950 cursor-pointer'
+                    : 'bg-emerald-600 text-white cursor-pointer'
                 }`}
               >
-                {isTimerRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current" />}
+                {currentIsLocked ? <Lock className="w-5 h-5 text-slate-400" /> : isTimerRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current" />}
               </button>
 
               <button
                 onClick={() => {
+                  if (currentIsLocked) return;
                   sound.playClick();
                   setIsTimerRunning(false);
                   setPomodoroSeconds(25 * 60);
                 }}
-                className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
-                title="Reset timer"
+                disabled={currentIsLocked}
+                className="p-3 rounded-2xl bg-slate-800 text-slate-300 cursor-pointer"
               >
                 <RotateCcw className="w-5 h-5" />
               </button>
@@ -250,8 +313,10 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
           <div
             key={task.id}
             onClick={() => handleToggleTask(task)}
-            className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-4 hover:scale-102 ${
-              task.completed ? 'bg-emerald-50/70 border-emerald-300 shadow-xs' : 'bg-white border-slate-200 hover:border-teal-300'
+            className={`p-5 rounded-3xl border-2 transition-all flex flex-col justify-between space-y-4 ${
+              currentIsLocked
+                ? 'opacity-60 cursor-not-allowed bg-slate-50 border-slate-200'
+                : 'cursor-pointer hover:scale-102 ' + (task.completed ? 'bg-emerald-50/70 border-emerald-300' : 'bg-white border-slate-200 hover:border-teal-300')
             }`}
           >
             <div className="flex items-start justify-between gap-3">
@@ -262,16 +327,18 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
                     {task.title}
                   </div>
                   <div className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">
-                    {task.period === 'morning' && '☀️ Morning Block'}
-                    {task.period === 'afternoon' && '🎨 Afternoon Block'}
-                    {task.period === 'evening' && '🌙 Evening Block'}
-                    {' · '}{task.estimatedMinutes} mins
+                    {task.period === 'morning' && '☀️ Morning'}
+                    {task.period === 'afternoon' && '🎨 Afternoon'}
+                    {task.period === 'evening' && '🌙 Evening'}
+                    {' · '}{task.estimatedMinutes}m
                   </div>
                 </div>
               </div>
 
               <div>
-                {task.completed ? (
+                {currentIsLocked ? (
+                  <Lock className="w-5 h-5 text-slate-400" />
+                ) : task.completed ? (
                   <CheckCircle2 className="w-6 h-6 text-emerald-600 fill-emerald-100" />
                 ) : (
                   <Circle className="w-6 h-6 text-slate-300 hover:text-teal-500" />
@@ -287,7 +354,7 @@ export const KidDailySchedule: React.FC<KidDailyScheduleProps> = ({ profile, onE
                   e.stopPropagation();
                   speak(task.voicePrompt);
                 }}
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600"
+                className="p-1.5 rounded-xl bg-slate-100 text-slate-600"
               >
                 <Volume2 className="w-4 h-4" />
               </button>

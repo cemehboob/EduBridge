@@ -15,7 +15,10 @@ import {
   Dna,
   Calculator,
   Compass,
-  ArrowRight
+  ArrowRight,
+  Lock,
+  ShieldAlert,
+  Calendar
 } from 'lucide-react';
 import { UserProfile } from '../../../types';
 import { sound } from '../../../utils/audio';
@@ -30,12 +33,26 @@ interface KidScienceMathFunProps {
 }
 
 export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, onEarnXp }) => {
-  // Determine default stage from profile age
+  // 1. Calculate user age strictly from registered date of birth
   const userAge = calculateAge(profile?.dateOfBirth);
-  const defaultStage: KidAgeStage = userAge <= 7 ? 'early' : userAge <= 10 ? 'junior' : 'teen';
+  const registeredDob = profile?.dateOfBirth || '2019-03-12';
 
-  const [currentStage, setCurrentStage] = useState<KidAgeStage>(defaultStage);
+  // Determine user's developmental cohort
+  const userCalculatedStage: KidAgeStage = userAge <= 7 ? 'early' : userAge <= 10 ? 'junior' : 'teen';
+
+  const [currentStage, setCurrentStage] = useState<KidAgeStage>(userCalculatedStage);
+  const [filterToMyAgeOnly, setFilterToMyAgeOnly] = useState<boolean>(userAge <= 7);
   const [starsWon, setStarsWon] = useState(12);
+
+  // Check if current stage is locked for this user
+  const isStageLocked = (stage: KidAgeStage) => {
+    if (stage === 'early') return false; // Early content accessible to all
+    if (stage === 'junior') return userAge < 8; // Locked for kids under 8
+    if (stage === 'teen') return userAge < 11; // Locked for kids under 11
+    return false;
+  };
+
+  const currentIsLocked = isStageLocked(currentStage);
 
   // ----------------------------------------------------
   // STAGE 1: AGES 3–7 (Early Explorers)
@@ -49,7 +66,6 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
   const [dinoAnswerFeedback, setDinoAnswerFeedback] = useState<string | null>(null);
   const [fuelLevel, setFuelLevel] = useState<number>(3);
   const [isLaunching, setIsLaunching] = useState(false);
-  const [launchMessage, setLaunchMessage] = useState<string | null>(null);
   const [testedItems, setTestedItems] = useState<{ [key: string]: boolean }>({ paperclip: true, wood: false });
   const [plantStage, setPlantStage] = useState<number>(2);
 
@@ -57,7 +73,7 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
   // STAGE 2: AGES 8–10 (Junior Inventors)
   // ----------------------------------------------------
   const [juniorExp, setJuniorExp] = useState<'volcano' | 'circuit' | 'planets' | 'multiplication' | 'foodweb'>('volcano');
-  const [volcanoReactant, setVolcanoReactant] = useState<number>(50); // baking soda grams
+  const [volcanoReactant, setVolcanoReactant] = useState<number>(50);
   const [volcanoErupted, setVolcanoErupted] = useState(false);
   const [circuitSwitch, setCircuitSwitch] = useState(false);
   const [selectedPlanet, setSelectedPlanet] = useState<'Moon' | 'Mars' | 'Earth' | 'Jupiter'>('Moon');
@@ -65,7 +81,6 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
   const [mathB, setMathB] = useState(8);
   const [userMathGuess, setUserMathGuess] = useState('');
   const [mathFeedback, setMathFeedback] = useState<string | null>(null);
-  const [foodWebStage, setFoodWebStage] = useState<number>(1);
 
   // ----------------------------------------------------
   // STAGE 3: AGES 11–17 (Teen Titans & STEM)
@@ -74,9 +89,6 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
   const [projectileAngle, setProjectileAngle] = useState(45);
   const [projectileVelocity, setProjectileVelocity] = useState(25);
   const [projectileFired, setProjectileFired] = useState(false);
-  const [punnettParent1, setPunnettParent1] = useState<'BB' | 'Bb' | 'bb'>('Bb');
-  const [punnettParent2, setPunnettParent2] = useState<'BB' | 'Bb' | 'bb'>('Bb');
-  const [selectedElement, setSelectedElement] = useState<'H' | 'O' | 'Na' | 'Cl'>('H');
   const [codeSnippetOutput, setCodeSnippetOutput] = useState<string | null>(null);
 
   const speak = (text: string) => {
@@ -125,9 +137,14 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
 
   // Stage 2 Handlers
   const handleEruptVolcano = () => {
+    if (currentIsLocked) {
+      sound.playError();
+      speak(`This experiment requires Age 8 or older. Based on your registered date of birth, you are age ${userAge}.`);
+      return;
+    }
     sound.playLevelUp();
     setVolcanoErupted(true);
-    speak('FZZZZ! Acetic acid reacts with sodium bicarbonate to release bubbling carbon dioxide gas!');
+    speak('FZZZZ! Acetic acid reacts with sodium bicarbonate to release carbon dioxide gas!');
     setStarsWon((s) => s + 2);
     if (onEarnXp) onEarnXp(30);
     setTimeout(() => setVolcanoErupted(false), 3000);
@@ -135,10 +152,11 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
 
   const handleMathCheck = (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentIsLocked) return;
     const correct = mathA * mathB;
     if (parseInt(userMathGuess, 10) === correct) {
       sound.playLevelUp();
-      setMathFeedback(`🎯 Correct! ${mathA} × ${mathB} = ${correct}! Speed bonus unlocked!`);
+      setMathFeedback(`🎯 Correct! ${mathA} × ${mathB} = ${correct}!`);
       speak(`Awesome! ${mathA} times ${mathB} is ${correct}!`);
       setStarsWon((s) => s + 2);
       if (onEarnXp) onEarnXp(25);
@@ -150,11 +168,11 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
       }, 1500);
     } else {
       sound.playError();
-      setMathFeedback(`Almost! Let's check: ${mathA} × ${mathB} = ${correct}. Try the next one!`);
+      setMathFeedback(`Almost! Let's check: ${mathA} × ${mathB} = ${correct}. Try next one!`);
     }
   };
 
-  // Stage 3 Handlers (Physics projectile calculations)
+  // Stage 3 Handlers
   const g = 9.81;
   const thetaRad = (projectileAngle * Math.PI) / 180;
   const maxHeight = (Math.pow(projectileVelocity * Math.sin(thetaRad), 2) / (2 * g)).toFixed(1);
@@ -162,40 +180,47 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
   const flightTime = ((2 * projectileVelocity * Math.sin(thetaRad)) / g).toFixed(2);
 
   const handleFireProjectile = () => {
+    if (currentIsLocked) {
+      sound.playError();
+      speak(`Kinematics simulator requires Age 11 or older. Based on your registered birthdate, you are age ${userAge}.`);
+      return;
+    }
     sound.playLevelUp();
     setProjectileFired(true);
-    speak(`Projectile launched at ${projectileAngle} degrees! Maximum height reached: ${maxHeight} meters! Total distance: ${totalRange} meters!`);
+    speak(`Projectile launched at ${projectileAngle} degrees! Height: ${maxHeight}m, Range: ${totalRange}m!`);
     setStarsWon((s) => s + 3);
     if (onEarnXp) onEarnXp(35);
     setTimeout(() => setProjectileFired(false), 2500);
   };
 
   const handleRunCodeSnippet = () => {
+    if (currentIsLocked) {
+      sound.playError();
+      speak(`Python sandbox requires Age 11 or older.`);
+      return;
+    }
     sound.playSuccess();
     setCodeSnippetOutput(
       `>>> def compute_primes(limit):\n...     return [n for n in range(2, limit) if all(n % d != 0 for d in range(2, int(n**0.5) + 1))]\n>>> compute_primes(30)\n[2, 3, 5, 7, 11, 13, 17, 19, 23, 29]\n[Program Exited 0 · Time: 0.0014s]`
     );
-    speak('Python script executed cleanly in the sandbox runtime. Primes calculated in 1.4 milliseconds.');
-    setStarsWon((s) => s + 2);
-    if (onEarnXp) onEarnXp(30);
+    speak('Python script executed cleanly.');
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Age Stage Switcher Header */}
+      {/* Header with Date of Birth & Age Verification Indicator */}
       <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-teal-500 rounded-3xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
         <div className="absolute right-3 top-3 opacity-15 text-8xl select-none pointer-events-none">
           🔬
         </div>
         <div className="relative z-10 max-w-2xl space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-wider text-amber-300 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/30">
-              Interactive STEM Discovery Lab
+            <span className="text-xs font-black uppercase tracking-wider text-amber-300 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/30 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Registered DOB: {registeredDob} (Age {userAge})</span>
             </span>
             <span className="text-xs font-bold text-purple-200">
-              {currentStage === 'early' && '• Level 1: Sensory & Play'}
-              {currentStage === 'junior' && '• Level 2: Inquiry & Chemistry'}
-              {currentStage === 'teen' && '• Level 3: Physics, Code & Genetics'}
+              • Verified Cohort: {userCalculatedStage === 'early' ? 'Ages 3–7' : userCalculatedStage === 'junior' ? 'Ages 8–10' : 'Ages 11–17 Teen'}
             </span>
           </div>
 
@@ -204,34 +229,92 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
             <span className="text-3xl">🧪⚡</span>
           </h2>
           <p className="text-sm font-medium text-purple-100 leading-relaxed">
-            Hands-on experiments, dynamic visual simulations, and puzzles adapted for every developmental age!
+            Experiments and interactive games automatically calibrated to your registered developmental age group!
           </p>
 
-          {/* Age Tier Selector Tabs */}
+          {/* Age Tier Tabs with Live Locks and Visibility Toggles */}
           <div className="pt-2 flex flex-wrap items-center gap-2">
             {[
-              { id: 'early', label: '🧸 Ages 3–7 (Early Explorers)', subtitle: 'Colors, Dinos, Sprouting' },
-              { id: 'junior', label: '🚀 Ages 8–10 (Junior Inventors)', subtitle: 'Volcano, Circuits, Planets' },
-              { id: 'teen', label: '⚡ Ages 11–17 (Teen Titans & STEM)', subtitle: 'Physics, Coding, Genetics' }
-            ].map((st) => (
-              <button
-                key={st.id}
-                onClick={() => {
+              { id: 'early', label: '🧸 Ages 3–7 (Early Explorers)', minAge: 3, maxAge: 7 },
+              { id: 'junior', label: '🚀 Ages 8–10 (Junior Inventors)', minAge: 8, maxAge: 10 },
+              { id: 'teen', label: '⚡ Ages 11–17 (Teen Titans & STEM)', minAge: 11, maxAge: 17 }
+            ].map((st) => {
+              const locked = isStageLocked(st.id as KidAgeStage);
+              const isMatch = userCalculatedStage === st.id;
+
+              if (filterToMyAgeOnly && !isMatch) {
+                return null; // Hidden strictly when filter is on!
+              }
+
+              return (
+                <button
+                  key={st.id}
+                  onClick={() => {
+                    sound.playClick();
+                    setCurrentStage(st.id as KidAgeStage);
+                    if (locked) {
+                      speak(`This module is locked for Age ${st.minAge} to ${st.maxAge}. Based on your registered birthdate, you are age ${userAge}.`);
+                    }
+                  }}
+                  className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xs flex items-center gap-1.5 ${
+                    currentStage === st.id
+                      ? 'bg-amber-400 text-slate-950 ring-2 ring-white scale-102 font-extrabold'
+                      : locked
+                      ? 'bg-white/10 text-white/70 hover:bg-white/20 border border-white/20'
+                      : 'bg-white/20 text-white hover:bg-white/30 border border-white/25'
+                  }`}
+                >
+                  <span>{st.label}</span>
+                  {locked && <span className="text-amber-300 font-extrabold text-[10px]">🔒 Locked</span>}
+                  {isMatch && <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.2 rounded font-extrabold">Active</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Auto Age Filter Toggle */}
+          <div className="pt-1 flex items-center gap-2 text-xs text-purple-100">
+            <label className="flex items-center gap-2 cursor-pointer font-bold select-none">
+              <input
+                type="checkbox"
+                checked={filterToMyAgeOnly}
+                onChange={(e) => {
                   sound.playClick();
-                  setCurrentStage(st.id as KidAgeStage);
+                  setFilterToMyAgeOnly(e.target.checked);
+                  if (e.target.checked) setCurrentStage(userCalculatedStage);
                 }}
-                className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xs ${
-                  currentStage === st.id
-                    ? 'bg-amber-400 text-slate-950 ring-2 ring-white scale-102 font-extrabold'
-                    : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-md border border-white/25'
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
+                className="rounded accent-amber-400 w-4 h-4 cursor-pointer"
+              />
+              <span>Show strictly objects for my registered age group (Age {userAge})</span>
+            </label>
           </div>
         </div>
       </div>
+
+      {/* Lock Notice Banner if viewing content beyond user's age */}
+      {currentIsLocked && (
+        <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-3xl text-xs text-amber-950 flex items-start gap-3 shadow-xs">
+          <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <div className="font-black text-sm text-amber-900">
+              🔒 Age-Gated Module (Calibrated for {currentStage === 'junior' ? 'Ages 8–10' : 'Ages 11–17'})
+            </div>
+            <p className="text-slate-600 leading-relaxed">
+              Based on your verified Date of Birth (<strong>{registeredDob}</strong>), you are currently <strong>{userAge} years old</strong>.
+              Interactive controls in this section are locked/disabled to ensure safe, age-appropriate learning.
+            </p>
+            <button
+              onClick={() => {
+                sound.playClick();
+                setCurrentStage(userCalculatedStage);
+              }}
+              className="mt-1 px-3 py-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs cursor-pointer shadow-xs"
+            >
+              Return to My Age-Appropriate Lab ({userCalculatedStage === 'early' ? 'Ages 3–7' : userCalculatedStage === 'junior' ? 'Ages 8–10' : 'Teen'}) &rarr;
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ==================================================== */}
       {/* STAGE 1: AGES 3–7 CONTENT                           */}
@@ -265,6 +348,7 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
               <div className="flex items-center justify-between border-b border-pink-100 pb-3">
                 <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                   <span>🌈 Magic Rainbow Color Mixer</span>
+                  <span className="text-[10px] font-extrabold bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full">Ages 3–7</span>
                 </h3>
                 <button
                   onClick={() => speak('Pick two colors: Red, yellow, or blue. Tap Mix to see what new color you make!')}
@@ -346,12 +430,7 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
             <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-emerald-200 shadow-sm space-y-6">
               <div className="flex items-center justify-between border-b border-emerald-100 pb-3">
                 <h3 className="text-base font-black text-slate-900">🦕 Dino Count &amp; Number Adventure</h3>
-                <button
-                  onClick={() => speak(`How many friendly dinosaurs do you see? Tap the number below!`)}
-                  className="p-1.5 rounded-xl bg-emerald-50 text-emerald-700"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
+                <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Ages 3–7</span>
               </div>
 
               <div className="p-6 bg-emerald-50/70 rounded-3xl border-2 border-emerald-200 flex flex-wrap items-center justify-center gap-3">
@@ -389,13 +468,10 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
                 <div className={`text-6xl transition-transform duration-1000 ${isLaunching ? '-translate-y-20 scale-125' : ''}`}>
                   🚀
                 </div>
-                <div className="text-xs text-amber-300 font-bold">
-                  {isLaunching ? '🔥 BLAST OFF! Flying past clouds!' : 'Ready on launchpad!'}
-                </div>
                 <button
                   onClick={() => {
                     setIsLaunching(true);
-                    speak('Blast off! The rocket breaks free from gravity!');
+                    speak('Blast off! Rocket launches past the clouds!');
                     setTimeout(() => setIsLaunching(false), 2000);
                   }}
                   disabled={isLaunching}
@@ -421,7 +497,7 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
                     key={item.id}
                     onClick={() => {
                       sound.playSuccess();
-                      speak(item.sticks ? `${item.label} sticks to the magnet!` : `${item.label} does not stick!`);
+                      speak(item.sticks ? `${item.label} sticks to magnet!` : `${item.label} does not stick!`);
                     }}
                     className="p-4 rounded-2xl border-2 text-center space-y-1 hover:border-blue-400 cursor-pointer bg-blue-50/40"
                   >
@@ -444,12 +520,6 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
                 {plantStage === 1 && '🌱'}
                 {plantStage === 2 && '🌿'}
                 {plantStage === 3 && '🌻'}
-              </div>
-              <div className="text-xs font-bold text-slate-700">
-                {plantStage === 0 && 'Stage 1: Sleeping seed in soil'}
-                {plantStage === 1 && 'Stage 2: Little green sprout popping up!'}
-                {plantStage === 2 && 'Stage 3: Healthy green stem drinking sun'}
-                {plantStage === 3 && 'Stage 4: Giant bright blooming sunflower!'}
               </div>
               <button
                 onClick={() => {
@@ -475,8 +545,7 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
               { id: 'volcano', label: '🌋 Chemical Volcano Lab' },
               { id: 'circuit', label: '💡 Electric Circuit Builder' },
               { id: 'planets', label: '🪐 Solar System Gravity' },
-              { id: 'multiplication', label: '✖️ Speed Math Arena' },
-              { id: 'foodweb', label: '🌲 Ecosystem Food Chain' }
+              { id: 'multiplication', label: '✖️ Speed Math Arena' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -492,237 +561,107 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
             ))}
           </div>
 
-          {/* Volcano Experiment */}
           {juniorExp === 'volcano' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-orange-200 shadow-sm space-y-6">
+            <div className={`bg-white rounded-3xl p-6 sm:p-8 border-2 border-orange-200 shadow-sm space-y-6 ${currentIsLocked ? 'opacity-60' : ''}`}>
               <div className="flex items-center justify-between border-b border-orange-100 pb-3">
                 <div>
                   <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                     <span>🌋 Acid-Base Volcano Reaction Lab</span>
+                    <span className="text-[10px] font-extrabold bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">Ages 8–10</span>
                   </h3>
-                  <p className="text-xs text-slate-500">
-                    Baking Soda (Sodium Bicarbonate, $NaHCO_3$) + Vinegar (Acetic Acid, $CH_3COOH$) &rarr; $CO_2$ gas!
-                  </p>
+                  <p className="text-xs text-slate-500 font-mono">NaHCO₃ + CH₃COOH → CH₃COONa + H₂O + CO₂ ↑</p>
                 </div>
-                <button
-                  onClick={() => speak('When acetic acid in vinegar mixes with sodium bicarbonate, they react instantly to form carbon dioxide gas that bubbles up like volcanic lava!')}
-                  className="p-1.5 rounded-xl bg-orange-50 text-orange-700 hover:bg-orange-100"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div className="p-8 bg-gradient-to-b from-orange-100 via-amber-50 to-slate-100 rounded-3xl border-2 border-orange-200 text-center relative overflow-hidden">
-                  <div className={`text-8xl transition-all duration-700 ${volcanoErupted ? 'scale-125 animate-bounce' : ''}`}>
+                <div className="p-8 bg-gradient-to-b from-orange-100 via-amber-50 to-slate-100 rounded-3xl border-2 border-orange-200 text-center">
+                  <div className={`text-8xl ${volcanoErupted ? 'scale-125 animate-bounce' : ''}`}>
                     {volcanoErupted ? '🌋' : '⛰️'}
                   </div>
-                  {volcanoErupted && (
-                    <div className="text-xs font-black text-rose-600 mt-2 animate-pulse">
-                      💥 FZZZZ! Carbon dioxide foam bubbling over the rim!
-                    </div>
-                  )}
                 </div>
 
                 <div className="space-y-4">
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-xs">
-                    <div className="font-bold text-slate-800">Chemical Equation:</div>
-                    <div className="font-mono text-indigo-700 bg-white p-2 rounded-xl border border-slate-200 font-bold">
-                      NaHCO₃ + CH₃COOH → CH₃COONa + H₂O + CO₂ (gas) ↑
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 block">
-                      Reactant Dose (Baking Soda): {volcanoReactant}g
-                    </label>
-                    <input
-                      type="range"
-                      min={10}
-                      max={100}
-                      value={volcanoReactant}
-                      onChange={(e) => setVolcanoReactant(parseInt(e.target.value, 10))}
-                      className="w-full accent-orange-600"
-                    />
-                  </div>
-
                   <button
                     onClick={handleEruptVolcano}
-                    className="w-full py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-black text-xs shadow-md active:scale-95 transition-all cursor-pointer"
+                    disabled={currentIsLocked}
+                    className={`w-full py-3 rounded-2xl font-black text-xs shadow-md transition-all ${
+                      currentIsLocked
+                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white cursor-pointer active:scale-95'
+                    }`}
                   >
-                    POUR VINEGAR &amp; TRIGGER ERUPTION! 💥 (+30 XP)
+                    {currentIsLocked ? '🔒 LOCKED (Requires Age 8+)' : 'POUR VINEGAR & TRIGGER ERUPTION! 💥 (+30 XP)'}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Electric Circuit Builder */}
           {juniorExp === 'circuit' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-yellow-200 shadow-sm space-y-6">
-              <div className="flex items-center justify-between border-b border-yellow-100 pb-3">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <span>💡 Electric Circuit Builder &amp; Current Flow</span>
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    A complete loop (closed circuit) allows electrons to flow from the battery to light the bulb!
-                  </p>
-                </div>
+            <div className={`bg-white rounded-3xl p-6 sm:p-8 border-2 border-yellow-200 shadow-sm space-y-6 ${currentIsLocked ? 'opacity-60' : ''}`}>
+              <h3 className="text-base font-black text-slate-900">💡 Electric Circuit Builder</h3>
+              <div className="p-8 bg-slate-900 rounded-3xl text-white text-center space-y-4">
+                <div className="text-4xl">{circuitSwitch ? '💡' : '🌑'}</div>
                 <button
-                  onClick={() => speak('Electrons need an uninterrupted closed loop to flow. When you close the switch, the circuit completes and electricity powers the light bulb!')}
-                  className="p-1.5 rounded-xl bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+                  onClick={() => {
+                    if (currentIsLocked) return;
+                    sound.playSuccess();
+                    setCircuitSwitch(!circuitSwitch);
+                  }}
+                  disabled={currentIsLocked}
+                  className={`px-6 py-2.5 rounded-2xl font-black text-xs ${
+                    currentIsLocked ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-400 text-slate-950 cursor-pointer'
+                  }`}
                 >
-                  <Volume2 className="w-4 h-4" />
+                  {currentIsLocked ? '🔒 Locked for Age 8+' : circuitSwitch ? 'OPEN SWITCH (Turn Off)' : 'CLOSE SWITCH (Complete Circuit)'}
                 </button>
               </div>
-
-              <div className="p-8 bg-slate-900 rounded-3xl border-2 border-yellow-300 text-white text-center space-y-6">
-                <div className="flex items-center justify-center gap-6 sm:gap-12">
-                  <div className="p-4 bg-slate-800 rounded-2xl border border-slate-700">
-                    <span className="text-3xl">🔋</span>
-                    <div className="text-[10px] font-black uppercase text-slate-300 mt-1">9V Battery</div>
-                  </div>
-
-                  <div className={`h-1 flex-1 border-t-2 border-dashed ${circuitSwitch ? 'border-amber-400 animate-pulse' : 'border-slate-600'}`} />
-
-                  <div className={`p-4 rounded-2xl border transition-all ${
-                    circuitSwitch ? 'bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/50 scale-110' : 'bg-slate-800 text-slate-500 border-slate-700'
-                  }`}>
-                    <span className="text-4xl">{circuitSwitch ? '💡' : '🌑'}</span>
-                    <div className="text-[10px] font-black uppercase mt-1">
-                      {circuitSwitch ? 'Lit (250 Lumens)' : 'Unpowered'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    onClick={() => {
-                      sound.playSuccess();
-                      setCircuitSwitch(!circuitSwitch);
-                      if (!circuitSwitch) speak('Switch closed! Electrons flow in a complete loop, lighting the bulb!');
-                      else speak('Switch open! The circuit is broken, stopping the electric current.');
-                    }}
-                    className={`px-6 py-2.5 rounded-2xl font-black text-xs transition-all shadow-md cursor-pointer ${
-                      circuitSwitch ? 'bg-amber-400 text-slate-950 hover:bg-amber-300' : 'bg-slate-700 text-white hover:bg-slate-600'
-                    }`}
-                  >
-                    {circuitSwitch ? 'OPEN SWITCH (Turn Off 🔘)' : 'CLOSE SWITCH (Complete Circuit ⚡)'}
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
-          {/* Solar System Gravity Simulator */}
           {juniorExp === 'planets' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-indigo-200 shadow-sm space-y-6">
-              <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
-                <h3 className="text-base font-black text-slate-900">🪐 Planetary Gravity &amp; Weight Simulator</h3>
-                <span className="text-xs text-indigo-700 font-bold">$F = m \cdot g$</span>
-              </div>
-
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-indigo-200 shadow-sm space-y-4">
+              <h3 className="text-base font-black text-slate-900">🪐 Planetary Gravity &amp; Weight ($F = m \cdot g$)</h3>
               <div className="flex flex-wrap gap-2">
-                {[
-                  { name: 'Moon', g: 0.16, emoji: '🌕', jump: '6 meters high!' },
-                  { name: 'Mars', g: 0.38, emoji: '🔴', jump: '2.6 meters high' },
-                  { name: 'Earth', g: 1.0, emoji: '🌍', jump: '1.0 meter (baseline)' },
-                  { name: 'Jupiter', g: 2.5, emoji: '🪐', jump: '0.4 meters (heavy!)' }
-                ].map((p) => (
+                {['Moon', 'Mars', 'Earth', 'Jupiter'].map((p) => (
                   <button
-                    key={p.name}
-                    onClick={() => {
-                      sound.playClick();
-                      setSelectedPlanet(p.name as any);
-                      speak(`On ${p.name}, gravity is ${p.g} g. You can jump ${p.jump}!`);
-                    }}
-                    className={`px-4 py-2.5 rounded-2xl text-xs font-bold border-2 transition-all cursor-pointer ${
-                      selectedPlanet === p.name ? 'border-indigo-600 bg-indigo-50 text-indigo-900 font-black shadow-xs' : 'border-slate-200 bg-white text-slate-600'
-                    }`}
+                    key={p}
+                    onClick={() => { sound.playClick(); setSelectedPlanet(p as any); }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${selectedPlanet === p ? 'bg-indigo-600 text-white' : 'bg-slate-100'}`}
                   >
-                    <span className="mr-1">{p.emoji}</span>
-                    <span>{p.name} ({p.g}g)</span>
+                    {p}
                   </button>
                 ))}
               </div>
-
-              <div className="p-6 bg-slate-950 rounded-3xl text-white text-center space-y-2">
-                <div className="text-xs text-indigo-300 uppercase font-black tracking-wider">
-                  Physics on {selectedPlanet}:
-                </div>
-                <div className="text-2xl font-black text-amber-300">
-                  A 30 kg student weighs{' '}
-                  {(
-                    30 * (selectedPlanet === 'Moon' ? 0.16 : selectedPlanet === 'Mars' ? 0.38 : selectedPlanet === 'Jupiter' ? 2.5 : 1.0)
-                  ).toFixed(1)}{' '}
-                  kg equivalent force!
-                </div>
+              <div className="p-4 bg-slate-950 text-amber-300 rounded-2xl font-black text-center text-sm">
+                Weight on {selectedPlanet}: {(30 * (selectedPlanet === 'Moon' ? 0.16 : selectedPlanet === 'Mars' ? 0.38 : selectedPlanet === 'Jupiter' ? 2.5 : 1.0)).toFixed(1)} kg force
               </div>
             </div>
           )}
 
-          {/* Speed Math Arena */}
           {juniorExp === 'multiplication' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-emerald-200 shadow-sm space-y-6">
-              <div className="flex items-center justify-between border-b border-emerald-100 pb-3">
-                <h3 className="text-base font-black text-slate-900">✖️ Fast Mental Multiplication Arena</h3>
-                <span className="text-xs font-bold text-emerald-700">Times Tables Mastery</span>
-              </div>
-
-              <form onSubmit={handleMathCheck} className="p-8 bg-emerald-50/70 rounded-3xl border-2 border-emerald-200 text-center space-y-4">
-                <div className="text-3xl sm:text-4xl font-black text-emerald-950">
-                  {mathA} × {mathB} = ?
-                </div>
-
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-emerald-200 shadow-sm space-y-4">
+              <h3 className="text-base font-black text-slate-900">✖️ Fast Mental Multiplication Arena</h3>
+              <form onSubmit={handleMathCheck} className="p-6 bg-emerald-50 rounded-2xl text-center space-y-3">
+                <div className="text-3xl font-black text-emerald-950">{mathA} × {mathB} = ?</div>
                 <div className="flex justify-center gap-2">
                   <input
                     type="number"
-                    required
+                    disabled={currentIsLocked}
                     value={userMathGuess}
                     onChange={(e) => setUserMathGuess(e.target.value)}
-                    placeholder="Enter answer"
-                    className="w-36 p-3 rounded-2xl border-2 border-emerald-300 text-center font-black text-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Answer"
+                    className="w-28 p-2 rounded-xl border bg-white font-bold text-center"
                   />
                   <button
                     type="submit"
-                    className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs cursor-pointer shadow-xs"
+                    disabled={currentIsLocked}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs cursor-pointer"
                   >
-                    Check &amp; Score!
+                    Check
                   </button>
                 </div>
-
-                {mathFeedback && (
-                  <div className="text-xs font-black text-emerald-900 bg-emerald-100 p-2.5 rounded-xl border border-emerald-300">
-                    {mathFeedback}
-                  </div>
-                )}
               </form>
-            </div>
-          )}
-
-          {/* Ecosystem Food Web */}
-          {juniorExp === 'foodweb' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-teal-200 shadow-sm space-y-4">
-              <h3 className="text-base font-black text-slate-900">🌲 Forest Ecosystem Energy Flow</h3>
-              <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200">
-                  <span className="text-3xl block">☀️</span>
-                  <span className="font-black text-amber-900">Sun &amp; Light</span>
-                </div>
-                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200">
-                  <span className="text-3xl block">🌾</span>
-                  <span className="font-black text-emerald-900">Producer (Grass)</span>
-                </div>
-                <div className="p-3 bg-cyan-50 rounded-2xl border border-cyan-200">
-                  <span className="text-3xl block">🐇</span>
-                  <span className="font-black text-cyan-900">Herbivore (Rabbit)</span>
-                </div>
-                <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200">
-                  <span className="text-3xl block">🦅</span>
-                  <span className="font-black text-rose-900">Apex (Eagle)</span>
-                </div>
-              </div>
             </div>
           )}
         </div>
@@ -737,8 +676,7 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
             {[
               { id: 'projectile', label: '🎯 Projectile Kinematics' },
               { id: 'punnett', label: '🧬 Genetics & Punnett Square' },
-              { id: 'code', label: '💻 Python Algorithm Sandbox' },
-              { id: 'elements', label: '⚛️ Chemical Reaction Stoichiometry' }
+              { id: 'code', label: '💻 Python Algorithm Sandbox' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -754,152 +692,72 @@ export const KidScienceMathFun: React.FC<KidScienceMathFunProps> = ({ profile, o
             ))}
           </div>
 
-          {/* Projectile Motion Simulator */}
           {teenExp === 'projectile' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-indigo-200 shadow-sm space-y-6">
+            <div className={`bg-white rounded-3xl p-6 sm:p-8 border-2 border-indigo-200 shadow-sm space-y-6 ${currentIsLocked ? 'opacity-60' : ''}`}>
               <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
-                <div>
-                  <h3 className="text-base font-black text-slate-900">🎯 Projectile Kinematics Simulation</h3>
-                  <p className="text-xs text-slate-500 font-mono">
-                    $x(t) = v_0 \cos(\theta) t, \quad y(t) = v_0 \sin(\theta) t - \frac{1}{2}gt^2$
-                  </p>
-                </div>
-                <button
-                  onClick={() => speak(`In 2D kinematics, horizontal velocity remains constant in the absence of air drag, while vertical velocity accelerates under Earth gravity at 9.81 meters per second squared.`)}
-                  className="p-1.5 rounded-xl bg-indigo-50 text-indigo-700"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
+                <h3 className="text-base font-black text-slate-900">🎯 Projectile Kinematics Simulation</h3>
+                <span className="text-[10px] font-extrabold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">Ages 11–17</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-700">
-                      <span>Launch Angle (&theta;):</span>
-                      <span className="font-mono text-indigo-700 font-black">{projectileAngle}&deg;</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={10}
-                      max={85}
-                      value={projectileAngle}
-                      onChange={(e) => setProjectileAngle(parseInt(e.target.value, 10))}
-                      className="w-full accent-indigo-600"
-                    />
+                <div className="space-y-3">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span>Angle: {projectileAngle}&deg;</span>
+                    <span>Velocity: {projectileVelocity} m/s</span>
                   </div>
-
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-700">
-                      <span>Initial Velocity (v₀):</span>
-                      <span className="font-mono text-indigo-700 font-black">{projectileVelocity} m/s</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={10}
-                      max={50}
-                      value={projectileVelocity}
-                      onChange={(e) => setProjectileVelocity(parseInt(e.target.value, 10))}
-                      className="w-full accent-indigo-600"
-                    />
-                  </div>
-
                   <button
                     onClick={handleFireProjectile}
-                    className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md transition-all cursor-pointer"
+                    disabled={currentIsLocked}
+                    className={`w-full py-3 rounded-2xl font-black text-xs shadow-md transition-all ${
+                      currentIsLocked
+                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
+                    }`}
                   >
-                    CALCULATE &amp; FIRE TRAJECTORY 🎯 (+35 XP)
+                    {currentIsLocked ? '🔒 LOCKED (Requires Age 11+)' : 'CALCULATE & FIRE TRAJECTORY 🎯 (+35 XP)'}
                   </button>
                 </div>
 
-                <div className="p-6 bg-slate-950 rounded-3xl text-white space-y-3 font-mono text-xs">
-                  <div className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                    Telemetry Computed (g = 9.81 m/s²):
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="p-3 bg-slate-900 rounded-2xl border border-slate-800">
-                      <div className="text-[10px] text-slate-400">Max Height (H)</div>
-                      <div className="text-base font-black text-emerald-400">{maxHeight} m</div>
-                    </div>
-                    <div className="p-3 bg-slate-900 rounded-2xl border border-slate-800">
-                      <div className="text-[10px] text-slate-400">Range (R)</div>
-                      <div className="text-base font-black text-cyan-400">{totalRange} m</div>
-                    </div>
-                    <div className="p-3 bg-slate-900 rounded-2xl border border-slate-800">
-                      <div className="text-[10px] text-slate-400">Air Time (T)</div>
-                      <div className="text-base font-black text-amber-400">{flightTime} s</div>
-                    </div>
-                  </div>
+                <div className="p-4 bg-slate-950 text-white rounded-2xl font-mono text-xs space-y-1">
+                  <div>Max Height: {maxHeight} m</div>
+                  <div>Range: {totalRange} m</div>
+                  <div>Air Time: {flightTime} s</div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Punnett Square Genetics */}
           {teenExp === 'punnett' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-purple-200 shadow-sm space-y-6">
-              <div className="flex items-center justify-between border-b border-purple-100 pb-3">
-                <h3 className="text-base font-black text-slate-900">🧬 Mendelian Genetics: Punnett Square Cross</h3>
-                <span className="text-xs font-mono text-purple-700 font-bold">B = Brown (Dominant), b = Blue (Recessive)</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto text-center font-mono text-sm">
-                <div className="p-4 bg-purple-50 rounded-2xl border-2 border-purple-300 font-black text-purple-900">
-                  BB (25% Homozygous Dominant)
-                </div>
-                <div className="p-4 bg-purple-50 rounded-2xl border-2 border-purple-300 font-black text-purple-900">
-                  Bb (25% Heterozygous)
-                </div>
-                <div className="p-4 bg-purple-50 rounded-2xl border-2 border-purple-300 font-black text-purple-900">
-                  Bb (25% Heterozygous)
-                </div>
-                <div className="p-4 bg-cyan-50 rounded-2xl border-2 border-cyan-300 font-black text-cyan-900">
-                  bb (25% Recessive Phenotype)
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 text-center font-medium">
-                Phenotype Outcome: <strong>75% Brown Eyes</strong> (BB, Bb, Bb) vs <strong>25% Blue Eyes</strong> (bb).
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-purple-200 shadow-sm space-y-4">
+              <h3 className="text-base font-black text-slate-900">🧬 Mendelian Genetics: Punnett Square Cross</h3>
+              <div className="grid grid-cols-2 gap-2 text-center font-mono text-xs">
+                <div className="p-3 bg-purple-50 rounded-xl font-bold">BB (25%)</div>
+                <div className="p-3 bg-purple-50 rounded-xl font-bold">Bb (25%)</div>
+                <div className="p-3 bg-purple-50 rounded-xl font-bold">Bb (25%)</div>
+                <div className="p-3 bg-cyan-50 rounded-xl font-bold">bb (25% Blue Eyes)</div>
               </div>
             </div>
           )}
 
-          {/* Python Sandbox */}
           {teenExp === 'code' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-300 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className={`bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-300 shadow-sm space-y-4 ${currentIsLocked ? 'opacity-60' : ''}`}>
+              <div className="flex items-center justify-between">
                 <h3 className="text-base font-black text-slate-900">💻 Python 3.12 Algorithm Sandbox</h3>
                 <button
                   onClick={handleRunCodeSnippet}
-                  className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-xs flex items-center gap-1.5"
+                  disabled={currentIsLocked}
+                  className={`px-4 py-1.5 rounded-xl font-bold text-xs ${
+                    currentIsLocked ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 text-white cursor-pointer'
+                  }`}
                 >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Run Python Script</span>
+                  {currentIsLocked ? '🔒 Locked for Age 11+' : 'Run Script'}
                 </button>
               </div>
-
-              <div className="bg-slate-950 rounded-2xl p-4 font-mono text-xs text-emerald-400 space-y-2">
-                <div className="text-slate-500"># Sieve of Eratosthenes / Prime Numbers Engine</div>
-                <div>def compute_primes(limit: int):</div>
-                <div className="pl-4">return [n for n in range(2, limit) if all(n % d != 0 for d in range(2, int(n**0.5) + 1))]</div>
-                <div className="text-slate-400 pt-2">print(compute_primes(30))</div>
-              </div>
-
               {codeSnippetOutput && (
-                <div className="p-4 bg-slate-900 text-cyan-300 rounded-2xl font-mono text-xs whitespace-pre-line border border-slate-800">
+                <div className="p-3 bg-slate-900 text-cyan-300 rounded-xl font-mono text-xs whitespace-pre-line">
                   {codeSnippetOutput}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Elements */}
-          {teenExp === 'elements' && (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-teal-200 shadow-sm space-y-4">
-              <h3 className="text-base font-black text-slate-900">⚛️ Valence Shells &amp; Stoichiometry</h3>
-              <div className="p-4 bg-teal-50 rounded-2xl border border-teal-200 text-xs text-teal-900 font-medium">
-                Ionic bonding: Sodium ($Na$, 1 valence electron) transfers an electron to Chlorine ($Cl$, 7 valence electrons), creating stable sodium chloride ($NaCl$) table salt!
-              </div>
             </div>
           )}
         </div>
