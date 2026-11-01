@@ -1,38 +1,22 @@
 import React, { useState } from 'react';
 import {
   ShieldAlert,
-  Cpu,
   Activity,
-  Server,
-  Database,
-  Sliders,
   CheckCircle2,
-  AlertTriangle,
   RefreshCw,
-  Terminal,
-  FileText,
   Clock,
   Play,
   Pause,
-  Sparkles,
   BookOpen,
   Award,
   Search,
   Filter,
-  Layers,
-  ArrowRight,
   Users,
-  UserCheck,
-  UserX,
   UserPlus,
   MessageSquare,
   Send,
   Mail,
-  ToggleLeft,
-  ToggleRight,
-  Shield,
-  ShieldCheck,
-  Calendar
+  ShieldCheck
 } from 'lucide-react';
 import {
   OllamaModelInfo,
@@ -406,7 +390,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             <div className="flex items-center gap-1.5">
                               <span className="font-bold text-slate-900 block">{u.name}</span>
                               {u.username && (
-                                <span className="text-[10px] font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100 font-bold">
+                                <span className="text-[10px] font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 font-bold">
                                   @{u.username}
                                 </span>
                               )}
@@ -550,7 +534,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       <span>·</span>
                       <span className="font-mono">{ticket.createdAt}</span>
                       <span>·</span>
-                      <span className={`px-2 py-0.2 rounded text-[10px] font-bold ${
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         ticket.priority === 'Critical' ? 'bg-rose-100 text-rose-800' :
                         ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
                         'bg-slate-200 text-slate-700'
@@ -1153,14 +1137,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">System Health &amp; Resource Metrics</h3>
             </div>
 
-            <button
-              onClick={handleFlushCache}
-              disabled={isFlushingCache}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isFlushingCache ? 'animate-spin' : ''}`} />
-              <span>Flush Redis Cache</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-mono text-slate-500 font-semibold hidden sm:inline-block">
+                {cacheStatus}
+              </span>
+              <button
+                onClick={handleFlushCache}
+                disabled={isFlushingCache}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isFlushingCache ? 'animate-spin' : ''}`} />
+                <span>Flush Redis Cache</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1384,7 +1373,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <label className="font-bold text-slate-700 block mb-1">Assigned Role</label>
                 <select
                   value={newUserRole}
-                  onChange={(e) => setNewUserRole(e.target.value as any)}
+                  onChange={(e) => setNewUserRole(e.target.value as UserRole)}
                   className="w-full p-2.5 rounded-xl border border-slate-300 text-xs"
                 >
                   <option value="student">Student (Learner)</option>
