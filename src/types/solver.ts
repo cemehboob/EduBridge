@@ -62,6 +62,8 @@ export interface SolverResponse {
   topic: string;
   difficulty: 'Foundation' | 'Standard' | 'Advanced';
   isAmbiguous: boolean;
+  detectedIntent?: string;
+  missingParameters?: string[];
   clarificationPrompt?: string;
   suggestedClarifications?: string[];
   chatHistory?: SolverChatMessage[];

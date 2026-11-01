@@ -928,42 +928,67 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
 
             {solverResult ? (
               <>
-                {/* Interactive AI Clarification & Question Narrowing Chat */}
-                {solverResult.isAmbiguous && (
-                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-200/90 shadow-sm space-y-4">
+                {/* Interactive AI Clarification Center when Question Needs More Information */}
+                {solverResult.isAmbiguous ? (
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-50 border-2 border-amber-300 shadow-md space-y-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                        <Bot className="w-5 h-5" />
+                      <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md">
+                        <Bot className="w-6 h-6" />
                       </div>
                       <div className="space-y-1">
-                        <h4 className="font-extrabold text-amber-950 text-sm flex items-center gap-2">
-                          <span>AI Clarification Assistant</span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/70 text-amber-900">
-                            Interactive Chat
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="font-extrabold text-amber-950 text-sm">
+                            AI Proactive Clarification Center
+                          </h4>
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 uppercase tracking-wider">
+                            Need More Info
                           </span>
-                        </h4>
-                        <p className="text-xs text-amber-900 leading-relaxed">
+                        </div>
+                        {solverResult.detectedIntent && (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-900 text-xs font-bold shadow-2xs">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Identified Goal: {solverResult.detectedIntent}</span>
+                          </div>
+                        )}
+                        <p className="text-xs text-amber-900 font-medium leading-relaxed pt-1">
                           {solverResult.clarificationPrompt}
                         </p>
                       </div>
                     </div>
 
+                    {/* Missing Details Breakdown */}
+                    {solverResult.missingParameters && solverResult.missingParameters.length > 0 && (
+                      <div className="p-3.5 rounded-xl bg-white border border-amber-200 space-y-2">
+                        <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block">
+                          📋 Required Details to Compute Verified Solution:
+                        </span>
+                        <ul className="space-y-1 text-xs text-slate-700 font-medium">
+                          {solverResult.missingParameters.map((param, pIdx) => (
+                            <li key={pIdx} className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                              <span>{param}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     {/* Quick Suggestion Chips */}
                     {solverResult.suggestedClarifications && solverResult.suggestedClarifications.length > 0 && (
-                      <div className="space-y-1.5 pt-1">
-                        <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider block">
-                          ⚡ One-Click Suggestions to Narrow Down:
+                      <div className="space-y-2 pt-1">
+                        <span className="text-[10px] font-black text-amber-900 uppercase tracking-wider block">
+                          ⚡ Or Click Any Ready Preset to Solve Instantly:
                         </span>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-col gap-1.5">
                           {solverResult.suggestedClarifications.map((sug, idx) => (
                             <button
                               key={idx}
                               type="button"
                               onClick={() => handleSendChatMessage(sug)}
-                              className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300 shadow-2xs transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                              className="px-3 py-2 rounded-xl bg-white hover:bg-amber-100/80 text-amber-950 font-bold text-xs border border-amber-300 shadow-2xs transition-all cursor-pointer flex items-center justify-between group active:scale-[0.99]"
                             >
-                              <span>{sug}</span>
-                              <ArrowRight className="w-3 h-3 text-amber-600" />
+                              <span className="text-left">{sug}</span>
+                              <ArrowRight className="w-3.5 h-3.5 text-amber-600 group-hover:translate-x-0.5 transition-transform shrink-0" />
                             </button>
                           ))}
                         </div>
@@ -972,6 +997,9 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
 
                     {/* Interactive Clarification Chat Input */}
                     <div className="pt-2">
+                      <span className="text-[10px] font-black text-amber-900 uppercase tracking-wider block mb-1.5">
+                        ✍️ Or Enter Your Custom Values / Clarification:
+                      </span>
                       <div className="flex items-center gap-2">
                         <input
                           type="text"
@@ -983,34 +1011,34 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                               handleSendChatMessage();
                             }
                           }}
-                          placeholder="Reply to AI: enter equation, values, or topic..."
+                          placeholder="e.g. mass 1200 kg, speed 25 m/s or 2x^2 - 8 = 0"
                           className="flex-1 px-3.5 py-2 text-xs rounded-xl bg-white border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium text-slate-800 shadow-2xs"
                         />
                         <button
                           type="button"
                           onClick={() => handleSendChatMessage()}
                           disabled={!chatInputText.trim() || isChatProcessing}
-                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
                         >
                           {isChatProcessing ? (
                             <Sparkles className="w-3.5 h-3.5 animate-spin" />
                           ) : (
                             <Send className="w-3.5 h-3.5" />
                           )}
-                          <span>Send &amp; Solve</span>
+                          <span>Complete &amp; Solve</span>
                         </button>
                       </div>
                     </div>
                   </div>
-                )}
-
-                {/* Prominent Verified Final Answer Card (supports complete full-text essays and math formulas) */}
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 text-white shadow-lg shadow-indigo-600/20 space-y-3">
-                  <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-2.5">
-                    <div className="text-[11px] font-black uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-                      <span>Verified Answer / Essay</span>
-                    </div>
+                ) : (
+                  <>
+                    {/* Prominent Verified Final Answer Card (supports complete full-text essays and math formulas) */}
+                    <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 text-white shadow-lg shadow-indigo-600/20 space-y-3">
+                      <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-2.5">
+                        <div className="text-[11px] font-black uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                          <span>Verified Answer / Solution</span>
+                        </div>
 
                     {/* Quick Action Toolbar (Download PDF, Word, Copy) */}
                     <div className="flex items-center gap-1.5">
@@ -1325,7 +1353,8 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
                     </div>
                   )}
                 </div>
-
+                    </>
+                  )}
               </>
             ) : (
               <div className="p-8 text-center space-y-3 text-slate-400">

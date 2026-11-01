@@ -353,3 +353,4 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
     </div>
   );
 };
+

@@ -36,7 +36,9 @@ export class QuestionSolverService {
         question,
         inputMode,
         ambiguityCheck.clarificationPrompt,
-        ambiguityCheck.suggestedOptions
+        ambiguityCheck.suggestedOptions,
+        ambiguityCheck.intent,
+        ambiguityCheck.missingParameters
       );
     }
 
@@ -60,52 +62,232 @@ export class QuestionSolverService {
 
   /**
    * Detects whether the input lacks necessary variables, values, or clarity.
+   * Proactively identifies intent and missing parameters across STEM and Humanities.
    */
   private static detectAmbiguity(q: string): {
     isAmbiguous: boolean;
     clarificationPrompt: string;
     suggestedOptions?: string[];
+    intent?: string;
+    missingParameters?: string[];
   } {
-    const lower = q.toLowerCase();
+    const lower = q.toLowerCase().trim();
 
     if (q.length < 3) {
       return {
         isAmbiguous: true,
+        intent: 'General Inquiry',
+        missingParameters: ['Complete problem statement or equation'],
         clarificationPrompt: 'The question appears too short. Please provide the full problem statement or equation.',
         suggestedOptions: ['Solve 2x + 5 = 15', 'Balance H2 + O2 -> H2O', 'Write a paragraph on Pakistan']
       };
     }
 
+    // 1. Kinetic Energy without numbers
     if (
-      (lower.includes('find the roots') || lower.includes('solve for x') || lower.includes('factorize')) &&
+      (lower.includes('kinetic energy') || lower.includes('calculate ke') || lower.includes('ke =')) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Kinetic Energy Calculation (Ek = 1/2 · m · v²)',
+        missingParameters: ['Mass of the object (m in kg)', 'Velocity or speed (v in m/s)'],
+        clarificationPrompt: 'I understand you want to calculate kinetic energy (Ek = 1/2 · m · v²). To compose the exact step-by-step calculation, please provide the object\'s mass and velocity, or select a preset below.',
+        suggestedOptions: [
+          'Car: mass 1200 kg, velocity 25 m/s',
+          'Runner: mass 70 kg, speed 8 m/s',
+          'Baseball: mass 0.145 kg, speed 40 m/s'
+        ]
+      };
+    }
+
+    // 2. Newton's 2nd Law / Force / Acceleration without numbers
+    if (
+      (lower.includes('calculate force') || lower.includes('find force') || lower.includes('net force') || (lower.includes('calculate acceleration') && !/\d+/.test(q))) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: "Newton's Second Law of Motion (F = m · a)",
+        missingParameters: ['Mass of the object (m in kg)', 'Acceleration (a in m/s²) or Net Force (F in N)'],
+        clarificationPrompt: "I understand you want to calculate force using Newton's Second Law (F = m · a). Please provide the mass and acceleration values, or choose a preset below.",
+        suggestedOptions: [
+          'Mass: 5 kg, Acceleration: 3 m/s²',
+          'Car: mass 1500 kg, Acceleration: 2.5 m/s²',
+          'Rocket: mass 2000 kg, Force: 50,000 N'
+        ]
+      };
+    }
+
+    // 3. Velocity / Speed without numbers
+    if (
+      (lower.includes('calculate velocity') || lower.includes('find speed') || lower.includes('calculate speed') || lower.includes('how fast')) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Velocity & Speed Calculation (v = d / t)',
+        missingParameters: ['Distance traveled (d in meters or km)', 'Time elapsed (t in seconds or hours)'],
+        clarificationPrompt: 'To calculate velocity or speed, please provide numerical values for distance/displacement and elapsed time, or acceleration parameters.',
+        suggestedOptions: [
+          'Distance: 150m, Time: 10s',
+          'Displacement: 200m, Time: 5s',
+          'Initial v: 0 m/s, a: 3 m/s², t: 4s'
+        ]
+      };
+    }
+
+    // 4. Mechanical Work without numbers
+    if (
+      (lower.includes('calculate work') || lower.includes('work done')) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Mechanical Work (W = F · d)',
+        missingParameters: ['Applied Force (F in Newtons)', 'Displacement distance (d in meters)'],
+        clarificationPrompt: 'To calculate mechanical work (W = F · d), please provide the magnitude of the force and displacement distance, or pick a preset below.',
+        suggestedOptions: [
+          'Force: 50 N, Distance: 4 m',
+          'Force: 200 N, Distance: 10 m',
+          'Force: 1500 N, Distance: 25 m'
+        ]
+      };
+    }
+
+    // 5. Ohm's Law / Electricity without numbers
+    if (
+      (lower.includes("ohm's law") || lower.includes('ohms law') || lower.includes('calculate voltage') || lower.includes('calculate resistance') || lower.includes('calculate current')) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: "Ohm's Law Circuit Analysis (V = I · R)",
+        missingParameters: ['Any 2 of: Voltage (V in Volts), Current (I in Amps), Resistance (R in Ohms Ω)'],
+        clarificationPrompt: "To calculate electrical circuit parameters via Ohm's Law (V = I · R), please provide any two quantities among Voltage, Current, or Resistance.",
+        suggestedOptions: [
+          'Current: 2 A, Resistance: 10 Ω',
+          'Voltage: 120 V, Resistance: 24 Ω',
+          'Voltage: 9 V, Current: 0.5 A'
+        ]
+      };
+    }
+
+    // 6. Geometry: Area & Hypotenuse without dimensions
+    if (
+      (lower.includes('area of circle') || lower.includes('circle area')) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Circle Area Calculation (A = πr²)',
+        missingParameters: ['Radius (r) or Diameter (d) of the circle'],
+        clarificationPrompt: 'To calculate the area of a circle (A = πr²), please specify its radius or diameter, or click a preset below.',
+        suggestedOptions: ['Radius = 7 cm', 'Radius = 10 meters', 'Diameter = 14 cm']
+      };
+    }
+
+    if (
+      (lower.includes('area of triangle') || lower.includes('triangle area')) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Triangle Area (A = 1/2 · b · h)',
+        missingParameters: ['Base length (b)', 'Perpendicular height (h)'],
+        clarificationPrompt: 'To calculate triangle area (A = 1/2 · b · h), please provide the base and height dimensions.',
+        suggestedOptions: ['Base = 10 cm, Height = 6 cm', 'Base = 8 m, Height = 12 m', 'Base = 14 cm, Height = 5 cm']
+      };
+    }
+
+    if (
+      (lower.includes('area of rectangle') || lower.includes('rectangle area')) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Rectangle Area (A = length × width)',
+        missingParameters: ['Length (l)', 'Width (w)'],
+        clarificationPrompt: 'To calculate rectangle area (A = l × w), please provide the length and width dimensions.',
+        suggestedOptions: ['Length = 12 m, Width = 8 m', 'Length = 20 cm, Width = 15 cm']
+      };
+    }
+
+    if (
+      (lower.includes('hypotenuse') || lower.includes('pythagorean')) &&
+      !/\d+/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Pythagorean Theorem Hypotenuse (c = √(a² + b²))',
+        missingParameters: ['Length of leg a', 'Length of leg b'],
+        clarificationPrompt: 'To calculate the hypotenuse using the Pythagorean theorem (c = √(a² + b²)), please provide the lengths of the two perpendicular legs.',
+        suggestedOptions: ['Sides a = 3, b = 4', 'Sides a = 5, b = 12', 'Sides a = 8, b = 15']
+      };
+    }
+
+    // 7. Algebraic Equation / Roots without expression
+    if (
+      (lower.includes('find the roots') || lower.includes('solve for x') || lower.includes('factorize') || lower.includes('solve quadratic')) &&
       !/[0-9xXyYzZ=]/.test(q)
     ) {
       return {
         isAmbiguous: true,
+        intent: 'Algebraic Equation Solver',
+        missingParameters: ['Algebraic equation or polynomial expression'],
         clarificationPrompt: 'Please specify the exact equation or polynomial expression you would like to solve (e.g., 2x² - 8 = 0).',
         suggestedOptions: ['2x² - 8 = 0', 'x² - 5x + 6 = 0', 'x² - 9 = 0', '3x + 12 = 0']
       };
     }
 
+    // 8. Chemical Equation without formula
     if (
-      (lower.includes('calculate velocity') || lower.includes('find speed')) &&
-      !/\d+/.test(q)
-    ) {
-      return {
-        isAmbiguous: true,
-        clarificationPrompt: 'To calculate velocity or speed, please provide numerical values for distance/displacement and elapsed time, or acceleration parameters.',
-        suggestedOptions: ['Distance: 150m, Time: 10s', 'Displacement: 200m, Time: 5s', 'Initial v: 0 m/s, a: 3 m/s², t: 4s']
-      };
-    }
-
-    if (
-      lower.includes('balance the chemical equation') &&
+      (lower.includes('balance the chemical equation') || lower.includes('balance equation') || lower.includes('balance reaction')) &&
       !/[A-Z]/.test(q)
     ) {
       return {
         isAmbiguous: true,
+        intent: 'Chemical Equation Balancing',
+        missingParameters: ['Reactants and products chemical formulas'],
         clarificationPrompt: 'Please provide the chemical formula or reactants and products to balance (e.g., H2 + O2 -> H2O).',
         suggestedOptions: ['H2 + O2 -> H2O', 'CH4 + O2 -> CO2 + H2O', 'Fe + O2 -> Fe2O3', 'N2 + H2 -> NH3']
+      };
+    }
+
+    // 9. Essay / Writing prompt without topic
+    if (
+      lower === 'write an essay' || lower === 'write essay' || lower === 'write a paragraph' || lower === 'write story' || lower === 'write an article' || lower === 'essay'
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Structured Composition Writing',
+        missingParameters: ['Target topic or subject of the essay'],
+        clarificationPrompt: 'I am ready to draft an essay or descriptive paragraph. Please specify the topic or subject you would like me to write about.',
+        suggestedOptions: [
+          'Write an essay on my friend',
+          'Write an essay on Artificial Intelligence',
+          'Write a paragraph on Pakistan',
+          'Write an essay on Environmental Pollution'
+        ]
+      };
+    }
+
+    // 10. Calculus without function
+    if (
+      (lower.includes('find derivative') || lower.includes('differentiate') || lower.includes('find integral') || lower.includes('evaluate integral')) &&
+      !/[0-9xXyYzZ+\-*/^]/.test(q)
+    ) {
+      return {
+        isAmbiguous: true,
+        intent: 'Calculus (Derivatives & Integrals)',
+        missingParameters: ['Function f(x) to differentiate or integrate'],
+        clarificationPrompt: 'Please specify the algebraic function f(x) you would like to differentiate or integrate.',
+        suggestedOptions: [
+          'derivative of x^3 - 5x + 4',
+          'integral of 3x^2 + 2x - 5 dx',
+          'd/dx of sin(x) + cos(x)',
+          'integral of e^(2x) dx'
+        ]
       };
     }
 
@@ -119,7 +301,9 @@ export class QuestionSolverService {
     question: string,
     inputMode: InputMode,
     clarificationPrompt: string,
-    suggestedOptions: string[] = []
+    suggestedOptions: string[] = [],
+    intent?: string,
+    missingParameters?: string[]
   ): SolverResponse {
     return {
       id: `solve-${Date.now()}`,
@@ -128,9 +312,11 @@ export class QuestionSolverService {
       recognizedQuestion: question,
       inputMode,
       subject: 'Interdisciplinary',
-      topic: 'Clarification Needed',
+      topic: intent || 'Clarification Needed',
       difficulty: 'Standard',
       isAmbiguous: true,
+      detectedIntent: intent,
+      missingParameters: missingParameters || ['Specific numerical values or equations'],
       clarificationPrompt,
       suggestedClarifications: suggestedOptions,
       finalAnswer: 'Clarification Needed: Additional information is required to solve this problem accurately.',
@@ -512,8 +698,170 @@ export class QuestionSolverService {
   ): SolverResponse {
     const q = question.toLowerCase();
 
-    // Check for Newton's Second Law: F = m * a
-    if (q.includes('force') || q.includes('mass') || q.includes('acceleration')) {
+    // 1. Kinetic Energy: Ek = 1/2 * m * v^2
+    if (q.includes('kinetic') || q.includes('ke =') || q.includes('ke calculation')) {
+      const mMatch = q.match(/mass\s*(?:of|is|:|=)?\s*([0-9.]+)\s*(?:kg|kilogram|g)?/i) || q.match(/([0-9.]+)\s*kg/i);
+      const vMatch = q.match(/(?:velocity|speed)\s*(?:of|is|:|=)?\s*([0-9.]+)\s*(?:m\/s|km\/h)?/i) || q.match(/([0-9.]+)\s*m\/s/i);
+
+      let m = mMatch ? parseFloat(mMatch[1]) : 0;
+      let v = vMatch ? parseFloat(vMatch[1]) : 0;
+
+      if (!m || !v) {
+        const nums = q.match(/\b\d+(\.\d+)?\b/g);
+        if (nums && nums.length >= 2) {
+          m = parseFloat(nums[0]);
+          v = parseFloat(nums[1]);
+        }
+      }
+
+      if (m > 0 && v > 0) {
+        const ek = 0.5 * m * (v * v);
+        const ekFormatted = Number.isInteger(ek) ? ek.toLocaleString() : ek.toFixed(2);
+        const ekKJ = (ek / 1000).toFixed(2);
+
+        return {
+          id: `solve-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          originalInput: question,
+          recognizedQuestion: question,
+          inputMode,
+          subject: 'Physics',
+          topic: 'Kinetic Energy Calculation (Ek = 1/2 · m · v²)',
+          difficulty,
+          isAmbiguous: false,
+          finalAnswer: `Ek = ${ekFormatted} J (${ekKJ} kJ) — Kinetic Energy = 1/2 · m · v² = 1/2 × ${m} kg × (${v} m/s)² = ${ekFormatted} Joules`,
+          summary: `Calculated kinetic energy of a ${m} kg mass moving at ${v} m/s using Ek = 1/2 · m · v².`,
+          steps: [
+            {
+              stepNumber: 1,
+              title: 'Identify Given Parameters',
+              explanation: `Extracted mass m = ${m} kg and velocity v = ${v} m/s from the problem. Both are in standard SI units.`,
+              formulaOrCalculation: `m = ${m}\\text{ kg},\\quad v = ${v}\\text{ m/s}`,
+              intermediateResult: `m = ${m} kg, v = ${v} m/s`
+            },
+            {
+              stepNumber: 2,
+              title: 'Formulate Kinetic Energy Equation',
+              explanation: 'Kinetic energy represents the work needed to accelerate a body of mass m from rest to velocity v.',
+              formulaOrCalculation: `E_k = \\frac{1}{2} m v^2`,
+              tip: 'Velocity is squared, so doubling velocity quadruples kinetic energy!'
+            },
+            {
+              stepNumber: 3,
+              title: 'Substitute and Compute Result',
+              explanation: `Substitute the parameters into the equation: Ek = 0.5 × ${m} × (${v})² = 0.5 × ${m} × ${v * v} = ${ekFormatted} Joules.`,
+              formulaOrCalculation: `E_k = 0.5 \\times ${m} \\times ${v * v} = ${ekFormatted}\\text{ J}`,
+              intermediateResult: `Ek = ${ekFormatted} J (${ekKJ} kJ)`
+            }
+          ],
+          highlightedConcepts: [
+            {
+              term: 'Kinetic Energy (Ek)',
+              definition: 'The energy possessed by an object due to its motion, defined by Ek = 1/2 m v².',
+              relevance: 'Fundamental scalar quantity in classical physics.'
+            },
+            {
+              term: 'Joule (J)',
+              definition: 'SI unit of energy, equivalent to 1 kg·m²/s² or 1 N·m.',
+              relevance: 'Standard unit of mechanical work and energy.'
+            }
+          ],
+          learningAssistance: {
+            methodRationale: 'Direct application of classical work-energy theorem.',
+            alternativeMethods: ['Work-Energy Theorem (W_net = ΔEk)'],
+            commonPitfalls: ['Forgetting to square the velocity', 'Leaving velocity in km/h without converting to m/s'],
+            keyFormulas: ['E_k = \\frac{1}{2}mv^2', 'W = \\Delta E_k'],
+            practiceExample: {
+              question: 'What is the kinetic energy of a 2 kg ball thrown at 10 m/s?',
+              answer: 'Ek = 1/2 × 2 kg × (10 m/s)² = 100 Joules.'
+            }
+          },
+          voiceSpeechScript: `The kinetic energy is ${ekFormatted} Joules. With mass ${m} kilograms and velocity ${v} meters per second, 1 half times ${m} times ${v} squared equals ${ekFormatted} Joules.`
+        };
+      }
+    }
+
+    // 2. Newton's Second Law: F = m * a
+    if (q.includes('force') || q.includes('mass') || q.includes('acceleration') || q.includes('newton')) {
+      const mMatch = q.match(/mass\s*(?:of|is|:|=)?\s*([0-9.]+)\s*(?:kg|kilogram|g)?/i) || q.match(/([0-9.]+)\s*kg/i);
+      const aMatch = q.match(/acceleration\s*(?:of|is|:|=)?\s*([0-9.]+)\s*(?:m\/s²|m\/s\^2|m\/s2)?/i) || q.match(/([0-9.]+)\s*m\/s[²2^]/i);
+
+      let m = mMatch ? parseFloat(mMatch[1]) : 0;
+      let a = aMatch ? parseFloat(aMatch[1]) : 0;
+
+      if (!m || !a) {
+        const nums = q.match(/\b\d+(\.\d+)?\b/g);
+        if (nums && nums.length >= 2) {
+          m = parseFloat(nums[0]);
+          a = parseFloat(nums[1]);
+        }
+      }
+
+      if (m > 0 && a > 0) {
+        const force = m * a;
+        const forceFormatted = Number.isInteger(force) ? force.toString() : force.toFixed(2);
+
+        return {
+          id: `solve-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          originalInput: question,
+          recognizedQuestion: question,
+          inputMode,
+          subject: 'Physics',
+          topic: "Newton's Second Law of Motion",
+          difficulty,
+          isAmbiguous: false,
+          finalAnswer: `F = m · a = ${forceFormatted} N (Force = ${forceFormatted} Newtons for mass ${m} kg with acceleration ${a} m/s²)`,
+          summary: `Calculated net force of ${forceFormatted} N required to accelerate ${m} kg at ${a} m/s² using F = m · a.`,
+          steps: [
+            {
+              stepNumber: 1,
+              title: 'Identify Knowns and Unknowns',
+              explanation: `Given mass m = ${m} kg and acceleration a = ${a} m/s². The target unknown is net force F.`,
+              formulaOrCalculation: `m = ${m}\\text{ kg},\\quad a = ${a}\\text{ m/s}^2 \\implies F_{net} = ?`,
+              intermediateResult: `m = ${m} kg, a = ${a} m/s²`
+            },
+            {
+              stepNumber: 2,
+              title: 'Apply Newton\'s Second Law',
+              explanation: 'Newton\'s 2nd Law states that net force equals mass times acceleration: F = m · a.',
+              formulaOrCalculation: 'F = m \\times a',
+              tip: '1 Newton is the force needed to accelerate 1 kilogram of mass at 1 meter per second squared.'
+            },
+            {
+              stepNumber: 3,
+              title: 'Compute Net Force',
+              explanation: `F = ${m} kg × ${a} m/s² = ${forceFormatted} N.`,
+              formulaOrCalculation: `F = ${m} \\times ${a} = ${forceFormatted}\\text{ N}`,
+              intermediateResult: `F = ${forceFormatted} N`
+            }
+          ],
+          highlightedConcepts: [
+            {
+              term: "Newton's Second Law",
+              definition: 'The acceleration of an object is directly proportional to net force and inversely proportional to its mass.',
+              relevance: 'Core foundation of classical mechanics.'
+            },
+            {
+              term: 'Newton (N)',
+              definition: 'SI unit of force, equivalent to 1 kg·m/s².',
+              relevance: 'Standard measurement for physical forces.'
+            }
+          ],
+          learningAssistance: {
+            methodRationale: "Newton's second law directly relates force to the resulting kinematic acceleration.",
+            alternativeMethods: ['Impulse-momentum theorem (F Δt = Δp)'],
+            commonPitfalls: ['Using grams instead of kilograms for mass without conversion.'],
+            keyFormulas: ['F = m \\cdot a', 'W = m \\cdot g', 'p = m \\cdot v'],
+            practiceExample: {
+              question: 'What net force is required to accelerate a 5 kg object at 3 m/s²?',
+              answer: 'F = 5 kg × 3 m/s² = 15 Newtons.'
+            }
+          },
+          voiceSpeechScript: `According to Newton's Second Law, the required net force is ${forceFormatted} Newtons, calculated as mass ${m} kilograms multiplied by acceleration ${a} meters per second squared.`
+        };
+      }
+
       return {
         id: `solve-${Date.now()}`,
         timestamp: new Date().toISOString(),
@@ -1621,8 +1969,18 @@ Output ONLY raw valid JSON. Do not wrap in markdown quotes if possible, or use s
 
     if (origLower.includes('roots') || origLower.includes('solve for x')) {
       refined = `Find the roots of ${clarClean}`;
+    } else if (origLower.includes('kinetic energy') || origLower.includes('ke')) {
+      refined = `Calculate kinetic energy: ${clarClean}`;
+    } else if (origLower.includes('force') || origLower.includes('acceleration') || origLower.includes('newton')) {
+      refined = `Calculate net force: ${clarClean}`;
     } else if (origLower.includes('velocity') || origLower.includes('speed')) {
       refined = `Calculate velocity given ${clarClean}`;
+    } else if (origLower.includes('work')) {
+      refined = `Calculate work done: ${clarClean}`;
+    } else if (origLower.includes('ohm') || origLower.includes('resistance')) {
+      refined = `Calculate Ohm's law: ${clarClean}`;
+    } else if (origLower.includes('hypotenuse') || origLower.includes('pythagor')) {
+      refined = `Calculate hypotenuse for ${clarClean}`;
     } else if (origLower.includes('balance')) {
       refined = `Balance the chemical reaction: ${clarClean}`;
     } else if (origLower.includes('write') || origLower.includes('paragraph') || origLower.includes('essay')) {

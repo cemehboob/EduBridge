@@ -750,7 +750,41 @@ async function runTests() {
     console.log('PASS: StudentView defaultTab is confirmed to be "dashboard" (Activity Board & History).');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 45 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 46: Proactive AI Question Clarification & Exact Numerical Physics/Math Solving
+  console.log('\nTest 46: Verifying Proactive AI Question Clarification & Numerical Solving...');
+  const ambiguousKe = await QuestionSolverService.solveQuestion('calculate kinetic energy');
+  if (!ambiguousKe.isAmbiguous) {
+    console.error('FAIL: "calculate kinetic energy" was not flagged as ambiguous.');
+    failures++;
+  } else if (!ambiguousKe.detectedIntent || !ambiguousKe.missingParameters || ambiguousKe.missingParameters.length === 0) {
+    console.error('FAIL: Missing proactive detectedIntent or missingParameters in solver response.');
+    failures++;
+  } else {
+    console.log(`PASS: Proactively detected intent: "${ambiguousKe.detectedIntent}" with missing parameters: [${ambiguousKe.missingParameters.join(', ')}].`);
+
+    // Narrow down with user clarification
+    const clarifiedKe = await QuestionSolverService.narrowDownAndSolve('calculate kinetic energy', 'Car: mass 1200 kg, velocity 25 m/s');
+    if (clarifiedKe.result.isAmbiguous) {
+      console.error('FAIL: Clarified kinetic energy is still marked ambiguous.');
+      failures++;
+    } else if (!clarifiedKe.result.finalAnswer.includes('375,000 J') && !clarifiedKe.result.finalAnswer.includes('375 kJ')) {
+      console.error('FAIL: Clarified kinetic energy did not compute 375,000 J.', clarifiedKe.result.finalAnswer);
+      failures++;
+    } else {
+      console.log(`PASS: Clarified problem solved with exact numerical calculation: ${clarifiedKe.result.finalAnswer}`);
+    }
+
+    // Also verify numerical Newton's 2nd Law
+    const forceRes = await QuestionSolverService.solveQuestion('net force required to accelerate a 5 kg mass at 3 m/s²');
+    if (!forceRes.finalAnswer.includes('15 N')) {
+      console.error('FAIL: Net force 5kg * 3m/s² did not compute 15 N.', forceRes.finalAnswer);
+      failures++;
+    } else {
+      console.log(`PASS: Newton's Second Law computed numerical force: ${forceRes.finalAnswer}`);
+    }
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 46 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 
