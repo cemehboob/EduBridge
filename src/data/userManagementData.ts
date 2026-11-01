@@ -395,6 +395,11 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
         heading: '2. One-Click Replay: "Perform Activity Again"',
         text: 'Learners can repeat any past exercise, exam, or quiz upon their ease. Every recorded timeline card features a dedicated "Perform Again" action button that reopens the exact activity directly, allowing continuous reinforcement.',
         tip: 'Repeating an activity reinforces cognitive memory and contributes toward your daily XP study goal without overwriting your original completion history.'
+      },
+      {
+        heading: '3. Full-Space High-Density Data Table',
+        text: 'To maximize screen efficiency and eliminate wasted vertical space between records, the Activity Timeline utilizes an enterprise data table format. Records are aligned in compact, structured columns: Date & Time, Activity & Category, Details & Accomplishment, Score / Result, XP, Status, and Action. Users can also toggle between Table View and Card View depending on their preference or screen size.',
+        tip: 'The Data Table adapts to your viewport with smooth horizontal scrolling and symmetric high-contrast readability in both light and dark modes.'
       }
     ]
   },

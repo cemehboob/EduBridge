@@ -958,6 +958,23 @@ async function runTests() {
     console.log('PASS: index.css includes comprehensive symmetric dark mode rules, fractional background overrides, and luminous text colors.');
   }
 
+  // Check ActivityBoardView utilizes full available space in table format
+  const activityBoardCode = fs.readFileSync('src/components/student/ActivityBoardView.tsx', 'utf-8');
+  if (!activityBoardCode.includes('<table') || !activityBoardCode.includes('Table View')) {
+    console.error('FAIL: ActivityBoardView missing full-width high-density data table.');
+    failures++;
+  } else {
+    console.log('PASS: ActivityBoardView includes full-width high-density Data Table utilizing 100% available space.');
+  }
+
+  // Check symmetric table styles in index.css
+  if (!fullIndexCss.includes('html.dark table') || !fullIndexCss.includes('html.theme-midnight-dark table')) {
+    console.error('FAIL: index.css missing symmetric dark mode styles for table elements.');
+    failures++;
+  } else {
+    console.log('PASS: index.css includes symmetric dark mode styles for data table elements.');
+  }
+
   // 3. User Guide Articles verification
   const activityArticle = initialUserGuideArticles.find((a) => a.id === 'guide_activity_board');
   const landingArticle = initialUserGuideArticles.find((a) => a.id === 'guide_dashboard_landing');

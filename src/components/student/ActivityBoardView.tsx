@@ -17,7 +17,9 @@ import {
   Target,
   ArrowRight,
   Play,
-  Volume2
+  Volume2,
+  Table as TableIcon,
+  LayoutList
 } from 'lucide-react';
 import { UserActivityRecord, UserProfile, UserAccount } from '../../types';
 import { sound } from '../../utils/audio';
@@ -41,6 +43,7 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
 }) => {
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   // Filter activities for this active user with robust identity matching
   const rawFiltered = activities.filter((a) => {
@@ -260,86 +263,233 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
         </div>
       </div>
 
-      {/* 4. Activity Cards Feed */}
+      {/* 4. Activity Records Feed: High-Density Table (Full Space Utilization) & Cards */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between px-2 text-xs text-slate-500 font-bold uppercase tracking-wider">
-          <span>Activity Timeline ({filteredActivities.length} Records)</span>
-          <span>Click "Perform Again" to restart any activity</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-2 text-xs text-slate-500 font-bold">
+          <div className="flex items-center gap-2 uppercase tracking-wider">
+            <span>Activity Timeline ({filteredActivities.length} Records)</span>
+            <span className="text-slate-400 font-normal">|</span>
+            <span className="text-indigo-600 font-bold lowercase">Click "Perform Again" to restart any activity</span>
+          </div>
+
+          {/* View Mode Toggle: Table View (Full Space) vs Card View */}
+          <div className="flex items-center self-start sm:self-auto bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+            <button
+              onClick={() => {
+                sound.playClick();
+                setViewMode('table');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white text-indigo-700 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Full-Width Data Table (Optimized Space Utilization)"
+            >
+              <TableIcon className="w-3.5 h-3.5" />
+              <span>Table View</span>
+            </button>
+            <button
+              onClick={() => {
+                sound.playClick();
+                setViewMode('cards');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'cards'
+                  ? 'bg-white text-indigo-700 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Card View"
+            >
+              <LayoutList className="w-3.5 h-3.5" />
+              <span>Card View</span>
+            </button>
+          </div>
         </div>
 
         {filteredActivities.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3">
-            {filteredActivities.map((act) => (
-              <div
-                key={act.id}
-                className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
-              >
-                <div className="flex items-start sm:items-center gap-3.5">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${getBadgeStyleForType(act.type)}`}>
-                    {getIconForType(act.type)}
-                  </div>
+          viewMode === 'table' ? (
+            /* High-Density Data Table View utilizing 100% full available space */
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                    <tr>
+                      <th className="py-3 px-4 whitespace-nowrap">Date &amp; Time</th>
+                      <th className="py-3 px-4 whitespace-nowrap">Activity &amp; Category</th>
+                      <th className="py-3 px-4">Details &amp; Accomplishment</th>
+                      <th className="py-3 px-4 text-center whitespace-nowrap">Result / Score</th>
+                      <th className="py-3 px-4 text-center whitespace-nowrap">XP</th>
+                      <th className="py-3 px-4 text-center whitespace-nowrap">Status</th>
+                      <th className="py-3 px-4 text-right whitespace-nowrap">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredActivities.map((act) => (
+                      <tr
+                        key={act.id}
+                        className="hover:bg-indigo-50/40 transition-colors group"
+                      >
+                        {/* Timestamp */}
+                        <td className="py-2.5 px-4 font-mono text-[11px] text-slate-600 whitespace-nowrap align-middle">
+                          <div className="flex items-center gap-1.5 font-bold">
+                            <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                            <span>{act.timestamp}</span>
+                          </div>
+                          {act.relativeTime && (
+                            <div className="text-[10px] text-slate-400 pl-5">{act.relativeTime}</div>
+                          )}
+                        </td>
 
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border ${getBadgeStyleForType(act.type)}`}>
-                        {act.category}
-                      </span>
-                      <span className="font-bold text-slate-900 text-sm">
-                        {act.title}
-                      </span>
-                    </div>
+                        {/* Activity & Category */}
+                        <td className="py-2.5 px-4 align-middle whitespace-nowrap">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${getBadgeStyleForType(act.type)}`}>
+                              {getIconForType(act.type)}
+                            </div>
+                            <div>
+                              <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border ${getBadgeStyleForType(act.type)}`}>
+                                {act.category}
+                              </span>
+                              <div className="font-bold text-slate-900 text-xs mt-0.5 group-hover:text-indigo-600 transition-colors">
+                                {act.title}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
 
-                    <p className="text-xs text-slate-500 line-clamp-2 max-w-3xl">
-                      {act.details}
-                    </p>
+                        {/* Details */}
+                        <td className="py-2.5 px-4 text-slate-600 align-middle">
+                          <div className="line-clamp-2 leading-relaxed text-[11px] font-medium max-w-xl">
+                            {act.details}
+                          </div>
+                        </td>
 
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 pt-0.5">
-                      <span className="flex items-center gap-1 font-mono text-slate-600 font-semibold bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                        <Clock className="w-3 h-3 text-indigo-500" />
-                        <span>🕒 {act.timestamp}</span>
-                      </span>
+                        {/* Result / Score */}
+                        <td className="py-2.5 px-4 text-center align-middle whitespace-nowrap">
+                          {act.score ? (
+                            <span className="inline-block text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                              {act.score}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[11px]">—</span>
+                          )}
+                        </td>
 
-                      {act.relativeTime && (
-                        <span className="text-slate-400">({act.relativeTime})</span>
-                      )}
+                        {/* XP */}
+                        <td className="py-2.5 px-4 text-center align-middle whitespace-nowrap">
+                          {act.xpEarned ? (
+                            <span className="inline-block text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              +{act.xpEarned} XP
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[11px]">—</span>
+                          )}
+                        </td>
 
-                      {act.xpEarned && (
-                        <span className="text-emerald-700 font-black bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          +{act.xpEarned} XP
-                        </span>
-                      )}
+                        {/* Status */}
+                        <td className="py-2.5 px-4 text-center align-middle whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span>Completed</span>
+                          </span>
+                        </td>
 
-                      {act.score && (
-                        <span className="text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                          Result: {act.score}
-                        </span>
-                      )}
-
-                      <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-[10px] bg-emerald-50/70 px-1.5 py-0.5 rounded">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        <span>Completed</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Action: Perform Again */}
-                <div className="shrink-0 flex items-center gap-2 self-end md:self-center">
-                  <button
-                    onClick={() => {
-                      sound.playClick();
-                      onReplayActivity(act);
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-50 hover:bg-indigo-50 text-indigo-700 hover:text-indigo-800 border border-slate-200 hover:border-indigo-300 font-bold text-xs transition-all shadow-2xs cursor-pointer group"
-                    title={`Perform activity again: ${act.title}`}
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 group-hover:-rotate-90 transition-transform duration-300 text-indigo-600" />
-                    <span>Perform Again</span>
-                  </button>
-                </div>
+                        {/* Action: Perform Again */}
+                        <td className="py-2.5 px-4 text-right align-middle whitespace-nowrap">
+                          <button
+                            onClick={() => {
+                              sound.playClick();
+                              onReplayActivity(act);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 font-bold text-[11px] transition-all cursor-pointer shadow-2xs group/btn"
+                            title={`Perform activity again: ${act.title}`}
+                          >
+                            <RotateCcw className="w-3 h-3 group-hover/btn:-rotate-90 transition-transform duration-300" />
+                            <span>Perform Again</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            /* Card View */
+            <div className="grid grid-cols-1 gap-2.5">
+              {filteredActivities.map((act) => (
+                <div
+                  key={act.id}
+                  className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-3"
+                >
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${getBadgeStyleForType(act.type)}`}>
+                      {getIconForType(act.type)}
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border ${getBadgeStyleForType(act.type)}`}>
+                          {act.category}
+                        </span>
+                        <span className="font-bold text-slate-900 text-xs">
+                          {act.title}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 line-clamp-1 max-w-2xl">
+                        {act.details}
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-2.5 text-[10px] text-slate-400 pt-0.5">
+                        <span className="flex items-center gap-1 font-mono text-slate-600 font-semibold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                          <Clock className="w-3 h-3 text-indigo-500" />
+                          <span>🕒 {act.timestamp}</span>
+                        </span>
+
+                        {act.relativeTime && (
+                          <span className="text-slate-400">({act.relativeTime})</span>
+                        )}
+
+                        {act.xpEarned && (
+                          <span className="text-emerald-700 font-black bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                            +{act.xpEarned} XP
+                          </span>
+                        )}
+
+                        {act.score && (
+                          <span className="text-indigo-700 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                            Result: {act.score}
+                          </span>
+                        )}
+
+                        <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-[9px] bg-emerald-50/70 px-1.5 py-0.5 rounded">
+                          <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                          <span>Completed</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Action: Perform Again */}
+                  <div className="shrink-0 flex items-center gap-2 self-end md:self-center">
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        onReplayActivity(act);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 text-indigo-700 hover:text-indigo-800 border border-slate-200 hover:border-indigo-300 font-bold text-xs transition-all shadow-2xs cursor-pointer group"
+                      title={`Perform activity again: ${act.title}`}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 group-hover:-rotate-90 transition-transform duration-300 text-indigo-600" />
+                      <span>Perform Again</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
           <div className="bg-white rounded-3xl p-10 border border-slate-200 text-center space-y-3">
             <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">

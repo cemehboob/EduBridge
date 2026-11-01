@@ -491,6 +491,34 @@ html[data-color-scheme="midnight-dark"] .resource-vault-sheet {
   border-color: #334155 !important;
 }
 
+/* Symmetric Data Tables (Activity Timeline & Ledgers) */
+html.theme-midnight-dark table,
+html.dark table {
+  color: #f8fafc !important;
+}
+
+html.theme-midnight-dark thead,
+html.dark thead {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html.theme-midnight-dark th,
+html.dark th {
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+html.theme-midnight-dark td,
+html.dark td {
+  border-color: #1e293b !important;
+}
+
+html.theme-midnight-dark tr:hover,
+html.dark tr:hover {
+  background-color: rgba(30, 41, 59, 0.7) !important;
+}
+
 /* High Contrast Accessibility Mode */
 html.theme-high-contrast body {
   background-color: #ffffff !important;
