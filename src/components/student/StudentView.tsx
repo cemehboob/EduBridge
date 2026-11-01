@@ -258,50 +258,9 @@ export const StudentView: React.FC<StudentViewProps> = ({
   return (
     <div className="space-y-6">
       
-      {/* Student Sub-Navigation Bar: 2-Row Layout so Mode button never hides menu options */}
+      {/* Student Sub-Navigation Bar: Streamlined Flex Wrap with Maximum Page Space */}
       <div className="border-b border-slate-200 bg-white shadow-2xs">
-        <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-3 space-y-2.5">
-          
-          {/* Row 1: Workspace Title & Mode Toggle Bar */}
-          <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-              <span className="text-base">{isKidMode ? '🧸' : '🎓'}</span>
-              <span className="font-extrabold text-slate-900 tracking-tight">
-                {isKidMode ? 'Kid Adventure Hub & Learning Paths' : 'Student Learning Hub & Curriculum Modules'}
-              </span>
-              <span className="hidden sm:inline-block text-[11px] text-slate-400 font-medium">
-                · {visibleTabs.length} Modules Active
-              </span>
-            </div>
-
-            {/* Mode Switcher cleanly positioned on Row 1 */}
-            {onToggleSimplifiedInterface && (
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => {
-                    sound.playClick();
-                    onToggleSimplifiedInterface(!isKidMode);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all border flex items-center gap-2 shadow-2xs cursor-pointer ${
-                    isKidMode
-                      ? 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-xs'
-                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
-                  }`}
-                  title={isKidMode ? 'Switch to full academic suite' : 'Switch to simple 5-year-old friendly mode'}
-                >
-                  <span className="text-sm">{isKidMode ? '🧸' : '⚙️'}</span>
-                  <span>{isKidMode ? '5-Yr Kid Mode (Active)' : 'Full Adult Mode'}</span>
-                  <span className={`text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded ${
-                    isKidMode ? 'bg-amber-700 text-amber-100' : 'bg-indigo-100 text-indigo-700'
-                  }`}>
-                    Switch
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Row 2: All Module Tabs rendered in clean 2-Row Flex Wrap so none are hidden */}
+        <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-2.5">
           <nav aria-label="Student Learning Navigation" className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {visibleTabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -312,7 +271,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
                     sound.playClick();
                     setActiveTab(tab.id);
                   }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                     isActive
                       ? isKidMode
                         ? 'bg-amber-500 text-white shadow-xs ring-2 ring-amber-300'
@@ -335,7 +294,6 @@ export const StudentView: React.FC<StudentViewProps> = ({
               );
             })}
           </nav>
-
         </div>
       </div>
 

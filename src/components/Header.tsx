@@ -45,6 +45,8 @@ interface HeaderProps {
   onFontScaleChange: (scale: FontScale) => void;
   onLogout: () => void;
   feedbackTicketCount?: number;
+  isKidMode?: boolean;
+  onToggleKidMode?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -65,7 +67,9 @@ export const Header: React.FC<HeaderProps> = ({
   fontScale,
   onFontScaleChange,
   onLogout,
-  feedbackTicketCount = 0
+  feedbackTicketCount = 0,
+  isKidMode = false,
+  onToggleKidMode
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -282,7 +286,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onOpenFeedbackModal();
               }}
               className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all cursor-pointer"
-              title="Feedback & Admin Bug Report Mechanism"
+              title="Feedback &amp; Admin Bug Report Mechanism"
             >
               <MessageSquare className="w-4 h-4 text-slate-600" />
               <span className="hidden lg:inline">Feedback</span>
@@ -291,8 +295,27 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* User Account / Profile Menu */}
-            <div className="relative">
+            {/* Mode Switcher moved right next to Feedback Button */}
+            {onToggleKidMode && (
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  onToggleKidMode();
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-black border transition-all cursor-pointer shadow-2xs ${
+                  isKidMode
+                    ? 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-xs ring-1 ring-amber-300'
+                    : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                }`}
+                title={isKidMode ? 'Switch to Full Academic Suite' : 'Switch to 5-Year-Old Kid Mode'}
+              >
+                <span className="text-sm">{isKidMode ? '🧸' : '⚙️'}</span>
+                <span className="hidden sm:inline">{isKidMode ? 'Kid Mode' : 'Full Mode'}</span>
+              </button>
+            )}
+
+            {/* User Account / Profile Menu on the Right Side */}
+            <div className="relative ml-auto sm:ml-1">
               {currentUser ? (
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -307,7 +330,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="hidden sm:block text-left">
                     <div className="text-xs font-bold text-slate-900 leading-tight flex items-center gap-1">
                       <span>{currentUser.name.split(' ')[0]}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold border ${roleBadgeColors[currentUser.role]}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold border ${roleBadgeColors[currentUser.role]}`}>
                         {currentUser.role}
                       </span>
                     </div>

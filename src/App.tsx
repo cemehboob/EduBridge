@@ -771,6 +771,8 @@ export default function App() {
         fontScale={fontScale}
         onFontScaleChange={setFontScale}
         onLogout={handleLogout}
+        isKidMode={currentUser?.preferences.simplifiedInterface ?? (profile.ageCohort === 'early')}
+        onToggleKidMode={() => handleToggleSimplifiedInterface(!(currentUser?.preferences.simplifiedInterface ?? (profile.ageCohort === 'early')))}
         feedbackTicketCount={
           feedbackTickets.filter((t) =>
             t.status === 'Pending Review' ||
