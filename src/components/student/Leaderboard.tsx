@@ -354,7 +354,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profile }) => {
   };
 
   return (
-    <div className="w-full max-w-[1720px] mx-auto space-y-8 pb-16">
+    <div className="w-full space-y-8 pb-16">
       
       {/* Top Banner & Control Tabs */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs space-y-5">

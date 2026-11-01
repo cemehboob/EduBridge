@@ -338,7 +338,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
       
       {/* Student Sub-Navigation Bar: Streamlined Flex Wrap with Maximum Page Space */}
       <div className="border-b border-slate-200 bg-white shadow-2xs">
-        <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-2.5">
+        <div className="w-full px-3 sm:px-4 lg:px-6 py-2.5">
           <nav aria-label="Student Learning Navigation" className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {visibleTabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -377,7 +377,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
       {/* Celebratory Milestone Bar (Visible across all tabs when Goal is Reached) */}
       {profile.todayXp >= profile.dailyGoalXp && (
-        <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="w-full px-3 sm:px-4 lg:px-6">
           <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/20 to-orange-500/15 border border-amber-300 flex items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-2.5">
               <PartyPopper className="w-5 h-5 text-amber-600 animate-bounce shrink-0" />
@@ -406,7 +406,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
       )}
 
       {/* Active Tab View */}
-      <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+      <main className="w-full px-3 sm:px-4 lg:px-6">
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             {/* Top & First Page Under Menu: Activity Board & Past/Current History */}

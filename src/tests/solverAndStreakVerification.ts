@@ -975,6 +975,16 @@ async function runTests() {
     console.log('PASS: index.css includes symmetric dark mode styles for data table elements.');
   }
 
+  // Check full-width layout utilizing all space from left and right
+  const studentViewCode = fs.readFileSync('src/components/student/StudentView.tsx', 'utf-8');
+  const headerCode = fs.readFileSync('src/components/Header.tsx', 'utf-8');
+  if (studentViewCode.includes('max-w-[1720px]') || headerCode.includes('max-w-[1720px]')) {
+    console.error('FAIL: Layout still contains restrictive max-w-[1720px] clamping.');
+    failures++;
+  } else {
+    console.log('PASS: Layout utilizes 100% full space from left to right (fluid edge-to-edge view).');
+  }
+
   // 3. User Guide Articles verification
   const activityArticle = initialUserGuideArticles.find((a) => a.id === 'guide_activity_board');
   const landingArticle = initialUserGuideArticles.find((a) => a.id === 'guide_dashboard_landing');

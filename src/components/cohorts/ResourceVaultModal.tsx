@@ -95,7 +95,7 @@ export const ResourceVaultModal: React.FC<ResourceVaultModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="bg-white w-full max-w-6xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-700 via-blue-600 to-teal-600 px-6 py-5 text-white flex items-center justify-between shrink-0">

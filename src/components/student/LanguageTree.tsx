@@ -73,7 +73,7 @@ export const LanguageTree: React.FC<LanguageTreeProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+    <div className="w-full space-y-8 pb-12">
       
       {/* Daily Goal & Streak Banner */}
       <div className={`rounded-3xl p-5 sm:p-6 border transition-all ${

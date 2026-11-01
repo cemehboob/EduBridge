@@ -917,13 +917,13 @@ export default function App() {
         )}
 
         {effectiveRole === 'parent' && (
-          <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+          <main className="w-full px-3 sm:px-4 lg:px-6">
             <ParentPortal progress={childProgress} />
           </main>
         )}
 
         {effectiveRole === 'teacher' && (
-          <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+          <main className="w-full px-3 sm:px-4 lg:px-6">
             <TeacherPortal
               assignments={assignments}
               questionBank={questionBank}
@@ -934,7 +934,7 @@ export default function App() {
         )}
 
         {effectiveRole === 'admin' && isUserAdmin && (
-          <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+          <main className="w-full px-3 sm:px-4 lg:px-6">
             <AdminPortal
               models={ollamaModels}
               metrics={systemMetrics}

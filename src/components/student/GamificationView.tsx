@@ -79,7 +79,7 @@ export const GamificationView: React.FC<GamificationViewProps> = ({ profile }) =
   ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+    <div className="w-full space-y-8 pb-12">
       
       {/* Top Banner */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">

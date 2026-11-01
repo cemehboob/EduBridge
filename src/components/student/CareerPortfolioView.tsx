@@ -169,7 +169,7 @@ export const CareerPortfolioView: React.FC<CareerPortfolioViewProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+    <div className="w-full space-y-8 pb-12">
       
       {/* Top Banner & Sub-Nav */}
       <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs space-y-4">
