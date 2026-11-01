@@ -51,6 +51,10 @@ import { Leaderboard } from './Leaderboard';
 import { StreakCounter } from './StreakCounter';
 import { BadgeGrid } from './BadgeGrid';
 import { VocabularyQuiz } from './VocabularyQuiz';
+import { KidScienceMathFun } from './kids/KidScienceMathFun';
+import { KidFriendsRanking } from './kids/KidFriendsRanking';
+import { KidDailySchedule } from './kids/KidDailySchedule';
+import { KidFutureDreams } from './kids/KidFutureDreams';
 import { UniversalLearningArena } from '../cohorts/UniversalLearningArena';
 import { QuestionSolverView } from '../solver/QuestionSolverView';
 import { BadgeService } from '../../services/badgeService';
@@ -184,25 +188,25 @@ export const StudentView: React.FC<StudentViewProps> = ({
       id: 'academic',
       label: isKidMode ? '🔬 Science & Math Fun' : 'STEM Academics',
       icon: <BookOpen className="w-4 h-4 text-purple-500" />,
-      isKidDefault: false
+      isKidDefault: true
     },
     {
       id: 'leaderboard',
       label: isKidMode ? '🏅 Friends & Rankings' : 'Leaderboard & XP',
       icon: <Trophy className="w-4 h-4 text-yellow-500" />,
-      isKidDefault: false
+      isKidDefault: true
     },
     {
       id: 'planner',
       label: isKidMode ? '📅 Daily Schedule' : 'Study Planner',
       icon: <Calendar className="w-4 h-4 text-teal-500" />,
-      isKidDefault: false
+      isKidDefault: true
     },
     {
       id: 'career',
       label: isKidMode ? '💼 Future Dreams' : 'Career & Portfolio',
       icon: <Briefcase className="w-4 h-4 text-slate-500" />,
-      isKidDefault: false
+      isKidDefault: true
     }
   ];
 
@@ -785,10 +789,14 @@ export const StudentView: React.FC<StudentViewProps> = ({
         )}
 
         {activeTab === 'academic' && (
-          <AcademicView
-            topics={academicTopics}
-            onConsultAI={handleConsultAIFromAcademic}
-          />
+          isKidMode ? (
+            <KidScienceMathFun onEarnXp={() => onCelebrate && onCelebrate('daily_goal')} />
+          ) : (
+            <AcademicView
+              topics={academicTopics}
+              onConsultAI={handleConsultAIFromAcademic}
+            />
+          )
         )}
 
         {activeTab === 'tutor' && (
@@ -801,28 +809,40 @@ export const StudentView: React.FC<StudentViewProps> = ({
         )}
 
         {activeTab === 'planner' && (
-          <StudyPlannerView
-            tasks={dailyTasks}
-            revisions={revisions}
-            profile={profile}
-            onToggleTask={onToggleTask}
-            onCompleteRevision={onCompleteRevision}
-            onAddTask={onAddTask}
-          />
+          isKidMode ? (
+            <KidDailySchedule onEarnXp={() => onCelebrate && onCelebrate('daily_goal')} />
+          ) : (
+            <StudyPlannerView
+              tasks={dailyTasks}
+              revisions={revisions}
+              profile={profile}
+              onToggleTask={onToggleTask}
+              onCompleteRevision={onCompleteRevision}
+              onAddTask={onAddTask}
+            />
+          )
         )}
 
         {activeTab === 'career' && (
-          <CareerPortfolioView
-            roadmaps={careerRoadmaps}
-            resume={resume}
-            certificates={certificates}
-            onUpdateResume={onUpdateResume}
-            onAskCareerAdvisor={handleAskCareerAdvisor}
-          />
+          isKidMode ? (
+            <KidFutureDreams profile={profile} />
+          ) : (
+            <CareerPortfolioView
+              roadmaps={careerRoadmaps}
+              resume={resume}
+              certificates={certificates}
+              onUpdateResume={onUpdateResume}
+              onAskCareerAdvisor={handleAskCareerAdvisor}
+            />
+          )
         )}
 
         {activeTab === 'leaderboard' && (
-          <Leaderboard profile={profile} />
+          isKidMode ? (
+            <KidFriendsRanking profile={profile} />
+          ) : (
+            <Leaderboard profile={profile} />
+          )
         )}
 
         {activeTab === 'badges' && (
