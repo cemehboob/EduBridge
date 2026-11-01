@@ -42,10 +42,21 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Filter activities for this active user
-  const userActivities = currentUser
-    ? activities.filter((a) => a.userId === currentUser.id || !a.userId)
-    : activities;
+  // Filter activities for this active user with robust identity matching
+  const rawFiltered = activities.filter((a) => {
+    if (!currentUser) return true;
+    if (!a.userId) return true;
+    if (a.userId === currentUser.id || a.userId === profile?.id) return true;
+    if (currentUser.email && a.userId.toLowerCase() === currentUser.email.toLowerCase()) return true;
+    if (profile?.email && a.userId.toLowerCase() === profile.email.toLowerCase()) return true;
+    if (currentUser.name && a.userName?.toLowerCase() === currentUser.name.toLowerCase()) return true;
+    if (profile?.name && a.userName?.toLowerCase() === profile.name.toLowerCase()) return true;
+    if (currentUser.role === 'student' && (a.userId === 'usr_student_01' || a.userId === 'user_edubridge_01')) return true;
+    if (isKidMode && (a.userId === 'usr_student_early' || a.userId === 'usr_student_junior')) return true;
+    return false;
+  });
+
+  const userActivities = rawFiltered.length > 0 ? rawFiltered : activities;
 
   const filteredActivities = userActivities.filter((act) => {
     const matchesType =

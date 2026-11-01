@@ -20,6 +20,7 @@ import { ResumeEnhancementService } from '../services/resumeEnhancementService';
 import { ResumeExportService } from '../services/resumeExportService';
 import { CVRegionPattern, EnhancedResumeData } from '../types/career';
 import { UserAccount } from '../types';
+import { IELTSPracticeService } from '../services/ieltsPracticeService';
 import { calculateAge, calculateCohortFromDob, calculateEducationLevel } from '../utils/userProfile';
 
 async function runTests() {
@@ -853,7 +854,74 @@ async function runTests() {
     console.log('PASS: AI Cognitive Analysis & Human Understanding card and Detail Assistant verified in QuestionSolverView.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 49 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 50: Verifying Activity Timeline Recording & Practice Tests (At Least 10 Questions per Test, Subject-Coherence, AI Question Synthesis)
+  console.log('\nTest 50: Verifying Activity Timeline Recording & Practice Tests Architecture (>=10 Questions)...');
+  
+  // 1. Test Activity Recording persistence
+  const sampleSolverActivity = {
+    userId: 'usr_student_01',
+    userName: 'Alex Rivera',
+    type: 'solver' as const,
+    title: 'Solved Physics Problem: F = m · a',
+    category: 'Physics Solver',
+    score: '100% (Verified)',
+    xpEarned: 25,
+    status: 'completed' as const,
+    details: 'Derived net force calculation: 15 N for mass 5 kg accelerating at 3 m/s².',
+    replayPayload: {
+      tab: 'solver',
+      query: 'calculate force for mass 5kg and acceleration 3m/s^2'
+    }
+  };
+  const recorded = StorageService.recordUserActivity(sampleSolverActivity);
+  const fetchedActivities = StorageService.getUserActivities('usr_student_01');
+  const foundSaved = fetchedActivities.some((a) => a.id === recorded.id && a.title === sampleSolverActivity.title);
+  if (!foundSaved) {
+    console.error('FAIL: StorageService.recordUserActivity failed to persist new activity record.');
+    failures++;
+  } else {
+    console.log(`PASS: Activity timeline successfully persisted activity "${recorded.title}" with timestamp "${recorded.timestamp}".`);
+  }
+
+  // 2. Test Practice Tests have at least 10 questions each
+  const allPracticeTests = IELTSPracticeService.getPracticeTests();
+  const testsWithUnder10Q = allPracticeTests.filter((t) => !t.questions || t.questions.length < 10 || t.questionCount < 10);
+  if (testsWithUnder10Q.length > 0) {
+    console.error(`FAIL: Found ${testsWithUnder10Q.length} practice tests with fewer than 10 questions! Example: ${testsWithUnder10Q[0].title}`);
+    failures++;
+  } else {
+    console.log(`PASS: All ${allPracticeTests.length} practice tests contain AT LEAST 10 authentic questions (verified questionCount >= 10).`);
+  }
+
+  // 3. Test Question Subject Coherence within tests
+  const firstThemedTest = allPracticeTests[0];
+  const qSubjects = firstThemedTest.questions?.map((q) => q.subject) || [];
+  const allShareSubject = qSubjects.every((s) => s === qSubjects[0]);
+  if (!allShareSubject || !firstThemedTest.questions || firstThemedTest.questions.length < 10) {
+    console.error('FAIL: Practice test questions are not under the same subject or missing questions array.', qSubjects);
+    failures++;
+  } else {
+    console.log(`PASS: Practice test "${firstThemedTest.title}" has 10 cohesive questions all under subject "${qSubjects[0]}".`);
+  }
+
+  // 4. Test Dynamic AI 10-Question Test Synthesis (Same-Subject & Mix & Match)
+  const aiSameSubjectTest = IELTSPracticeService.generateAIPracticeTest({ mode: 'same_subject', subject: 'Renewable Energy & Solar Grids' });
+  if (!aiSameSubjectTest.questions || aiSameSubjectTest.questions.length !== 10) {
+    console.error('FAIL: AI Same-Subject Generator failed to generate exactly 10 questions.', aiSameSubjectTest);
+    failures++;
+  } else {
+    console.log(`PASS: AI Same-Subject Generator synthesized 10 questions under "${aiSameSubjectTest.subject}".`);
+  }
+
+  const aiMixMatchTest = IELTSPracticeService.generateAIPracticeTest({ mode: 'mix_match' });
+  if (!aiMixMatchTest.questions || aiMixMatchTest.questions.length !== 10 || !aiMixMatchTest.title.includes('Mix & Match')) {
+    console.error('FAIL: AI Mix & Match Generator failed to generate 10 cross-disciplinary questions.', aiMixMatchTest);
+    failures++;
+  } else {
+    console.log(`PASS: AI Mix & Match Generator synthesized 10 cross-disciplinary questions (${aiMixMatchTest.title}).`);
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 50 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

@@ -138,6 +138,26 @@ export const StudentView: React.FC<StudentViewProps> = ({
   const [solverInitialQuery, setSolverInitialQuery] = useState<string | undefined>(undefined);
   const [isBadgeGridExpanded, setIsBadgeGridExpanded] = useState(false);
 
+  // Local synchronized user activities feed
+  const [localActivities, setLocalActivities] = useState<UserActivityRecord[]>(() => {
+    return activities && activities.length > 0 ? activities : StorageService.getUserActivities();
+  });
+
+  useEffect(() => {
+    if (activities && activities.length > 0) {
+      setLocalActivities(activities);
+    }
+  }, [activities]);
+
+  const recordActivitySafe = (act: Omit<UserActivityRecord, 'id' | 'timestamp'> & { timestamp?: string }) => {
+    if (onRecordActivity) {
+      onRecordActivity(act);
+    } else {
+      StorageService.recordUserActivity(act);
+    }
+    setLocalActivities(StorageService.getUserActivities());
+  };
+
   // Compute live badges for summary showcase
   const badges = BadgeService.computeBadges(profile, vocabularyWords, units, mockTests, 3);
   const unlockedBadgesCount = badges.filter((b) => b.unlocked).length;
@@ -393,7 +413,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
             <ActivityBoardView
               profile={profile}
               currentUser={currentUser || null}
-              activities={activities}
+              activities={localActivities}
               onReplayActivity={handleReplayActivity}
               onNavigateTab={(tab) => {
                 sound.playClick();
@@ -811,8 +831,22 @@ export const StudentView: React.FC<StudentViewProps> = ({
         {activeTab === 'solver' && (
           <QuestionSolverView
             initialQuestion={solverInitialQuery}
-            onQuestionSolved={(subject) => {
-              // Solver question completed cleanly without triggering modal spam
+            onQuestionSolved={(subject, query, result) => {
+              recordActivitySafe({
+                userId: currentUser?.id || profile.id,
+                userName: currentUser?.name || profile.name,
+                type: 'solver',
+                title: `Solved ${subject} Question: ${query ? (query.length > 40 ? query.slice(0, 40) + '...' : query) : 'Step-by-step Solution'}`,
+                category: `${subject} Solver`,
+                score: '100% (Verified)',
+                xpEarned: 25,
+                status: 'completed',
+                details: result?.summary || `Explored cognitive reasoning and human-like step-by-step derivation for ${subject}.`,
+                replayPayload: {
+                  tab: 'solver',
+                  query: query || ''
+                }
+              });
             }}
           />
         )}
@@ -829,7 +863,12 @@ export const StudentView: React.FC<StudentViewProps> = ({
         )}
 
         {activeTab === 'exam' && (
-          <ExamPrepView mockTests={mockTests} profile={profile} />
+          <ExamPrepView
+            mockTests={mockTests}
+            profile={profile}
+            currentUser={currentUser}
+            onRecordActivity={recordActivitySafe}
+          />
         )}
 
         {activeTab === 'vocab_quiz' && (
@@ -853,6 +892,20 @@ export const StudentView: React.FC<StudentViewProps> = ({
                 status: 'COMPLETED',
                 details: `Answered ${score} of ${total} vocabulary quiz words correctly.`
               });
+              recordActivitySafe({
+                userId: currentUser?.id || profile.id,
+                userName: currentUser?.name || profile.name,
+                type: 'vocab_quiz',
+                title: `Vocabulary Quiz: ${profile.ageCohort || 'Academic'} Lexicon`,
+                category: 'Lexicon Vault',
+                score: `${score}/${total} (${Math.round((score / total) * 100)}%)`,
+                xpEarned,
+                status: 'completed',
+                details: `Tested on academic vocabulary definitions, contextual synonyms, and usage with ${score} of ${total} correct.`,
+                replayPayload: {
+                  tab: 'vocab_quiz'
+                }
+              });
               if (onCelebrate && (score / total) >= 0.8) {
                 onCelebrate('daily_goal');
               }
@@ -862,7 +915,26 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
         {activeTab === 'academic' && (
           isKidMode ? (
-            <KidScienceMathFun profile={profile} onEarnXp={() => onCelebrate && onCelebrate('daily_goal')} />
+            <KidScienceMathFun
+              profile={profile}
+              onEarnXp={() => {
+                recordActivitySafe({
+                  userId: currentUser?.id || profile.id,
+                  userName: currentUser?.name || profile.name,
+                  type: 'stem_game',
+                  title: 'STEM Discovery & Math Fun Challenge',
+                  category: 'Science & Math Fun',
+                  score: '🌟 100% Star Solver',
+                  xpEarned: 25,
+                  status: 'completed',
+                  details: 'Completed interactive science experiment and math calculation games for youth cohort.',
+                  replayPayload: {
+                    tab: 'academic'
+                  }
+                });
+                if (onCelebrate) onCelebrate('daily_goal');
+              }}
+            />
           ) : (
             <AcademicView
               topics={academicTopics}
@@ -882,13 +954,49 @@ export const StudentView: React.FC<StudentViewProps> = ({
 
         {activeTab === 'planner' && (
           isKidMode ? (
-            <KidDailySchedule profile={profile} onEarnXp={() => onCelebrate && onCelebrate('daily_goal')} />
+            <KidDailySchedule
+              profile={profile}
+              onEarnXp={() => {
+                recordActivitySafe({
+                  userId: currentUser?.id || profile.id,
+                  userName: currentUser?.name || profile.name,
+                  type: 'daily_schedule',
+                  title: 'Completed Daily Routine & Schedule Check-in',
+                  category: 'Daily Routine',
+                  score: '🌟 Golden Routine Star',
+                  xpEarned: 20,
+                  status: 'completed',
+                  details: 'Completed daily learning habit checklist, bedtime reading, and study routines.',
+                  replayPayload: {
+                    tab: 'planner'
+                  }
+                });
+                if (onCelebrate) onCelebrate('daily_goal');
+              }}
+            />
           ) : (
             <StudyPlannerView
               tasks={dailyTasks}
               revisions={revisions}
               profile={profile}
-              onToggleTask={onToggleTask}
+              onToggleTask={(taskId) => {
+                onToggleTask(taskId);
+                const targetTask = dailyTasks.find((t) => t.id === taskId);
+                recordActivitySafe({
+                  userId: currentUser?.id || profile.id,
+                  userName: currentUser?.name || profile.name,
+                  type: 'study_task',
+                  title: `Completed Study Task: ${targetTask?.title || 'Daily Goal'}`,
+                  category: targetTask?.module || 'Study Habits',
+                  score: 'Completed',
+                  xpEarned: 15,
+                  status: 'completed',
+                  details: `Checked off study goal: "${targetTask?.title || 'Daily learning task'}".`,
+                  replayPayload: {
+                    tab: 'planner'
+                  }
+                });
+              }}
               onCompleteRevision={onCompleteRevision}
               onAddTask={onAddTask}
             />

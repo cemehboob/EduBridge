@@ -66,7 +66,7 @@ import { sound } from '../../utils/audio';
 interface QuestionSolverViewProps {
   initialSubject?: SolverSubject;
   initialQuestion?: string;
-  onQuestionSolved?: (subject: SolverSubject) => void;
+  onQuestionSolved?: (subject: SolverSubject, query?: string, result?: SolverResponse) => void;
 }
 
 const SAMPLE_QUESTIONS: { subject: SolverSubject; label: string; question: string }[] = [
@@ -263,7 +263,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
       }
 
       if (notifyParent && onQuestionSolved) {
-        onQuestionSolved(result.subject);
+        onQuestionSolved(result.subject, questionText, result);
       }
       sound.playSuccess();
     } catch (err) {

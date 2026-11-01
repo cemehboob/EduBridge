@@ -138,6 +138,17 @@ export interface IngestedItemRecord {
 
 export type ExamType = 'IELTS Academic' | 'IELTS General Training' | 'IELTS' | 'PTE' | 'TOEFL' | 'OET' | 'DET' | 'Cambridge English';
 
+export interface PracticeTestQuestion {
+  id: string;
+  questionNumber: number;
+  prompt: string;
+  options?: string[];
+  correctAnswer?: string;
+  explanation?: string;
+  sampleAnswer?: string;
+  subject?: string;
+}
+
 export interface IELTSPracticeTest {
   id: string;
   category: 'IELTS Academic' | 'IELTS General Training';
@@ -146,6 +157,8 @@ export interface IELTSPracticeTest {
   difficulty: 'Foundation' | 'Standard' | 'Advanced';
   durationMinutes: number;
   questionCount: number;
+  subject?: string;
+  questions?: PracticeTestQuestion[];
   prompt: string;
   passage?: string;
   audioTranscript?: string;

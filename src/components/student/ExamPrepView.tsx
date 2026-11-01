@@ -23,7 +23,18 @@ import {
   BookOpen,
   CheckSquare
 } from 'lucide-react';
-import { ExamType, MockTest, ExamAttempt, IELTSPracticeTest, Band9EssayTemplate, UserProfile, AgeCohortId } from '../../types';
+import {
+  ExamType,
+  MockTest,
+  ExamAttempt,
+  IELTSPracticeTest,
+  PracticeTestQuestion,
+  Band9EssayTemplate,
+  UserProfile,
+  UserAccount,
+  UserActivityRecord,
+  AgeCohortId
+} from '../../types';
 import { IELTSPracticeService } from '../../services/ieltsPracticeService';
 import { AIService } from '../../services/aiService';
 import { StorageService } from '../../services/storage';
@@ -35,10 +46,18 @@ import { calculateCohortFromDob } from '../../utils/userProfile';
 interface ExamPrepViewProps {
   mockTests: MockTest[];
   profile?: UserProfile;
+  currentUser?: UserAccount | null;
   onRecordAttempt?: (attempt: ExamAttempt) => void;
+  onRecordActivity?: (activity: Omit<UserActivityRecord, 'id' | 'timestamp'> & { timestamp?: string }) => void;
 }
 
-export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }) => {
+export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
+  mockTests,
+  profile,
+  currentUser,
+  onRecordAttempt,
+  onRecordActivity
+}) => {
   const examOptions: ExamType[] = [
     'IELTS Academic',
     'IELTS General Training',
@@ -117,13 +136,19 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
   const [cueNotes, setCueNotes] = useState('');
   
   // Practice tests state (1,100+ catalog + dynamic nightly additions)
-  const [practiceTests] = useState<IELTSPracticeTest[]>(() => {
+  const [practiceTests, setPracticeTests] = useState<IELTSPracticeTest[]>(() => {
     const base = IELTSPracticeService.getPracticeTests();
     const stored = StorageService.getPracticeTests();
     return [...stored, ...base];
   });
   const [selectedPracticeModule, setSelectedPracticeModule] = useState<'Listening' | 'Reading' | 'Writing' | 'Speaking'>('Reading');
   const [activePracticeItem, setActivePracticeItem] = useState<IELTSPracticeTest | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [practiceAnswers, setPracticeAnswers] = useState<Record<number, string>>({});
+  const [practiceTestSubmitted, setPracticeTestSubmitted] = useState<boolean>(false);
+  const [practiceTestScore, setPracticeTestScore] = useState<{ correct: number; total: number; percentage: number } | null>(null);
+  const [aiGenerating, setAiGenerating] = useState<boolean>(false);
+  const [aiBannerMsg, setAiBannerMsg] = useState<string | null>(null);
   const [practiceUserAnswer, setPracticeUserAnswer] = useState('');
   const [practiceFeedback, setPracticeFeedback] = useState<{
     isCorrect: boolean;
@@ -252,6 +277,119 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
     }, 2500);
   };
 
+  const handleGenerateAITest = (mode: 'same_subject' | 'mix_match') => {
+    sound.playClick();
+    setAiGenerating(true);
+    setTimeout(() => {
+      const subjectPool = [
+        'Environmental Science & Clean Energy',
+        'Artificial Intelligence & Cognitive Ethics',
+        'Marine Biology & Oceanic Systems',
+        'Materials Science & Advanced Nanotechnology',
+        'Neurobiology & Behavioral Psychology'
+      ];
+      const selectedSubject = subjectPool[Math.floor(Math.random() * subjectPool.length)];
+      const newTest = IELTSPracticeService.generateAIPracticeTest({
+        mode,
+        module: selectedPracticeModule,
+        subject: mode === 'mix_match' ? 'Cross-Disciplinary Mix & Match' : selectedSubject
+      });
+
+      // Prepend to practice tests
+      const updated = [newTest, ...practiceTests];
+      setPracticeTests(updated);
+      StorageService.savePracticeTests([newTest, ...StorageService.getPracticeTests()]);
+
+      // Automatically launch test in workspace
+      setActivePracticeItem(newTest);
+      setCurrentQuestionIndex(0);
+      setPracticeAnswers({});
+      setPracticeTestSubmitted(false);
+      setPracticeTestScore(null);
+      setPracticeFeedback(null);
+      setAiGenerating(false);
+      setAiBannerMsg(`✨ AI generated a new 10-Question ${mode === 'mix_match' ? 'Mix & Match' : 'Same-Subject'} test under "${newTest.subject}"!`);
+      sound.playSuccess();
+    }, 600);
+  };
+
+  const handleSubmitPracticeTest = (testItem: IELTSPracticeTest) => {
+    sound.playClick();
+    const questions = testItem.questions && testItem.questions.length > 0
+      ? testItem.questions
+      : [
+          {
+            id: `${testItem.id}_q1`,
+            questionNumber: 1,
+            prompt: testItem.prompt,
+            options: testItem.options,
+            correctAnswer: testItem.correctAnswer,
+            explanation: testItem.explanation,
+            subject: testItem.subject
+          }
+        ];
+
+    let correctCount = 0;
+    questions.forEach((q, idx) => {
+      const userAns = practiceAnswers[idx] || (idx === 0 ? practiceUserAnswer : '');
+      if (userAns && q.correctAnswer && userAns.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
+        correctCount++;
+      }
+    });
+
+    const total = questions.length;
+    const percentage = Math.round((correctCount / total) * 100);
+
+    setPracticeTestSubmitted(true);
+    setPracticeTestScore({ correct: correctCount, total, percentage });
+
+    if (percentage >= 80) {
+      sound.playSuccess();
+      try {
+        confetti({ particleCount: 75, spread: 60 });
+      } catch {}
+    } else {
+      sound.playClick();
+    }
+
+    // Officially record verified practice test conduction in ledger
+    StorageService.recordTestConduction({
+      userEmail: currentUser?.email || profile?.email || 'alex.chen@edubridge.edu',
+      userName: currentUser?.name || profile?.name || 'Alex Chen',
+      userRole: currentUser?.role || profile?.role || 'student',
+      cohort: profile?.ageCohort || 'academy',
+      testType: 'PRACTICE_TEST',
+      testId: testItem.id,
+      testTitle: `${testItem.title} (10 Questions)`,
+      category: `${selectedExam} ${testItem.module} Practice`,
+      score: `${correctCount}/${total} (${percentage}%)`,
+      xpEarned: 50,
+      status: 'COMPLETED',
+      details: `Completed 10-question practice test on "${testItem.title}" under subject "${testItem.subject || testItem.module}". Scored ${correctCount}/${total} (${percentage}%).`
+    });
+
+    // Record to User Activity Timeline (Chronological History & Dashboard)
+    const actRecord = {
+      userId: currentUser?.id || profile?.id || 'usr_student_01',
+      userName: currentUser?.name || profile?.name || 'Alex Rivera',
+      type: 'mock_test' as const,
+      title: `${testItem.title} (10 Questions)`,
+      category: `${testItem.category} · ${testItem.module}`,
+      score: `${correctCount}/${total} (${percentage}%)`,
+      xpEarned: 50,
+      status: 'completed' as const,
+      details: `Completed 10-question practice test on "${testItem.title}" under subject "${testItem.subject || testItem.module}". Answered ${correctCount} of ${total} questions correctly (${percentage}%).`,
+      replayPayload: {
+        tab: 'exam',
+        subId: testItem.id
+      }
+    };
+    StorageService.recordUserActivity(actRecord);
+    if (onRecordActivity) {
+      onRecordActivity(actRecord);
+    }
+  };
+
   const handleSubmitPracticeAnswer = (testItem: IELTSPracticeTest) => {
     sound.playClick();
     if (!practiceUserAnswer.trim() && testItem.options) {
@@ -314,6 +452,27 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
       status: 'COMPLETED',
       details: `Module: ${testItem.module} • Question answered and verified against authentic rubric.`
     });
+
+    // Record activity in user timeline
+    const practiceActivity = {
+      userId: currentUser?.id || profile?.id || 'usr_student_01',
+      userName: currentUser?.name || profile?.name || 'Alex Rivera',
+      type: 'mock_test' as const,
+      title: `Practice: ${testItem.title}`,
+      category: `${testItem.category} · ${testItem.module}`,
+      score: isCorrectResult ? '100% (Correct)' : 'Needs Review',
+      xpEarned: isCorrectResult ? 25 : 10,
+      status: 'completed' as const,
+      details: `Practiced ${testItem.module} question: ${testItem.prompt.slice(0, 70)}...`,
+      replayPayload: {
+        tab: 'exam',
+        subId: testItem.id
+      }
+    };
+    StorageService.recordUserActivity(practiceActivity);
+    if (onRecordActivity) {
+      onRecordActivity(practiceActivity);
+    }
   };
 
   const handleSubmitForEvaluation = async () => {
@@ -422,6 +581,27 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
       status: 'COMPLETED',
       details: `Full timed mock examination submitted with AI multi-metric evaluation. Predicted score: ${predictedScore}.`
     });
+
+    // Record mock exam activity to user timeline
+    const mockExamActivity = {
+      userId: currentUser?.id || profile?.id || 'usr_student_01',
+      userName: currentUser?.name || profile?.name || 'Alex Rivera',
+      type: 'mock_test' as const,
+      title: `${currentTest.title} Full Simulation`,
+      category: selectedExam,
+      score: predictedScore,
+      xpEarned: 100,
+      status: 'completed' as const,
+      details: `Full timed mock examination evaluated with AI multi-metric breakdown. Predicted score: ${predictedScore}.`,
+      replayPayload: {
+        tab: 'exam',
+        subId: currentTest.id
+      }
+    };
+    StorageService.recordUserActivity(mockExamActivity);
+    if (onRecordActivity) {
+      onRecordActivity(mockExamActivity);
+    }
 
     try {
       confetti({ particleCount: 90, spread: 60 });
@@ -651,116 +831,382 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
               </div>
             </div>
 
+            {/* AI Practice Generator Toolbar */}
+            <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 p-4 rounded-2xl border border-emerald-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <span className="font-extrabold text-xs text-emerald-950 uppercase tracking-wider">
+                    AI 10-Question Practice Synthesizer
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  Synthesize additional 10-question practice tests under identical subjects, inter-related domains, or cross-disciplinary mix & match.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  disabled={aiGenerating}
+                  onClick={() => handleGenerateAITest('same_subject')}
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{aiGenerating ? 'Synthesizing...' : '🤖 Add 10-Question Subject Test (AI)'}</span>
+                </button>
+
+                <button
+                  disabled={aiGenerating}
+                  onClick={() => handleGenerateAITest('mix_match')}
+                  className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+                >
+                  <BrainCircuit className="w-3.5 h-3.5" />
+                  <span>{aiGenerating ? 'Synthesizing...' : '⚡ Add 10-Question Mix & Match (AI)'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* AI Generator Notification Banner */}
+            {aiBannerMsg && (
+              <div className="p-3 bg-emerald-100/80 border border-emerald-300 rounded-xl text-xs text-emerald-900 font-bold flex items-center justify-between">
+                <span>{aiBannerMsg}</span>
+                <button onClick={() => setAiBannerMsg(null)} className="text-emerald-700 hover:text-emerald-950 font-black cursor-pointer">✕</button>
+              </div>
+            )}
+
             {/* Practice Test Interactive Workspace or Catalog List */}
             {activePracticeItem ? (
               <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200 space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
                   <div>
-                    <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">
-                      {activePracticeItem.category} · {activePracticeItem.module} Practice
-                    </span>
-                    <h4 className="text-lg font-black text-slate-900">{activePracticeItem.title}</h4>
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-lg border border-emerald-200 uppercase tracking-wider">
+                        {activePracticeItem.category} · {activePracticeItem.module}
+                      </span>
+                      {activePracticeItem.subject && (
+                        <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
+                          Subject: {activePracticeItem.subject}
+                        </span>
+                      )}
+                      <span className="text-xs text-slate-500 font-mono">
+                        ⏱️ {activePracticeItem.durationMinutes} mins · {activePracticeItem.questions?.length || 10} Questions
+                      </span>
+                    </div>
+                    <h4 className="text-xl font-black text-slate-900">{activePracticeItem.title}</h4>
                   </div>
                   <button
-                    onClick={() => { setActivePracticeItem(null); setPracticeFeedback(null); setPracticeUserAnswer(''); }}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-white px-3 py-1.5 rounded-xl border border-slate-200"
+                    onClick={() => {
+                      setActivePracticeItem(null);
+                      setPracticeTestSubmitted(false);
+                      setPracticeTestScore(null);
+                      setPracticeAnswers({});
+                      setPracticeFeedback(null);
+                      setPracticeUserAnswer('');
+                    }}
+                    className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs self-start sm:self-auto cursor-pointer"
                   >
                     ← Back to Catalog
                   </button>
                 </div>
 
-                {activePracticeItem.passage && (
-                  <div className="p-5 bg-white rounded-2xl border border-slate-200 text-sm font-serif text-slate-800 leading-relaxed">
-                    {activePracticeItem.passage}
-                  </div>
-                )}
+                {/* 10-Question Progress & Stepper Bar */}
+                {(() => {
+                  const questions = activePracticeItem.questions && activePracticeItem.questions.length > 0
+                    ? activePracticeItem.questions
+                    : [
+                        {
+                          id: `${activePracticeItem.id}_q1`,
+                          questionNumber: 1,
+                          prompt: activePracticeItem.prompt,
+                          options: activePracticeItem.options,
+                          correctAnswer: activePracticeItem.correctAnswer,
+                          explanation: activePracticeItem.explanation
+                        }
+                      ];
+                  const totalQ = questions.length;
+                  const answeredCount = Object.keys(practiceAnswers).length;
+                  const currentQ = questions[currentQuestionIndex] || questions[0];
 
-                {activePracticeItem.audioTranscript && (
-                  <div className="p-4 bg-white rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-bold text-slate-800">Audio Listening Simulation (Piper Engine)</p>
-                      <p className="text-xs text-slate-500 italic">Click play to listen to audio passage</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <VoicePersonaSelector compact={true} />
-                      <button
-                        onClick={() => handlePlayAudio(activePracticeItem.audioTranscript!)}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Volume2 className="w-4 h-4" />
-                        <span>Listen</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <p className="font-bold text-slate-900 text-sm">{activePracticeItem.prompt}</p>
-
-                  {activePracticeItem.options ? (
-                    <div className="grid grid-cols-1 gap-2">
-                      {activePracticeItem.options.map((opt, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            sound.playClick();
-                            setPracticeUserAnswer(opt);
-                          }}
-                          className={`p-3.5 rounded-xl border text-left text-xs font-medium transition-all ${
-                            practiceUserAnswer === opt
-                              ? 'bg-emerald-50 border-emerald-600 text-emerald-950 ring-2 ring-emerald-500/20'
-                              : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <textarea
-                      rows={5}
-                      value={practiceUserAnswer}
-                      onChange={(e) => setPracticeUserAnswer(e.target.value)}
-                      placeholder="Write your practice response here..."
-                      className="w-full p-4 rounded-2xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500"
-                    />
-                  )}
-
-                  {practiceFeedback && (
-                    <div
-                      className={`p-4 rounded-xl border text-xs space-y-2 transition-all ${
-                        practiceFeedback.isCorrect
-                          ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-                          : 'bg-rose-50/90 border-rose-300 text-rose-950'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 font-black">
-                        {practiceFeedback.isCorrect ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                        ) : (
-                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                        )}
-                        <span>{practiceFeedback.message}</span>
-                      </div>
-                      {practiceFeedback.explanation && (
-                        <div className="pt-2 border-t border-slate-200/80 text-slate-700 leading-relaxed">
-                          <span className="font-bold text-slate-900 block mb-0.5">Explanation & Reasoning:</span>
-                          <p>{practiceFeedback.explanation}</p>
+                  return (
+                    <div className="space-y-5">
+                      {/* Stepper pills */}
+                      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span>Question {currentQuestionIndex + 1} of {totalQ}</span>
+                            <span className="text-slate-400">({answeredCount} of {totalQ} answered)</span>
+                          </span>
+                          {practiceTestSubmitted && practiceTestScore && (
+                            <span className="font-extrabold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300">
+                              Final Score: {practiceTestScore.correct} / {practiceTestScore.total} ({practiceTestScore.percentage}%)
+                            </span>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  )}
 
-                  <div className="flex justify-end pt-2">
-                    <button
-                      onClick={() => handleSubmitPracticeAnswer(activePracticeItem)}
-                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Submit Practice Answer</span>
-                    </button>
-                  </div>
-                </div>
+                        {/* Visual Progress Bar */}
+                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                          <div
+                            className="bg-emerald-600 h-full transition-all duration-300"
+                            style={{ width: `${Math.round((answeredCount / totalQ) * 100)}%` }}
+                          />
+                        </div>
+
+                        {/* Question Jump Pills */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          {questions.map((q, idx) => {
+                            const isAnswered = practiceAnswers[idx] !== undefined && practiceAnswers[idx] !== '';
+                            const isActive = currentQuestionIndex === idx;
+                            const isCorrect = practiceTestSubmitted && q.correctAnswer && practiceAnswers[idx]?.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase();
+                            const isIncorrect = practiceTestSubmitted && isAnswered && !isCorrect;
+
+                            let pillStyle = 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200';
+                            if (practiceTestSubmitted) {
+                              if (isCorrect) pillStyle = 'bg-emerald-600 text-white border-emerald-700 font-black';
+                              else if (isIncorrect) pillStyle = 'bg-rose-600 text-white border-rose-700 font-black';
+                              else pillStyle = 'bg-slate-200 text-slate-500 border-slate-300';
+                            } else {
+                              if (isActive) pillStyle = 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-300 font-black';
+                              else if (isAnswered) pillStyle = 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold';
+                            }
+
+                            return (
+                              <button
+                                key={q.id || idx}
+                                onClick={() => {
+                                  sound.playClick();
+                                  setCurrentQuestionIndex(idx);
+                                }}
+                                className={`w-8 h-8 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center ${pillStyle}`}
+                              >
+                                {idx + 1}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Content Panels: Passage / Transcript & Question */}
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                        {/* Context Pane: Reading Passage or Listening Transcript */}
+                        {(activePracticeItem.passage || activePracticeItem.audioTranscript) && (
+                          <div className="lg:col-span-6 space-y-3">
+                            <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
+                              <span>Contextual Source Material</span>
+                              <span className="text-[11px] text-indigo-600 font-bold">All 10 Questions Based on This Topic</span>
+                            </div>
+
+                            {activePracticeItem.passage && (
+                              <div className="p-5 bg-white rounded-2xl border border-slate-200 text-sm font-serif text-slate-800 leading-relaxed max-h-[480px] overflow-y-auto shadow-2xs">
+                                {activePracticeItem.passage}
+                              </div>
+                            )}
+
+                            {activePracticeItem.audioTranscript && (
+                              <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                  <div>
+                                    <p className="text-xs font-bold text-slate-800">Audio Listening Simulation (Piper Engine)</p>
+                                    <p className="text-xs text-slate-500 italic">Click play to listen to audio passage</p>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <VoicePersonaSelector compact={true} />
+                                    <button
+                                      onClick={() => handlePlayAudio(activePracticeItem.audioTranscript!)}
+                                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                    >
+                                      <Volume2 className="w-4 h-4" />
+                                      <span>Listen</span>
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 font-mono leading-relaxed max-h-60 overflow-y-auto">
+                                  {activePracticeItem.audioTranscript}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Active Question Runner Pane */}
+                        <div className={`${(activePracticeItem.passage || activePracticeItem.audioTranscript) ? 'lg:col-span-6' : 'lg:col-span-12'} space-y-4`}>
+                          <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-black text-indigo-700 uppercase tracking-wider bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                                Question {currentQuestionIndex + 1} of {totalQ}
+                              </span>
+                              {currentQ.subject && (
+                                <span className="text-slate-400 font-medium">{currentQ.subject}</span>
+                              )}
+                            </div>
+
+                            <p className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
+                              {currentQ.prompt}
+                            </p>
+
+                            {/* Multiple Choice Options */}
+                            {currentQ.options && currentQ.options.length > 0 ? (
+                              <div className="grid grid-cols-1 gap-2.5">
+                                {currentQ.options.map((opt, i) => {
+                                  const isSelected = practiceAnswers[currentQuestionIndex] === opt;
+                                  const isCorrectOpt = currentQ.correctAnswer && opt.trim().toLowerCase() === currentQ.correctAnswer.trim().toLowerCase();
+                                  const isWrongSelected = practiceTestSubmitted && isSelected && !isCorrectOpt;
+
+                                  let optClass = 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800';
+                                  if (practiceTestSubmitted) {
+                                    if (isCorrectOpt) {
+                                      optClass = 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold ring-2 ring-emerald-300';
+                                    } else if (isWrongSelected) {
+                                      optClass = 'bg-rose-50 border-rose-400 text-rose-950 ring-2 ring-rose-200';
+                                    }
+                                  } else {
+                                    if (isSelected) {
+                                      optClass = 'bg-emerald-50 border-emerald-600 text-emerald-950 ring-2 ring-emerald-500/20 font-bold';
+                                    }
+                                  }
+
+                                  return (
+                                    <button
+                                      key={i}
+                                      disabled={practiceTestSubmitted}
+                                      onClick={() => {
+                                        sound.playClick();
+                                        setPracticeAnswers((prev) => ({
+                                          ...prev,
+                                          [currentQuestionIndex]: opt
+                                        }));
+                                      }}
+                                      className={`p-3.5 rounded-xl border text-left text-xs font-medium transition-all cursor-pointer flex items-start gap-2.5 ${optClass}`}
+                                    >
+                                      <span className="w-5 h-5 rounded-lg bg-slate-100 border border-slate-300 flex items-center justify-center shrink-0 font-bold text-[11px] text-slate-700">
+                                        {String.fromCharCode(65 + i)}
+                                      </span>
+                                      <span className="flex-1 leading-relaxed">{opt}</span>
+                                      {practiceTestSubmitted && isCorrectOpt && (
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <textarea
+                                rows={5}
+                                disabled={practiceTestSubmitted}
+                                value={practiceAnswers[currentQuestionIndex] || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setPracticeAnswers((prev) => ({
+                                    ...prev,
+                                    [currentQuestionIndex]: val
+                                  }));
+                                }}
+                                placeholder="Type your detailed written answer here..."
+                                className="w-full p-4 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500"
+                              />
+                            )}
+
+                            {/* Explanation Box (Visible if submitted or verified) */}
+                            {practiceTestSubmitted && currentQ.explanation && (
+                              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                                <span className="font-black text-slate-800 block">Explanation & Reasoning:</span>
+                                <p className="text-slate-600 leading-relaxed">{currentQ.explanation}</p>
+                              </div>
+                            )}
+
+                            {/* Question Navigation Controls */}
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                              <button
+                                disabled={currentQuestionIndex === 0}
+                                onClick={() => {
+                                  sound.playClick();
+                                  setCurrentQuestionIndex((prev) => Math.max(0, prev - 1));
+                                }}
+                                className="px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                              >
+                                ← Previous
+                              </button>
+
+                              <div className="flex items-center gap-2">
+                                {currentQuestionIndex < totalQ - 1 ? (
+                                  <button
+                                    onClick={() => {
+                                      sound.playClick();
+                                      setCurrentQuestionIndex((prev) => Math.min(totalQ - 1, prev + 1));
+                                    }}
+                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-2xs"
+                                  >
+                                    Next Question →
+                                  </button>
+                                ) : (
+                                  !practiceTestSubmitted && (
+                                    <button
+                                      onClick={() => handleSubmitPracticeTest(activePracticeItem)}
+                                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-sm flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <CheckCircle2 className="w-4 h-4" />
+                                      <span>Submit 10-Question Test</span>
+                                    </button>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Submit Bar (Always Accessible Once Ready) */}
+                          {!practiceTestSubmitted && (
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="text-xs text-slate-600">
+                                <span>{answeredCount} of {totalQ} questions answered.</span>
+                                {answeredCount < totalQ && (
+                                  <span className="text-amber-600 font-medium ml-1">You can review or submit at any time.</span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => handleSubmitPracticeTest(activePracticeItem)}
+                                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span>Submit All {totalQ} Questions</span>
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Post-Submission Summary Banner */}
+                          {practiceTestSubmitted && practiceTestScore && (
+                            <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-5 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                                    <Award className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                    <h5 className="font-black text-emerald-950 text-sm">Practice Test Completed!</h5>
+                                    <p className="text-xs text-emerald-700">
+                                      Score: {practiceTestScore.correct} / {practiceTestScore.total} ({practiceTestScore.percentage}%) · +50 XP Saved to Timeline
+                                    </p>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    sound.playClick();
+                                    setPracticeAnswers({});
+                                    setPracticeTestSubmitted(false);
+                                    setPracticeTestScore(null);
+                                    setCurrentQuestionIndex(0);
+                                  }}
+                                  className="px-3.5 py-1.5 rounded-xl bg-white text-emerald-900 border border-emerald-300 font-bold text-xs hover:bg-emerald-100 cursor-pointer"
+                                >
+                                  Retake Test
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <div className="space-y-4">
@@ -771,6 +1217,10 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({ mockTests, profile }
                       onClick={() => {
                         sound.playClick();
                         setActivePracticeItem(test);
+                        setCurrentQuestionIndex(0);
+                        setPracticeAnswers({});
+                        setPracticeTestSubmitted(false);
+                        setPracticeTestScore(null);
                         setPracticeUserAnswer('');
                         setPracticeFeedback(null);
                       }}
