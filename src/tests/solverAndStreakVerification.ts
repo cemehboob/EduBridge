@@ -960,6 +960,11 @@ async function runTests() {
 
   // 3. User Guide Articles verification
   const activityArticle = initialUserGuideArticles.find((a) => a.id === 'guide_activity_board');
+  const landingArticle = initialUserGuideArticles.find((a) => a.id === 'guide_dashboard_landing');
+  const cohortsArticle = initialUserGuideArticles.find((a) => a.id === 'guide_age_cohorts');
+  const authSecArticle = initialUserGuideArticles.find((a) => a.id === 'guide_auth_security');
+  const adminMgmtArticle = initialUserGuideArticles.find((a) => a.id === 'guide_admin_user_management');
+  const classroomArticle = initialUserGuideArticles.find((a) => a.id === 'guide_interactive_classroom');
   const examArticle = initialUserGuideArticles.find((a) => a.id === 'guide_exam_prep');
   const vaultArticle = initialUserGuideArticles.find((a) => a.id === 'guide_resource_vault');
   const solverArticle = initialUserGuideArticles.find((a) => a.id === 'guide_question_solver');
@@ -969,6 +974,41 @@ async function runTests() {
     failures++;
   } else {
     console.log(`PASS: Verified user guide article "${activityArticle.title}" covers activity history, timestamps, and replay.`);
+  }
+
+  if (!landingArticle || !landingArticle.summary.includes('first page under menu')) {
+    console.error('FAIL: User guide missing or incomplete guide_dashboard_landing article.');
+    failures++;
+  } else {
+    console.log(`PASS: Verified user guide article "${landingArticle.title}" covers first-page landing hierarchy under menu.`);
+  }
+
+  if (!cohortsArticle || !cohortsArticle.summary.includes('Date of Birth') || !cohortsArticle.summary.includes('showing/hiding')) {
+    console.error('FAIL: User guide missing or incomplete guide_age_cohorts article.');
+    failures++;
+  } else {
+    console.log(`PASS: Verified user guide article "${cohortsArticle.title}" covers DOB age calculation and dynamic module gating.`);
+  }
+
+  if (!authSecArticle || !authSecArticle.summary.includes('6-digit email OTP') || !authSecArticle.summary.includes('zero single-click')) {
+    console.error('FAIL: User guide missing or incomplete guide_auth_security article.');
+    failures++;
+  } else {
+    console.log(`PASS: Verified user guide article "${authSecArticle.title}" covers server password verification and 6-digit OTP reset.`);
+  }
+
+  if (!adminMgmtArticle || !adminMgmtArticle.summary.includes('credentials') || !adminMgmtArticle.summary.includes('cohort recalculation')) {
+    console.error('FAIL: User guide missing or incomplete guide_admin_user_management article.');
+    failures++;
+  } else {
+    console.log(`PASS: Verified user guide article "${adminMgmtArticle.title}" covers admin updating credentials and DOB cohort recalculation.`);
+  }
+
+  if (!classroomArticle || !classroomArticle.summary.includes('human way') || !classroomArticle.summary.includes('reads results aloud')) {
+    console.error('FAIL: User guide missing or incomplete guide_interactive_classroom article.');
+    failures++;
+  } else {
+    console.log(`PASS: Verified user guide article "${classroomArticle.title}" covers human-like AI classroom and spoken speech listening.`);
   }
 
   if (!examArticle || !examArticle.summary.includes('10 in-depth questions') || !examArticle.summary.includes('stepper')) {

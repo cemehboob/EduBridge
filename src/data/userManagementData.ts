@@ -373,7 +373,7 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'student',
     summary: 'First-page landing dashboard tracking real-time and historical learning activities with exact timestamps, status indicators, and one-click "Perform Activity Again" replay.',
     keywords: ['activity board', 'timeline', 'history', 'timestamp', 'perform again', 'dashboard', 'replay', 'recent activities', 'past activities'],
-    screenshotUrl: '/assets/guide/getting_started_dashboard.jpg',
+    screenshotUrl: '/assets/guide/activity_timeline_history.jpg',
     screenshotCaption: 'Activity Board & Timeline: Real-time and historical learning activities with ISO timestamps, status badges, and one-click "Perform Activity Again" replay.',
     imagePlaceholder: {
       title: 'Activity Board & Timeline Architecture',
@@ -395,6 +395,150 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
         heading: '2. One-Click Replay: "Perform Activity Again"',
         text: 'Learners can repeat any past exercise, exam, or quiz upon their ease. Every recorded timeline card features a dedicated "Perform Again" action button that reopens the exact activity directly, allowing continuous reinforcement.',
         tip: 'Repeating an activity reinforces cognitive memory and contributes toward your daily XP study goal without overwriting your original completion history.'
+      }
+    ]
+  },
+  {
+    id: 'guide_dashboard_landing',
+    title: 'First-Page Landing Dashboard & Adaptive Hierarchy',
+    category: 'Platform Basics',
+    icon: 'Layers',
+    minRole: 'student',
+    summary: 'The Activity Board & History sits at the top of the first page under menu as the primary home view, followed by Adventure Hub, Streak Momentum, and Milestone Badges.',
+    keywords: ['dashboard', 'first page', 'landing', 'hierarchy', 'menu', 'history', 'adventure hub', 'streak'],
+    screenshotUrl: '/assets/guide/dashboard_top_landing.jpg',
+    screenshotCaption: 'Landing Hierarchy: Dashboard & History positioned at the very top under menu, followed by Adventure Hub, Streak Habit, and Milestone Badges.',
+    contentSections: [
+      {
+        heading: '1. Structured Visual Hierarchy: Dashboard & History First',
+        text: 'EduBridge structures the user experience with an intuitive top-down hierarchy. As soon as you log in, the Activity Board & History is presented at the very top of the page immediately below the main navigation menu.',
+        steps: [
+          'The first object visible under the navigation menu is your live Activity Board.',
+          'Directly beneath the Activity Board, learners find their Kid Adventure Hub or Academic Course Tracks.',
+          'The Daily Streak Habit counter and Milestone Badges showcase follow in clean, symmetric sequence.'
+        ]
+      },
+      {
+        heading: '2. Zero Clutter & Symmetric Layout',
+        text: 'All dashboard cards adapt symmetrically across desktop, tablet, and mobile viewport sizes, giving learners instant visibility into their historical study momentum.',
+        tip: 'Collapsing or expanding components preserves screen real estate while keeping all critical learning tools within a single scrollable view.'
+      }
+    ]
+  },
+  {
+    id: 'guide_age_cohorts',
+    title: 'Age Cohorts & DOB-Driven Developmental Gating',
+    category: 'Developmental Cohorts',
+    icon: 'Users',
+    minRole: 'student',
+    summary: 'Date of Birth strictly calculates developmental age, dynamically showing/hiding modules, games, and difficulty across Ages 3–7, 8–10, Teens, Career, and Golden Age.',
+    keywords: ['age cohort', 'dob', 'date of birth', 'early', 'junior', 'teen', 'academy', 'pro', 'senior', 'age gating', 'show hide'],
+    screenshotUrl: '/assets/guide/age_gating_cohort_modules.jpg',
+    screenshotCaption: 'Dynamic Age-Gating Architecture: Date of Birth strictly calculates developmental age, dynamically showing/hiding modules, games, and difficulty.',
+    contentSections: [
+      {
+        heading: '1. Automatic Age Calculation from Registered Date of Birth',
+        text: 'EduBridge calculates a learner’s exact developmental stage from their registered Date of Birth (DOB). Rather than forcing users into arbitrary grade categories, the interface dynamically shows, hides, enables, or disables features based on cognitive readiness.',
+        steps: [
+          '🧸 Ages 3–7 (Early Explorers): Kid-friendly adventure center, large tactile buttons, phonics soundboards, illustrated word builders. Advanced calculus and timed mock exams are cleanly locked.',
+          '🎒 Ages 8–10 (Junior Scholars): Interactive STEM challenges, Junior games arena, house teams, daily study schedule, and junior science puzzles.',
+          '🎓 Ages 11–17 (Teens & Academy): Standardized exam prep (IELTS/SAT/PTE), rigorous calculus, Socratic AI mentorship, and academic roadmaps.',
+          '💼 Ages 18–54 (Career & Executive): Professional business fluency, CV enhancement, executive case analysis, and industry vocabulary.',
+          '🌿 Ages 55+ (Golden Age Scholars): Cognitive reserve exercises, memoir writing, and enlarged high-contrast typography.'
+        ]
+      },
+      {
+        heading: '2. Dynamic Gating & Child Protection',
+        text: 'Interactive games and objects are automatically gated according to age group. When a 7-year-old is logged in, complex university prep tools are hidden or locked, providing a safe, joyful, and focused learning environment.',
+        tip: 'Administrators and parents can review and adjust registered DOB settings anytime to align with a child’s developmental milestones.'
+      }
+    ]
+  },
+  {
+    id: 'guide_auth_security',
+    title: 'Secure Password Verification & 6-Digit Email OTP Reset',
+    category: 'Platform Basics',
+    icon: 'Lock',
+    minRole: 'student',
+    summary: 'Passwords are verified strictly from the server/JSON storage layer with zero single-click cache bypasses, featuring automated 6-digit email OTP password recovery.',
+    keywords: ['password', 'otp', '6-digit', 'email reset', 'security', 'verification', 'authentication', 'no bypass'],
+    screenshotUrl: '/assets/guide/otp_password_reset_security.jpg',
+    screenshotCaption: 'Enterprise Security: Secure password verification and 6-digit email OTP password reset with 15-minute token expiration.',
+    contentSections: [
+      {
+        heading: '1. Strict Server-Side Password Verification',
+        text: 'EduBridge enforces enterprise security standards: all passwords must be entered explicitly and verified against the secure database store. Single-click user bypasses and cached-click logins are prohibited across the platform.',
+        steps: [
+          'Enter your registered email/username and secure password.',
+          'Credentials are authenticated directly against the encrypted local JSON store.',
+          'Failed attempts provide clear, security-conscious validation messages.'
+        ]
+      },
+      {
+        heading: '2. Automated 6-Digit Email OTP Password Recovery',
+        text: 'If a user forgets their password, they can click "Forgot Password" on the sign-in modal to trigger a 6-digit One-Time Password (OTP) dispatched to their registered email address.',
+        steps: [
+          'Enter your registered email address in the password recovery prompt.',
+          'A cryptographic 6-digit OTP code is generated with a strict 15-minute expiration window.',
+          'Input the 6-digit code and submit your new secure password.',
+          'The credentials ledger is updated and all active sessions are re-secured.'
+        ],
+        tip: 'The 6-digit OTP flow operates 100% offline within your local EduBridge instance without requiring third-party cloud mail delivery dependencies.'
+      }
+    ]
+  },
+  {
+    id: 'guide_admin_user_management',
+    title: 'Admin User Credential & Role Management',
+    category: 'Administration & Security',
+    icon: 'ShieldCheck',
+    minRole: 'admin',
+    summary: 'Administrators can securely update user credentials, date of birth, password, full name, and email address with automatic cohort recalculation.',
+    keywords: ['admin', 'credentials', 'password', 'dob', 'name', 'email', 'user management', 'recalculation'],
+    screenshotUrl: '/assets/guide/admin_user_credentials_management.jpg',
+    screenshotCaption: 'Administrator Directorate: Comprehensive credential editing for Name, Email, Password, and Date of Birth with live cohort recalculation.',
+    contentSections: [
+      {
+        heading: '1. Administrative Credential Updates',
+        text: 'Root administrators possess comprehensive control over all system accounts. Through the User Management Directorate, an administrator can inspect, edit, and update critical account attributes:',
+        steps: [
+          'Update User Full Name and Username.',
+          'Modify registered Email Address.',
+          'Reset or assign a new secure Password.',
+          'Update Date of Birth (DOB).'
+        ]
+      },
+      {
+        heading: '2. Automatic Cohort Recalculation upon DOB Modification',
+        text: 'When an administrator updates a user’s Date of Birth, EduBridge automatically recalculates the user’s age, age cohort (Early, Junior, Academy, Pro, Senior), education level, and visible module permissions in real time.',
+        tip: 'All administrative credential updates are recorded in the immutable administrative security audit log.'
+      }
+    ]
+  },
+  {
+    id: 'guide_interactive_classroom',
+    title: 'Interactive Digital Classroom & Speech Listening',
+    category: 'AI Problem Solving',
+    icon: 'Volume2',
+    minRole: 'student',
+    summary: 'Classroom interface that understands user queries in a human way, proactively suggests options or asks for missing parameters, and reads results aloud naturally.',
+    keywords: ['classroom', 'ai query', 'proactive', 'clarification', 'listening', 'speech', 'spoken audio', 'human understanding'],
+    screenshotUrl: '/assets/guide/classroom_speech_listening.jpg',
+    screenshotCaption: 'Interactive Digital Classroom: Human-like problem understanding, proactive clarification questions, and natural speech reading.',
+    contentSections: [
+      {
+        heading: '1. Human-Like Problem Understanding & Cognitive Analysis',
+        text: 'The Interactive Digital Classroom evaluates questions like an experienced human tutor. If a user submits a broad or incomplete query (e.g. "calculate density" or "find kinetic energy"), the AI analyzes the missing parameters and offers targeted clarification prompts rather than guessing.',
+        steps: [
+          'Type or dictate an academic query into the classroom prompt.',
+          'The AI detects core intent (e.g., Density ρ = m / V) and presents clickable parameter presets.',
+          'Select suggested values or enter custom quantities to reach the verified solution.'
+        ]
+      },
+      {
+        heading: '2. Natural Spoken Audio Listening',
+        text: 'Click the listening option to hear the step-by-step result and final answer read aloud. Scientific notation, exponents, and fractions are converted into fluent, natural spoken sentences so auditory learners can internalize mathematical proofs effortlessly.',
+        tip: 'You can customize your preferred speaker voice (Man, Woman, Boy, Girl) from the top-right persona selector.'
       }
     ]
   },
@@ -439,8 +583,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'student',
     summary: 'Ask academic and real-world questions using Keyboard, Digital Pen, Voice Speech, or Image OCR with human-like understanding, proactive clarification, step-by-step breakdown, and spoken audio reading.',
     keywords: ['solver', 'math', 'physics', 'chemistry', 'biology', 'handwriting', 'ocr', 'voice', 'palette', 'explanation', 'clarification', 'human', 'listen'],
-    screenshotUrl: '/assets/guide/solver_multimodal_overview.jpg',
-    screenshotCaption: 'Interactive Digital Classroom Workspace with Formula Quick Palette, Handwriting Canvas, Multilingual Voice, Proactive Clarification, and Natural Spoken Audio.',
+    screenshotUrl: '/assets/guide/ai_solver_proactive_clarification.jpg',
+    screenshotCaption: 'AI Cognitive Question Solver: Formula Quick Palette, Handwriting Canvas, Multilingual Voice, and Proactive Clarification.',
     contentSections: [
       {
         heading: '1. Human-Like Problem Understanding & Proactive Clarification',
@@ -631,8 +775,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'student',
     summary: 'Practice Tests Hub featuring at least 10 in-depth questions per practice test under the same subject, question stepper [1] [2] ... [10], aggregate score evaluations, and dual AI 10-Question Synthesizers.',
     keywords: ['ielts', 'pte', 'toefl', 'oet', 'det', 'cambridge', 'mock', 'reading', 'writing', 'speaking', 'listening', 'practice hub', '10 questions', 'stepper', 'synthesizer'],
-    screenshotUrl: '/assets/guide/standardized_test_prep.jpg',
-    screenshotCaption: 'Standardized Test Prep with Practice Tests Hub: At least 10 Questions under the Same Subject, Question Stepper [1]..[10], and Dual AI Synthesizers.',
+    screenshotUrl: '/assets/guide/multi_question_exam_prep.jpg',
+    screenshotCaption: 'Standardized Exam Prep with Practice Tests Hub: At least 10 Questions under the Same Subject, Question Stepper [1]..[10], and Dual AI Synthesizers.',
     imagePlaceholder: {
       title: 'Standardized Test Simulator & Practice Hub',
       caption: 'Practice Tests Hub with 10-question sets, audio transcripts, countdown clock, and rubric score prediction.',
@@ -670,8 +814,8 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
     minRole: 'student',
     summary: 'Explore printable study sheets, formula cheat sheets, and cognitive exercises across all 5 age cohorts (Ages 5–100+) with symmetric light/dark readability and direct printing.',
     keywords: ['resource vault', 'printable', 'cheat sheet', 'study sheets', 'offline', 'dark mode', 'high contrast', 'symmetric', 'oled'],
-    screenshotUrl: '/assets/guide/dashboard_learning_arena.jpg',
-    screenshotCaption: 'Universal Resource Vault: Printable study sheets, cheat sheets, and developmental learning tools with symmetric light/dark mode formatting.',
+    screenshotUrl: '/assets/guide/resource_vault_dark_light.png',
+    screenshotCaption: 'Universal Resource Vault: Printable study sheets across all 5 age cohorts with symmetric light & Midnight OLED dark mode.',
     imagePlaceholder: {
       title: 'Universal Resource Vault & Study Guides',
       caption: 'Curated printable reference documents and cheat sheets formatted for clean physical printout.',
