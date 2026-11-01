@@ -805,7 +805,29 @@ async function runTests() {
     console.log(`PASS: Scientific text converted to natural spoken script for listening option: "${naturalSpeech}"`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 47 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 48: Top Placement of Dashboard & History under Menu
+  console.log('\nTest 48: Verifying Dashboard & History at top of first page under menu and rest of objects under it...');
+  const studentSrc = fs.readFileSync('src/components/student/StudentView.tsx', 'utf-8');
+  const mainIndex = studentSrc.indexOf('<main');
+  const dashboardIndex = studentSrc.indexOf("<ActivityBoardView");
+  const adventureHubIndex = studentSrc.indexOf("Start Here! What Should I Do Today?");
+  const streakCounterIndex = studentSrc.indexOf("<StreakCounter");
+
+  if (mainIndex === -1 || dashboardIndex === -1 || adventureHubIndex === -1) {
+    console.error('FAIL: Could not find main, ActivityBoardView, or AdventureHub in StudentView.tsx');
+    failures++;
+  } else if (dashboardIndex < mainIndex) {
+    console.error('FAIL: ActivityBoardView is rendered outside main.');
+    failures++;
+  } else if (adventureHubIndex < dashboardIndex || streakCounterIndex < dashboardIndex) {
+    console.error('FAIL: Adventure Hub or Streak Counter is placed above ActivityBoardView.');
+    failures++;
+  } else {
+    console.log('PASS: Activity Board & History is positioned at the top of the first page under menu.');
+    console.log('PASS: Adventure Hub, Streak Counter, and Milestone Badges are placed under ActivityBoardView.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 48 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

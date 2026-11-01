@@ -385,417 +385,420 @@ export const StudentView: React.FC<StudentViewProps> = ({
         </div>
       )}
 
-      {/* Prominent Streak Counter & Monthly Activity Heatmap Dashboard */}
-      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-4">
-
-        {/* 🌟 Kids & Beginners Adventure Hub: What to Do & How to Do It */}
-        <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-indigo-500/10 rounded-3xl p-5 sm:p-6 border-2 border-amber-300 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-400 text-amber-950 flex items-center justify-center text-2xl shadow-xs shrink-0 animate-pulse">
-                🌟
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                    Start Here! What Should I Do Today?
-                  </h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-200 text-amber-900">
-                    Ages 5+ Easy Guide
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 font-medium">
-                  Follow these 4 simple steps to learn, ask questions, collect stars, and win trophies!
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  SpeechService.speak(
-                    "Hello little learner! Welcome to EduBridge! Step 1: Click the big green button to start your fun lesson. Step 2: Click the purple button to ask the AI Magic Teacher any question. Step 3: Click the yellow button to play the Word Quiz and collect shiny stars!"
-                  );
-                }}
-                className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-indigo-700 text-xs font-bold border border-indigo-200 shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Listen to spoken instructions"
-              >
-                <Volume2 className="w-4 h-4 text-indigo-600" />
-                <span>🔊 Read to Me</span>
-              </button>
-
-              {onToggleSimplifiedInterface && (
-                <button
-                  onClick={() => {
-                    sound.playClick();
-                    onToggleSimplifiedInterface(!isKidMode);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer flex items-center gap-1 ${
-                    isKidMode
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <span>{isKidMode ? '🧸 5-Yr Kid Mode ON' : '🧸 Switch to Kid Mode'}</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* 4 Big Action Cards for 5-Year-Old & Beginner Learners */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {/* Step 1: Play Lesson Journey */}
-            <div className="bg-white rounded-2xl p-4 border-2 border-emerald-300 shadow-xs flex flex-col justify-between hover:border-emerald-400 hover:shadow-md transition-all group">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl">🚀</span>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                    Step 1 · Play
-                  </span>
-                </div>
-                <h4 className="text-sm font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
-                  1. Play Fun Lesson
-                </h4>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Learn new sounds, stories, and words with interactive games!
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  if (firstAvailableLesson) {
-                    onStartLesson(firstAvailableLesson);
-                  } else {
-                    setActiveTab('language');
-                  }
-                }}
-                className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>START PLAYING (+30 XP)</span>
-              </button>
-            </div>
-
-            {/* Step 2: Ask Magic AI Helper */}
-            <div className="bg-white rounded-2xl p-4 border-2 border-purple-300 shadow-xs flex flex-col justify-between hover:border-purple-400 hover:shadow-md transition-all group">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl">🪄</span>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-purple-100 text-purple-800">
-                    Step 2 · Ask
-                  </span>
-                </div>
-                <h4 className="text-sm font-black text-slate-900 group-hover:text-purple-700 transition-colors">
-                  2. Magic AI Helper
-                </h4>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Have a question or drawing? The AI teacher will show you how!
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  setActiveTab('solver');
-                }}
-                className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>ASK MAGIC TEACHER</span>
-              </button>
-            </div>
-
-            {/* Step 3: Play Fun Word Quiz */}
-            <div className="bg-white rounded-2xl p-4 border-2 border-amber-300 shadow-xs flex flex-col justify-between hover:border-amber-400 hover:shadow-md transition-all group">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl">⭐</span>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                    Step 3 · Quiz
-                  </span>
-                </div>
-                <h4 className="text-sm font-black text-slate-900 group-hover:text-amber-700 transition-colors">
-                  3. Collect Gold Stars
-                </h4>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Match pictures and words to win shiny gold stars and level up!
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  setActiveTab('vocab_quiz');
-                }}
-                className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Trophy className="w-3.5 h-3.5" />
-                <span>PLAY WORD QUIZ (+20 XP)</span>
-              </button>
-            </div>
-
-            {/* Step 4: Badges & Trophies */}
-            <div className="bg-white rounded-2xl p-4 border-2 border-rose-300 shadow-xs flex flex-col justify-between hover:border-rose-400 hover:shadow-md transition-all group">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl">🏆</span>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-rose-100 text-rose-800">
-                    Step 4 · Win
-                  </span>
-                </div>
-                <h4 className="text-sm font-black text-slate-900 group-hover:text-rose-700 transition-colors">
-                  4. Open Trophy Box
-                </h4>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  See all the shiny badges, medals, and secret honors you unlocked!
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  setActiveTab('badges');
-                }}
-                className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Medal className="w-3.5 h-3.5" />
-                <span>MY BADGES ({unlockedBadgesCount} WON)</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <StreakCounter
-          profile={profile}
-          onCelebrate={onCelebrate ? () => onCelebrate('streak') : undefined}
-        />
-
-        {/* Prominent Milestone Badges Showcase Banner */}
-        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-rose-500 text-white flex items-center justify-center shadow-xs">
-                <Medal className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-black text-slate-900 tracking-tight">
-                    Milestone Badges &amp; Achievements
-                  </h3>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                    {unlockedBadgesCount} / {badges.length} Unlocked
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500">
-                  Earn commemorative badges with bonus XP by hitting major study habits, vocabulary, and league milestones.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  setActiveTab(activeTab === 'badges' ? 'language' : 'badges');
-                }}
-                className="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-200/80 shadow-2xs cursor-pointer"
-                title={activeTab === 'badges' ? 'Collapse back to partial view' : 'Expand full badge grid'}
-              >
-                <Grid className="w-3.5 h-3.5" />
-                <span>{activeTab === 'badges' ? 'Show Less / Partial View' : 'View Full Badge Grid'}</span>
-                {activeTab === 'badges' ? (
-                  <ChevronUp className="w-3.5 h-3.5 text-indigo-500" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Preview of the 3 Key Requested Milestones */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {/* Milestone 1: 1000 Words Learned */}
-            {(() => {
-              const b = badges.find((x) => x.id === 'badge_words_1000');
-              if (!b) return null;
-              const pct = Math.min(100, Math.round((b.currentValue / b.targetValue) * 100));
-              return (
-                <div
-                  onClick={() => {
-                    sound.playClick();
-                    setActiveTab(activeTab === 'badges' ? 'language' : 'badges');
-                  }}
-                  className="p-3.5 rounded-2xl border border-slate-200 hover:border-cyan-400 bg-gradient-to-br from-white to-cyan-50/30 hover:shadow-sm transition-all cursor-pointer group space-y-2 relative"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-xs">
-                        <BookOpen className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-black text-slate-900 group-hover:text-cyan-700 block">
-                          {b.title}
-                        </span>
-                        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-                          {b.tier} Tier · {b.subtitle}
-                        </span>
-                      </div>
-                    </div>
-                    {b.unlocked ? (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        <span>Unlocked</span>
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                        +{b.xpReward} XP
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-[11px] text-slate-600 line-clamp-1">
-                    {b.criteria}
-                  </p>
-
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-mono text-slate-500 font-bold">
-                      <span className={b.unlocked ? 'text-emerald-700 font-semibold' : 'text-slate-600'}>
-                        {b.unlocked ? 'Unlocked' : 'In Progress'}
-                      </span>
-                      <span>{b.currentValue} / {b.targetValue} words ({pct}%)</span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Milestone 2: 7-Day Streak */}
-            {(() => {
-              const b = badges.find((x) => x.id === 'badge_streak_7');
-              if (!b) return null;
-              const streak = Math.max(profile.currentStreak || 0, profile.highestStreak || 0);
-              const pct = Math.min(100, Math.round((streak / b.targetValue) * 100));
-              const isUnlocked = b.unlocked;
-              return (
-                <div
-                  onClick={() => {
-                    sound.playClick();
-                    setActiveTab(activeTab === 'badges' ? 'language' : 'badges');
-                  }}
-                  className="p-3.5 rounded-2xl border border-amber-200/90 hover:border-amber-400 bg-gradient-to-br from-white to-amber-50/40 hover:shadow-sm transition-all cursor-pointer group space-y-2 relative"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-xs">
-                        <Flame className="w-4 h-4 fill-white" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-black text-slate-900 group-hover:text-amber-700 block">
-                          {b.title}
-                        </span>
-                        <span className="text-[10px] text-amber-700 font-semibold uppercase tracking-wider">
-                          {b.tier} Tier · {b.subtitle}
-                        </span>
-                      </div>
-                    </div>
-                    {isUnlocked ? (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        <span>Unlocked</span>
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                        +{b.xpReward} XP
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-[11px] text-slate-600 line-clamp-1">
-                    {b.criteria}
-                  </p>
-
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-mono text-slate-500 font-bold">
-                      <span className={isUnlocked ? 'text-emerald-700 font-semibold' : 'text-slate-600'}>
-                        {isUnlocked ? 'Habit Pioneer' : 'In Progress'}
-                      </span>
-                      <span>{streak} / {b.targetValue} days ({pct}%)</span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Milestone 3: Top of Leaderboard */}
-            {(() => {
-              const b = badges.find((x) => x.id === 'badge_top_leaderboard');
-              if (!b) return null;
-              return (
-                <div
-                  onClick={() => {
-                    sound.playClick();
-                    setActiveTab(activeTab === 'badges' ? 'language' : 'badges');
-                  }}
-                  className="p-3.5 rounded-2xl border border-rose-200/90 hover:border-rose-400 bg-gradient-to-br from-white to-rose-50/40 hover:shadow-sm transition-all cursor-pointer group space-y-2 relative"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-xs">
-                        <Trophy className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-black text-slate-900 group-hover:text-rose-700 block">
-                          {b.title}
-                        </span>
-                        <span className="text-[10px] text-rose-700 font-semibold uppercase tracking-wider">
-                          {b.tier} Tier · {b.subtitle}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      <span>Rank #3</span>
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-slate-600 line-clamp-1">
-                    {b.criteria}
-                  </p>
-
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-mono text-slate-500 font-bold">
-                      <span className="text-emerald-700 font-semibold">Podium Promotion</span>
-                      <span>Rank #3 / Top 3 (100%)</span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-gradient-to-r from-rose-500 to-pink-500 h-full rounded-full" style={{ width: '100%' }} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      </div>
-
       {/* Active Tab View */}
       <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         {activeTab === 'dashboard' && (
-          <ActivityBoardView
-            profile={profile}
-            currentUser={currentUser || null}
-            activities={activities}
-            onReplayActivity={handleReplayActivity}
-            onNavigateTab={(tab) => {
-              sound.playClick();
-              setActiveTab(tab as StudentTab);
-            }}
-            isKidMode={isKidMode}
-          />
+          <div className="space-y-6">
+            {/* Top & First Page Under Menu: Activity Board & Past/Current History */}
+            <ActivityBoardView
+              profile={profile}
+              currentUser={currentUser || null}
+              activities={activities}
+              onReplayActivity={handleReplayActivity}
+              onNavigateTab={(tab) => {
+                sound.playClick();
+                setActiveTab(tab as StudentTab);
+              }}
+              isKidMode={isKidMode}
+            />
+
+            {/* Rest of all objects under Activity Board & History */}
+            <div className="space-y-6 pt-4 border-t border-slate-200">
+              {/* 🌟 Kids & Beginners Adventure Hub: What to Do & How to Do It */}
+              <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-indigo-500/10 rounded-3xl p-5 sm:p-6 border-2 border-amber-300 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-400 text-amber-950 flex items-center justify-center text-2xl shadow-xs shrink-0 animate-pulse">
+                      🌟
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                          Start Here! What Should I Do Today?
+                        </h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-200 text-amber-900">
+                          Ages 5+ Easy Guide
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 font-medium">
+                        Follow these 4 simple steps to learn, ask questions, collect stars, and win trophies!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        SpeechService.speak(
+                          "Hello little learner! Welcome to EduBridge! Step 1: Click the big green button to start your fun lesson. Step 2: Click the purple button to ask the AI Magic Teacher any question. Step 3: Click the yellow button to play the Word Quiz and collect shiny stars!"
+                        );
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-indigo-700 text-xs font-bold border border-indigo-200 shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+                      title="Listen to spoken instructions"
+                    >
+                      <Volume2 className="w-4 h-4 text-indigo-600" />
+                      <span>🔊 Read to Me</span>
+                    </button>
+
+                    {onToggleSimplifiedInterface && (
+                      <button
+                        onClick={() => {
+                          sound.playClick();
+                          onToggleSimplifiedInterface(!isKidMode);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer flex items-center gap-1 ${
+                          isKidMode
+                            ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{isKidMode ? '🧸 5-Yr Kid Mode ON' : '🧸 Switch to Kid Mode'}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 4 Big Action Cards for 5-Year-Old & Beginner Learners */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  {/* Step 1: Play Lesson Journey */}
+                  <div className="bg-white rounded-2xl p-4 border-2 border-emerald-300 shadow-xs flex flex-col justify-between hover:border-emerald-400 hover:shadow-md transition-all group">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">🚀</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                          Step 1 · Start
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
+                        1. Start Today's Lesson
+                      </h4>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">
+                        Tap here to jump right into your next exciting animated lesson!
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        if (firstAvailableLesson) {
+                          onStartLesson(firstAvailableLesson);
+                        } else {
+                          setActiveTab('language');
+                        }
+                      }}
+                      className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-white" />
+                      <span>START LESSON NOW (+50 XP)</span>
+                    </button>
+                  </div>
+
+                  {/* Step 2: Ask AI Question Solver */}
+                  <div className="bg-white rounded-2xl p-4 border-2 border-indigo-300 shadow-xs flex flex-col justify-between hover:border-indigo-400 hover:shadow-md transition-all group">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">💡</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">
+                          Step 2 · Ask
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-black text-slate-900 group-hover:text-indigo-700 transition-colors">
+                        2. Ask AI Magic Teacher
+                      </h4>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">
+                        Stuck on math, science, or words? Type, speak, or take a picture!
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setActiveTab('solver');
+                      }}
+                      className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Brain className="w-3.5 h-3.5" />
+                      <span>ASK A QUESTION</span>
+                    </button>
+                  </div>
+
+                  {/* Step 3: Fun Word Quiz */}
+                  <div className="bg-white rounded-2xl p-4 border-2 border-amber-300 shadow-xs flex flex-col justify-between hover:border-amber-400 hover:shadow-md transition-all group">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">⭐</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                          Step 3 · Play
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-black text-slate-900 group-hover:text-amber-700 transition-colors">
+                        3. Fun Star Quiz
+                      </h4>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">
+                        Answer 5 quick multiple choice questions and win shiny bonus stars!
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setActiveTab('vocab_quiz');
+                      }}
+                      className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Trophy className="w-3.5 h-3.5" />
+                      <span>PLAY WORD QUIZ (+20 XP)</span>
+                    </button>
+                  </div>
+
+                  {/* Step 4: Badges & Trophies */}
+                  <div className="bg-white rounded-2xl p-4 border-2 border-rose-300 shadow-xs flex flex-col justify-between hover:border-rose-400 hover:shadow-md transition-all group">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">🏆</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-rose-100 text-rose-800">
+                          Step 4 · Win
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-black text-slate-900 group-hover:text-rose-700 transition-colors">
+                        4. Open Trophy Box
+                      </h4>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">
+                        See all the shiny badges, medals, and secret honors you unlocked!
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setActiveTab('badges');
+                      }}
+                      className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Medal className="w-3.5 h-3.5" />
+                      <span>MY BADGES ({unlockedBadgesCount} WON)</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Monthly Activity Heatmap & Streak Counter */}
+              <StreakCounter
+                profile={profile}
+                onCelebrate={onCelebrate ? () => onCelebrate('streak') : undefined}
+              />
+
+              {/* Prominent Milestone Badges Showcase Banner */}
+              <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-rose-500 text-white flex items-center justify-center shadow-xs">
+                      <Medal className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-black text-slate-900 tracking-tight">
+                          Milestone Badges &amp; Achievements
+                        </h3>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                          {unlockedBadgesCount} / {badges.length} Unlocked
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Earn commemorative badges with bonus XP by hitting major study habits, vocabulary, and league milestones.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setActiveTab('badges');
+                      }}
+                      className="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-200/80 shadow-2xs cursor-pointer"
+                      title="View Full Badge Grid"
+                    >
+                      <Grid className="w-3.5 h-3.5" />
+                      <span>View Full Badge Grid</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-indigo-500" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Preview of the 3 Key Requested Milestones */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Milestone 1: 1000 Words Learned */}
+                  {(() => {
+                    const b = badges.find((x) => x.id === 'badge_words_1000');
+                    if (!b) return null;
+                    const pct = Math.min(100, Math.round((b.currentValue / b.targetValue) * 100));
+                    return (
+                      <div
+                        onClick={() => {
+                          sound.playClick();
+                          setActiveTab('badges');
+                        }}
+                        className="p-3.5 rounded-2xl border border-slate-200 hover:border-cyan-400 bg-gradient-to-br from-white to-cyan-50/30 hover:shadow-sm transition-all cursor-pointer group space-y-2 relative"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-xs">
+                              <BookOpen className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-black text-slate-900 group-hover:text-cyan-700 block">
+                                {b.title}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                                {b.tier} Tier · {b.subtitle}
+                              </span>
+                            </div>
+                          </div>
+                          {b.unlocked ? (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Unlocked</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                              +{b.xpReward} XP
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-[11px] text-slate-600 line-clamp-1">
+                          {b.criteria}
+                        </p>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] font-mono text-slate-500 font-bold">
+                            <span className={b.unlocked ? 'text-emerald-700 font-semibold' : 'text-slate-600'}>
+                              {b.unlocked ? 'Milestone Completed' : 'Authentic Ingestion Progress'}
+                            </span>
+                            <span>{b.currentValue} / {b.targetValue} words ({pct}%)</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-cyan-500 to-blue-600 h-full rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Milestone 2: 7-Day Study Streak */}
+                  {(() => {
+                    const b = badges.find((x) => x.id === 'badge_streak_7');
+                    if (!b) return null;
+                    const pct = Math.min(100, Math.round((b.currentValue / b.targetValue) * 100));
+                    return (
+                      <div
+                        onClick={() => {
+                          sound.playClick();
+                          setActiveTab('badges');
+                        }}
+                        className="p-3.5 rounded-2xl border border-slate-200 hover:border-amber-400 bg-gradient-to-br from-white to-amber-50/30 hover:shadow-sm transition-all cursor-pointer group space-y-2 relative"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-xs">
+                              <Flame className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-black text-slate-900 group-hover:text-amber-700 block">
+                                {b.title}
+                              </span>
+                              <span className="text-[10px] text-amber-700 font-semibold uppercase tracking-wider">
+                                {b.tier} Tier · {b.subtitle}
+                              </span>
+                            </div>
+                          </div>
+                          {b.unlocked ? (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Unlocked</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                              Day {b.currentValue} / {b.targetValue}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-[11px] text-slate-600 line-clamp-1">
+                          {b.criteria}
+                        </p>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] font-mono text-slate-500 font-bold">
+                            <span className={b.unlocked ? 'text-emerald-700 font-semibold' : 'text-slate-600'}>
+                              {b.unlocked ? 'Habit Mastered' : 'Consecutive Daily Logins'}
+                            </span>
+                            <span>{b.currentValue} / {b.targetValue} Days ({pct}%)</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Milestone 3: Top 3 Diamond League Leader */}
+                  {(() => {
+                    const b = badges.find((x) => x.id === 'badge_league_top3');
+                    if (!b) return null;
+                    return (
+                      <div
+                        onClick={() => {
+                          sound.playClick();
+                          setActiveTab('leaderboard');
+                        }}
+                        className="p-3.5 rounded-2xl border border-slate-200 hover:border-rose-400 bg-gradient-to-br from-white to-rose-50/30 hover:shadow-sm transition-all cursor-pointer group space-y-2 relative"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 text-white flex items-center justify-center shadow-xs">
+                              <Trophy className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-black text-slate-900 group-hover:text-rose-700 block">
+                                {b.title}
+                              </span>
+                              <span className="text-[10px] text-rose-700 font-semibold uppercase tracking-wider">
+                                {b.tier} Tier · {b.subtitle}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Rank #3</span>
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-600 line-clamp-1">
+                          {b.criteria}
+                        </p>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] font-mono text-slate-500 font-bold">
+                            <span className="text-emerald-700 font-semibold">Podium Promotion</span>
+                            <span>Rank #3 / Top 3 (100%)</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-gradient-to-r from-rose-500 to-pink-500 h-full rounded-full" style={{ width: '100%' }} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'cohorts' && (
