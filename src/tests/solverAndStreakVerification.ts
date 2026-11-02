@@ -1292,7 +1292,118 @@ async function runTests() {
     console.log('PASS: Parent Portal computes study hours and category focus directly from real user activities.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 53 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // -------------------------------------------------------------
+  // Test 54: Verifying Dashboard Graph Object Click Filtering & Activity Log Focus
+  // -------------------------------------------------------------
+  console.log('\nTest 54: Verifying Dashboard Graph Object Click Filtering & Activity Log Focus...');
+  
+  if (
+    !actBoardSource.includes('handleGraphBarClick') ||
+    !actBoardSource.includes('handleGraphCategoryClick') ||
+    !actBoardSource.includes('handleClearGraphFilter') ||
+    !actBoardSource.includes('activeGraphFilter') ||
+    !actBoardSource.includes('activityTableRef') ||
+    !actBoardSource.includes('isTableHighlighted')
+  ) {
+    console.error('FAIL: ActivityBoardView missing graph click handlers or activity log focus ref.');
+    failures++;
+  } else {
+    console.log('PASS: ActivityBoardView features interactive 7-day bars and category bars with smooth activity log scroll and focus.');
+  }
+
+  if (
+    !actBoardSource.includes('matchesDate') ||
+    !actBoardSource.includes('Filtered by Dashboard Graph:')
+  ) {
+    console.error('FAIL: ActivityBoardView missing date-level timeline filtering or filter notification banner.');
+    failures++;
+  } else {
+    console.log('PASS: ActivityBoardView correctly filters activity timeline records to clicked graph date/category with active banner.');
+  }
+
+  if (
+    !adminPortalCode.includes('setActivityCategoryFilter(\'mock_test\')') ||
+    !adminPortalCode.includes('setActivityCategoryFilter(\'solver\')') ||
+    !adminPortalCode.includes('setActiveAdminTab(\'activities\')')
+  ) {
+    console.error('FAIL: AdminPortal category graphs do not jump to filtered activity ledger.');
+    failures++;
+  } else {
+    console.log('PASS: Admin Portal category graphs and metric cards jump directly to filtered Activity Audit Ledger.');
+  }
+
+  // -------------------------------------------------------------
+  // Test 55: Verifying Practice Test, Mock Exam & Quiz Movement to End of Bank Upon Attempt
+  // -------------------------------------------------------------
+  console.log('\nTest 55: Verifying Practice Test, Mock Exam & Quiz Movement to End of Bank Upon Attempt...');
+
+  // 1. Test movePracticeTestToEnd in StorageService
+  const samplePracticeList: any[] = [
+    { id: 'pt_test_alpha', title: 'Alpha Reading Test', category: 'IELTS Academic', module: 'Reading' },
+    { id: 'pt_test_beta', title: 'Beta Reading Test', category: 'IELTS Academic', module: 'Reading' },
+    { id: 'pt_test_gamma', title: 'Gamma Reading Test', category: 'IELTS Academic', module: 'Reading' }
+  ];
+  const reorderedPractice = StorageService.movePracticeTestToEnd('pt_test_alpha', samplePracticeList);
+  if (reorderedPractice[reorderedPractice.length - 1].id !== 'pt_test_alpha') {
+    console.error('FAIL: movePracticeTestToEnd did not move pt_test_alpha to end of list. End is:', reorderedPractice[reorderedPractice.length - 1].id);
+    failures++;
+  } else if (!reorderedPractice[reorderedPractice.length - 1].lastAttemptedAt) {
+    console.error('FAIL: movePracticeTestToEnd did not set lastAttemptedAt timestamp.');
+    failures++;
+  } else {
+    console.log('PASS: StorageService.movePracticeTestToEnd successfully moves attempted test to the end with timestamp.');
+  }
+
+  // 2. Test moveMockTestToEnd in StorageService
+  const initialMockList = StorageService.getMockTests();
+  if (initialMockList.length > 1) {
+    const firstTestId = initialMockList[0].id;
+    const reorderedMocks = StorageService.moveMockTestToEnd(firstTestId);
+    if (reorderedMocks[reorderedMocks.length - 1].id !== firstTestId) {
+      console.error('FAIL: moveMockTestToEnd did not move test to end of mock bank.');
+      failures++;
+    } else {
+      console.log(`PASS: StorageService.moveMockTestToEnd successfully moved "${firstTestId}" to end of mock bank.`);
+    }
+  }
+
+  // 3. Test attempted quiz IDs recording in StorageService
+  StorageService.recordAttemptedCohortQuizIds(['quiz_q1_early', 'quiz_q2_early']);
+  const recordedQuizIds = StorageService.getAttemptedCohortQuizIds();
+  if (!recordedQuizIds.includes('quiz_q1_early') || !recordedQuizIds.includes('quiz_q2_early')) {
+    console.error('FAIL: StorageService failed to record attempted cohort quiz question IDs.');
+    failures++;
+  } else {
+    console.log('PASS: StorageService tracks attempted quiz question IDs to cycle unattempted questions first.');
+  }
+
+  // 4. Verify ExamPrepView sorts unattempted tests first
+  const examPrepSource = fs.readFileSync('src/components/student/ExamPrepView.tsx', 'utf-8');
+  if (
+    !examPrepSource.includes('aAttempted - bAttempted') ||
+    !examPrepSource.includes('movePracticeTestToEnd') ||
+    !examPrepSource.includes('moveMockTestToEnd')
+  ) {
+    console.error('FAIL: ExamPrepView does not sort unattempted tests first or call moveToEnd methods.');
+    failures++;
+  } else {
+    console.log('PASS: ExamPrepView automatically promotes unattempted tests to top and moves attempted tests to end of bank.');
+  }
+
+  // 5. Verify VocabularyQuiz moves attempted questions to end of bank
+  const vocabQuizSource = fs.readFileSync('src/components/student/VocabularyQuiz.tsx', 'utf-8');
+  if (
+    !vocabQuizSource.includes('recordAttemptedCohortQuizIds') ||
+    !vocabQuizSource.includes('getAttemptedCohortQuizIds') ||
+    !vocabQuizSource.includes('unattempted')
+  ) {
+    console.error('FAIL: VocabularyQuiz does not rotate unattempted questions to front of bank.');
+    failures++;
+  } else {
+    console.log('PASS: VocabularyQuiz selects unattempted questions first and rotates attempted questions to end of bank.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 55 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

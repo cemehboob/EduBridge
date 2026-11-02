@@ -894,6 +894,7 @@ export default function App() {
             onOpenResourceVault={() => setIsResourceVaultOpen(true)}
             onMarkLessonCompleted={handleMarkLessonCompleted}
             onRecordActivity={handleRecordActivity}
+            onUpdateMockTests={setMockTests}
             onCelebrate={(type) => {
               if (type === 'daily_goal') {
                 const todayKey = 'edubridge_daily_goal_celebrated_' + new Date().toISOString().slice(0, 10);

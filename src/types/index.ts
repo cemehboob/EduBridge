@@ -169,6 +169,8 @@ export interface IELTSPracticeTest {
   completed?: boolean;
   dateAdded?: string;
   timestamp?: string;
+  lastAttemptedAt?: string;
+  attemptCount?: number;
 }
 
 export interface ExamSection {
@@ -194,6 +196,8 @@ export interface MockTest {
   sections: ExamSection[];
   dateAdded?: string;
   timestamp?: string;
+  lastAttemptedAt?: string;
+  attemptCount?: number;
   questions: {
     id: string;
     section: 'Listening' | 'Reading' | 'Writing' | 'Speaking';

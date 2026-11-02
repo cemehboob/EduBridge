@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Activity,
   Calendar,
@@ -23,7 +23,8 @@ import {
   BarChart3,
   Layers,
   HelpCircle,
-  XCircle
+  XCircle,
+  X
 } from 'lucide-react';
 import { UserActivityRecord, UserProfile, UserAccount, QuestionAttemptRecord } from '../../types';
 import { sound } from '../../utils/audio';
@@ -49,6 +50,55 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'table' | 'cards' | 'questions'>('table');
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(null);
+  const [activeGraphFilter, setActiveGraphFilter] = useState<{
+    label: string;
+    type: 'date' | 'category';
+    value: string;
+  } | null>(null);
+  const [isTableHighlighted, setIsTableHighlighted] = useState<boolean>(false);
+  const activityTableRef = useRef<HTMLDivElement>(null);
+
+  const handleGraphBarClick = (dateStr: string, dayLabel: string) => {
+    sound.playClick();
+    setSelectedDateFilter(dateStr);
+    setFilterType('all');
+    setViewMode('table');
+    setActiveGraphFilter({
+      type: 'date',
+      label: `${dayLabel} (${dateStr})`,
+      value: dateStr
+    });
+    setIsTableHighlighted(true);
+    setTimeout(() => {
+      activityTableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+    setTimeout(() => setIsTableHighlighted(false), 2600);
+  };
+
+  const handleGraphCategoryClick = (catType: string, catLabel: string) => {
+    sound.playClick();
+    setFilterType(catType);
+    setSelectedDateFilter(null);
+    setViewMode('table');
+    setActiveGraphFilter({
+      type: 'category',
+      label: catLabel,
+      value: catType
+    });
+    setIsTableHighlighted(true);
+    setTimeout(() => {
+      activityTableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+    setTimeout(() => setIsTableHighlighted(false), 2600);
+  };
+
+  const handleClearGraphFilter = () => {
+    sound.playClick();
+    setSelectedDateFilter(null);
+    setFilterType('all');
+    setActiveGraphFilter(null);
+  };
 
   // Load question-by-question attempted history for this user
   const allQuestionAttempts = StorageService.getQuestionAttempts(currentUser?.id || profile?.id);
@@ -103,7 +153,9 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
       act.details.toLowerCase().includes(q) ||
       act.timestamp.toLowerCase().includes(q);
 
-    return matchesType && matchesSearch;
+    const matchesDate = !selectedDateFilter || (act.timestamp && act.timestamp.slice(0, 10) === selectedDateFilter);
+
+    return matchesType && matchesSearch && matchesDate;
   });
 
   const getIconForType = (type: string) => {
@@ -379,46 +431,124 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
               <span className="text-slate-400 font-mono">{userActivities.length} total logged sessions</span>
             </div>
 
-            {/* Segmented Proportional Bar */}
-            <div className="w-full h-4 rounded-full overflow-hidden flex bg-slate-200 shadow-inner">
-              <div style={{ width: `${Math.max(5, examPct)}%` }} className="bg-rose-500 transition-all duration-500" title={`Exam Prep: ${examPct}%`} />
-              <div style={{ width: `${Math.max(5, solverPct)}%` }} className="bg-violet-500 transition-all duration-500" title={`AI Solver: ${solverPct}%`} />
-              <div style={{ width: `${Math.max(5, lessonsPct)}%` }} className="bg-emerald-500 transition-all duration-500" title={`Lessons: ${lessonsPct}%`} />
-              <div style={{ width: `${Math.max(5, vocabPct)}%` }} className="bg-teal-500 transition-all duration-500" title={`Vocab Vault: ${vocabPct}%`} />
-              <div style={{ width: `${Math.max(5, stemPct)}%` }} className="bg-amber-500 transition-all duration-500" title={`STEM Academics: ${stemPct}%`} />
-              <div style={{ width: `${Math.max(5, plannerPct)}%` }} className="bg-blue-500 transition-all duration-500" title={`Habits & Tasks: ${plannerPct}%`} />
+            {/* Segmented Proportional Bar (Interactive: Click to Filter Activity Log) */}
+            <div className="w-full h-5 rounded-full overflow-hidden flex bg-slate-200 shadow-inner cursor-pointer" title="Click any category segment to filter Activity Log">
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('mock_test', 'Standardized Exams')}
+                style={{ width: `${Math.max(5, examPct)}%` }}
+                className="bg-rose-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                title={`Click to view Exams in Activity Log (${categoryStats.exams.length} records · ${examPct}%)`}
+              />
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('solver', 'AI Problem Solver')}
+                style={{ width: `${Math.max(5, solverPct)}%` }}
+                className="bg-violet-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                title={`Click to view AI Solver in Activity Log (${categoryStats.solver.length} records · ${solverPct}%)`}
+              />
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('lesson', 'Language & Lessons')}
+                style={{ width: `${Math.max(5, lessonsPct)}%` }}
+                className="bg-emerald-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                title={`Click to view Lessons in Activity Log (${categoryStats.lessons.length} records · ${lessonsPct}%)`}
+              />
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('vocab_quiz', 'Vocabulary Quizzes')}
+                style={{ width: `${Math.max(5, vocabPct)}%` }}
+                className="bg-teal-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                title={`Click to view Vocab Vault in Activity Log (${categoryStats.vocab.length} records · ${vocabPct}%)`}
+              />
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('stem_game', 'STEM & Academics')}
+                style={{ width: `${Math.max(5, stemPct)}%` }}
+                className="bg-amber-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                title={`Click to view STEM Academics in Activity Log (${categoryStats.stem.length} records · ${stemPct}%)`}
+              />
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('planner', 'Daily Habits & Tasks')}
+                style={{ width: `${Math.max(5, plannerPct)}%` }}
+                className="bg-blue-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                title={`Click to view Habits & Tasks in Activity Log (${categoryStats.planner.length} records · ${plannerPct}%)`}
+              />
             </div>
 
-            {/* Legend Grid */}
+            {/* Legend Grid (Interactive: Click to Filter) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-              <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('mock_test', 'Standardized Exams')}
+                className={`flex items-center gap-1.5 p-1.5 rounded-lg text-slate-700 font-medium hover:bg-slate-200/80 transition-all text-left cursor-pointer ${
+                  filterType === 'mock_test' ? 'bg-rose-100 ring-1 ring-rose-300 font-bold text-rose-900' : ''
+                }`}
+                title="Filter Activity Log to Standardized Exams"
+              >
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
                 <span>Exams ({categoryStats.exams.length}) · {examPct}%</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('solver', 'AI Problem Solver')}
+                className={`flex items-center gap-1.5 p-1.5 rounded-lg text-slate-700 font-medium hover:bg-slate-200/80 transition-all text-left cursor-pointer ${
+                  filterType === 'solver' ? 'bg-violet-100 ring-1 ring-violet-300 font-bold text-violet-900' : ''
+                }`}
+                title="Filter Activity Log to AI Problem Solver"
+              >
                 <span className="w-2.5 h-2.5 rounded-full bg-violet-500 shrink-0" />
                 <span>AI Solver ({categoryStats.solver.length}) · {solverPct}%</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('lesson', 'Language & Lessons')}
+                className={`flex items-center gap-1.5 p-1.5 rounded-lg text-slate-700 font-medium hover:bg-slate-200/80 transition-all text-left cursor-pointer ${
+                  filterType === 'lesson' ? 'bg-emerald-100 ring-1 ring-emerald-300 font-bold text-emerald-900' : ''
+                }`}
+                title="Filter Activity Log to Lessons"
+              >
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
                 <span>Lessons ({categoryStats.lessons.length}) · {lessonsPct}%</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('vocab_quiz', 'Vocabulary Quizzes')}
+                className={`flex items-center gap-1.5 p-1.5 rounded-lg text-slate-700 font-medium hover:bg-slate-200/80 transition-all text-left cursor-pointer ${
+                  filterType === 'vocab_quiz' ? 'bg-teal-100 ring-1 ring-teal-300 font-bold text-teal-900' : ''
+                }`}
+                title="Filter Activity Log to Vocab Quizzes"
+              >
                 <span className="w-2.5 h-2.5 rounded-full bg-teal-500 shrink-0" />
                 <span>Vocab ({categoryStats.vocab.length}) · {vocabPct}%</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('stem_game', 'STEM & Academics')}
+                className={`flex items-center gap-1.5 p-1.5 rounded-lg text-slate-700 font-medium hover:bg-slate-200/80 transition-all text-left cursor-pointer ${
+                  filterType === 'stem_game' ? 'bg-amber-100 ring-1 ring-amber-300 font-bold text-amber-900' : ''
+                }`}
+                title="Filter Activity Log to STEM & Academics"
+              >
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
                 <span>STEM ({categoryStats.stem.length}) · {stemPct}%</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGraphCategoryClick('planner', 'Daily Habits & Tasks')}
+                className={`flex items-center gap-1.5 p-1.5 rounded-lg text-slate-700 font-medium hover:bg-slate-200/80 transition-all text-left cursor-pointer ${
+                  filterType === 'planner' ? 'bg-blue-100 ring-1 ring-blue-300 font-bold text-blue-900' : ''
+                }`}
+                title="Filter Activity Log to Habits & Planner Tasks"
+              >
                 <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
                 <span>Habits ({categoryStats.planner.length}) · {plannerPct}%</span>
-              </div>
+              </button>
             </div>
           </div>
 
-          {/* 7-Day Activity Trends Graph */}
+          {/* 7-Day Activity Trends Graph (Interactive: Click Bar to Filter Activity Log by Day) */}
           <div className="lg:col-span-5 bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
             <div className="flex items-center justify-between text-xs font-bold text-slate-700">
               <span className="flex items-center gap-1.5 uppercase tracking-wider">
@@ -430,27 +560,45 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
               </span>
             </div>
 
-            {/* 7-Day Vertical Bar Visualizer */}
+            {/* 7-Day Vertical Bar Visualizer (Interactive Bars) */}
             <div className="h-28 flex items-end justify-between gap-2 pt-2 px-1">
               {dayNames.map((d, i) => {
                 const count = dayValues[i];
                 const heightPct = Math.round((count / maxDayVal) * 100);
                 const isToday = i === dayNames.length - 1;
+                const pastDay = past7Days[i];
+                const isSelected = selectedDateFilter === pastDay.dateStr;
                 return (
-                  <div key={d} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
-                    <span className="text-[10px] font-mono text-slate-500">{count}</span>
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => handleGraphBarClick(pastDay.dateStr, pastDay.dayLabel)}
+                    title={`Click to filter Activity Log by ${pastDay.dayLabel} (${pastDay.dateStr}) · ${count} activities`}
+                    className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end cursor-pointer group focus:outline-none transition-transform hover:scale-105 active:scale-95"
+                  >
+                    <span className={`text-[10px] font-mono transition-colors ${isSelected ? 'text-indigo-600 font-black' : 'text-slate-500 group-hover:text-slate-900'}`}>
+                      {count}
+                    </span>
                     <div
-                      className={`w-full rounded-t-lg transition-all duration-500 ${
-                        isToday
-                          ? 'bg-emerald-600 shadow-md ring-2 ring-emerald-300'
-                          : 'bg-indigo-400/80 hover:bg-indigo-500'
+                      className={`w-full rounded-t-lg transition-all duration-300 ${
+                        isSelected
+                          ? 'bg-indigo-600 ring-2 ring-indigo-500 ring-offset-1 shadow-md'
+                          : isToday
+                          ? 'bg-emerald-600 shadow-md ring-2 ring-emerald-300 group-hover:bg-emerald-500'
+                          : 'bg-indigo-400/80 group-hover:bg-indigo-500'
                       }`}
                       style={{ height: `${Math.max(15, heightPct)}%` }}
                     />
-                    <span className={`text-[10px] font-bold ${isToday ? 'text-emerald-700' : 'text-slate-500'}`}>
+                    <span className={`text-[10px] font-bold transition-colors ${
+                      isSelected
+                        ? 'text-indigo-700 font-black underline'
+                        : isToday
+                        ? 'text-emerald-700 font-extrabold'
+                        : 'text-slate-500 group-hover:text-slate-800'
+                    }`}>
                       {d}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -797,7 +945,42 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
       </div>
 
       {/* 4. Activity Records Feed: High-Density Table (Full Space Utilization) & Cards */}
-      <div className="space-y-3">
+      <div
+        ref={activityTableRef}
+        tabIndex={-1}
+        className={`space-y-3 transition-all duration-500 rounded-3xl p-1 ${
+          isTableHighlighted ? 'ring-4 ring-indigo-400/80 ring-offset-4 bg-indigo-50/20' : ''
+        }`}
+      >
+        {/* Active Graph Filter Notification Banner */}
+        {activeGraphFilter && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-xs text-indigo-950 shadow-xs animate-fade-in">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Filter className="w-4 h-4" />
+              </span>
+              <div>
+                <div className="font-extrabold flex items-center gap-2">
+                  <span>Filtered by Dashboard Graph:</span>
+                  <span className="px-2 py-0.5 rounded-md bg-white border border-indigo-300 text-indigo-700 font-mono text-[11px] font-black">
+                    {activeGraphFilter.label}
+                  </span>
+                </div>
+                <div className="text-[11px] text-indigo-700">
+                  Showing {filteredActivities.length} matching timeline {filteredActivities.length === 1 ? 'record' : 'records'}. Click any other graph bar or reset to view all.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearGraphFilter}
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-100 text-indigo-800 border border-indigo-300 font-extrabold text-xs flex items-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer shadow-2xs"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Reset Graph Filter</span>
+            </button>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-2 text-xs text-slate-500 font-bold">
           <div className="flex items-center gap-2 uppercase tracking-wider">
             <span>Activity Timeline ({filteredActivities.length} Records)</span>

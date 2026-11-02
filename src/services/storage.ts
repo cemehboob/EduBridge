@@ -90,6 +90,8 @@ const KEYS = {
   QUESTION_ATTEMPTS: 'edubridge_question_attempts_v1',
   PASSWORD_RESETS: 'edubridge_password_resets_v1',
   EXAM_SETTINGS: 'edubridge_exam_settings_v1',
+  ATTEMPTED_TEST_IDS: 'edubridge_attempted_test_ids_v1',
+  ATTEMPTED_QUIZ_IDS: 'edubridge_attempted_quiz_ids_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp'
 };
 
@@ -288,6 +290,24 @@ export const StorageService = {
   },
   saveMockTests: (m: MockTest[]): void => safeSet(KEYS.MOCK_TESTS, m),
 
+  moveMockTestToEnd: (testId: string): MockTest[] => {
+    const tests = StorageService.getMockTests();
+    const target = tests.find((t) => t.id === testId);
+    if (!target) return tests;
+    const remaining = tests.filter((t) => t.id !== testId);
+    const updated: MockTest[] = [
+      ...remaining,
+      {
+        ...target,
+        lastAttemptedAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        attemptCount: (target.attemptCount || 0) + 1
+      }
+    ];
+    StorageService.saveMockTests(updated);
+    StorageService.recordAttemptedTest(testId);
+    return updated;
+  },
+
   getAcademicTopics: (): AcademicTopic[] => safeGet<AcademicTopic[]>(KEYS.ACADEMIC_TOPICS, academicTopics),
   saveAcademicTopics: (a: AcademicTopic[]): void => safeSet(KEYS.ACADEMIC_TOPICS, a),
 
@@ -347,6 +367,40 @@ export const StorageService = {
 
   getPracticeTests: (): IELTSPracticeTest[] => safeGet<IELTSPracticeTest[]>(KEYS.PRACTICE_TESTS, []),
   savePracticeTests: (tests: IELTSPracticeTest[]): void => safeSet(KEYS.PRACTICE_TESTS, tests),
+
+  movePracticeTestToEnd: (testId: string, currentList?: IELTSPracticeTest[]): IELTSPracticeTest[] => {
+    const tests = currentList && currentList.length > 0 ? currentList : StorageService.getPracticeTests();
+    const target = tests.find((t) => t.id === testId);
+    if (!target) return tests;
+    const remaining = tests.filter((t) => t.id !== testId);
+    const updated: IELTSPracticeTest[] = [
+      ...remaining,
+      {
+        ...target,
+        completed: true,
+        lastAttemptedAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        attemptCount: (target.attemptCount || 0) + 1
+      }
+    ];
+    StorageService.savePracticeTests(updated);
+    StorageService.recordAttemptedTest(testId);
+    return updated;
+  },
+
+  getAttemptedTestIds: (): string[] => safeGet<string[]>(KEYS.ATTEMPTED_TEST_IDS, []),
+  recordAttemptedTest: (testId: string): void => {
+    const list = safeGet<string[]>(KEYS.ATTEMPTED_TEST_IDS, []);
+    const filtered = list.filter((id) => id !== testId);
+    safeSet(KEYS.ATTEMPTED_TEST_IDS, [...filtered, testId]);
+  },
+
+  getAttemptedCohortQuizIds: (): string[] => safeGet<string[]>(KEYS.ATTEMPTED_QUIZ_IDS, []),
+  recordAttemptedCohortQuizIds: (ids: string[]): void => {
+    const existing = safeGet<string[]>(KEYS.ATTEMPTED_QUIZ_IDS, []);
+    const idSet = new Set(ids);
+    const remaining = existing.filter((id) => !idSet.has(id));
+    safeSet(KEYS.ATTEMPTED_QUIZ_IDS, [...remaining, ...ids]);
+  },
 
   getIngestedItemsLedger: (): IngestedItemRecord[] => safeGet<IngestedItemRecord[]>(KEYS.INGESTED_LEDGER, getInitialIngestedItemsLedger()),
   saveIngestedItemsLedger: (ledger: IngestedItemRecord[]): void => safeSet(KEYS.INGESTED_LEDGER, ledger),

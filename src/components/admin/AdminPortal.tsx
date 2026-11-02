@@ -633,59 +633,136 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <span className="text-slate-400 font-mono">{allActivities.length} Total Sessions</span>
                 </div>
 
-                <div className="w-full h-5 rounded-full overflow-hidden flex bg-slate-200 shadow-inner">
-                  <div style={{ width: `${Math.max(4, pExamPct)}%` }} className="bg-rose-500 transition-all duration-500" title={`Exam Prep: ${pExamPct}%`} />
-                  <div style={{ width: `${Math.max(4, pSolverPct)}%` }} className="bg-violet-500 transition-all duration-500" title={`AI Solver: ${pSolverPct}%`} />
-                  <div style={{ width: `${Math.max(4, pLessonsPct)}%` }} className="bg-emerald-500 transition-all duration-500" title={`Lessons: ${pLessonsPct}%`} />
-                  <div style={{ width: `${Math.max(4, pVocabPct)}%` }} className="bg-teal-500 transition-all duration-500" title={`Vocab Vault: ${pVocabPct}%`} />
-                  <div style={{ width: `${Math.max(4, pStemPct)}%` }} className="bg-amber-500 transition-all duration-500" title={`STEM Academics: ${pStemPct}%`} />
-                  <div style={{ width: `${Math.max(4, pAdminPct)}%` }} className="bg-slate-700 transition-all duration-500" title={`Admin Actions: ${pAdminPct}%`} />
-                  <div style={{ width: `${Math.max(4, pHabitsPct)}%` }} className="bg-blue-500 transition-all duration-500" title={`Habits: ${pHabitsPct}%`} />
+                <div className="w-full h-5 rounded-full overflow-hidden flex bg-slate-200 shadow-inner cursor-pointer" title="Click any category to jump to filtered Audit Ledger">
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('mock_test'); setActiveAdminTab('activities'); }}
+                    style={{ width: `${Math.max(4, pExamPct)}%` }}
+                    className="bg-rose-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                    title={`Click to view Exams in Activity Ledger (${catCounts.exams.length} records · ${pExamPct}%)`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('solver'); setActiveAdminTab('activities'); }}
+                    style={{ width: `${Math.max(4, pSolverPct)}%` }}
+                    className="bg-violet-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                    title={`Click to view AI Solver in Activity Ledger (${catCounts.solver.length} records · ${pSolverPct}%)`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('lesson'); setActiveAdminTab('activities'); }}
+                    style={{ width: `${Math.max(4, pLessonsPct)}%` }}
+                    className="bg-emerald-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                    title={`Click to view Lessons in Activity Ledger (${catCounts.lessons.length} records · ${pLessonsPct}%)`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('vocab_quiz'); setActiveAdminTab('activities'); }}
+                    style={{ width: `${Math.max(4, pVocabPct)}%` }}
+                    className="bg-teal-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                    title={`Click to view Vocab Vault in Activity Ledger (${catCounts.vocab.length} records · ${pVocabPct}%)`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('stem_game'); setActiveAdminTab('activities'); }}
+                    style={{ width: `${Math.max(4, pStemPct)}%` }}
+                    className="bg-amber-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                    title={`Click to view STEM Academics in Activity Ledger (${catCounts.stem.length} records · ${pStemPct}%)`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('admin_action'); setActiveAdminTab('activities'); }}
+                    style={{ width: `${Math.max(4, pAdminPct)}%` }}
+                    className="bg-slate-700 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                    title={`Click to view Admin Actions in Activity Ledger (${catCounts.admin.length} records · ${pAdminPct}%)`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('study_task'); setActiveAdminTab('activities'); }}
+                    style={{ width: `${Math.max(4, pHabitsPct)}%` }}
+                    className="bg-blue-500 hover:brightness-110 active:brightness-95 transition-all duration-300 h-full focus:outline-none cursor-pointer"
+                    title={`Click to view Habits in Activity Ledger (${catCounts.habits.length} records · ${pHabitsPct}%)`}
+                  />
                 </div>
 
-                {/* 7 Category Detailed Metrics Grid */}
+                {/* 7 Category Detailed Metrics Grid (Interactive: Click to View in Ledger) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 pt-2">
-                  <div className="p-3 bg-rose-50/60 rounded-2xl border border-rose-200 text-center space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('mock_test'); setActiveAdminTab('activities'); }}
+                    className="p-3 bg-rose-50/60 hover:bg-rose-100/80 active:scale-95 rounded-2xl border border-rose-200 text-center space-y-1 cursor-pointer transition-all focus:outline-none"
+                    title="Click to view all Exam activities"
+                  >
                     <div className="text-[10px] font-black uppercase tracking-wider text-rose-700">Exams</div>
                     <div className="text-lg font-black text-rose-950">{catCounts.exams.length}</div>
                     <div className="text-[10px] text-rose-600 font-bold">{pExamPct}% of platform</div>
-                  </div>
+                  </button>
 
-                  <div className="p-3 bg-violet-50/60 rounded-2xl border border-violet-200 text-center space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('solver'); setActiveAdminTab('activities'); }}
+                    className="p-3 bg-violet-50/60 hover:bg-violet-100/80 active:scale-95 rounded-2xl border border-violet-200 text-center space-y-1 cursor-pointer transition-all focus:outline-none"
+                    title="Click to view all AI Solver activities"
+                  >
                     <div className="text-[10px] font-black uppercase tracking-wider text-violet-700">AI Solver</div>
                     <div className="text-lg font-black text-violet-950">{catCounts.solver.length}</div>
                     <div className="text-[10px] text-violet-600 font-bold">{pSolverPct}% of platform</div>
-                  </div>
+                  </button>
 
-                  <div className="p-3 bg-emerald-50/60 rounded-2xl border border-emerald-200 text-center space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('lesson'); setActiveAdminTab('activities'); }}
+                    className="p-3 bg-emerald-50/60 hover:bg-emerald-100/80 active:scale-95 rounded-2xl border border-emerald-200 text-center space-y-1 cursor-pointer transition-all focus:outline-none"
+                    title="Click to view all Lesson activities"
+                  >
                     <div className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Lessons</div>
                     <div className="text-lg font-black text-emerald-950">{catCounts.lessons.length}</div>
                     <div className="text-[10px] text-emerald-600 font-bold">{pLessonsPct}% of platform</div>
-                  </div>
+                  </button>
 
-                  <div className="p-3 bg-teal-50/60 rounded-2xl border border-teal-200 text-center space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('vocab_quiz'); setActiveAdminTab('activities'); }}
+                    className="p-3 bg-teal-50/60 hover:bg-teal-100/80 active:scale-95 rounded-2xl border border-teal-200 text-center space-y-1 cursor-pointer transition-all focus:outline-none"
+                    title="Click to view all Vocab activities"
+                  >
                     <div className="text-[10px] font-black uppercase tracking-wider text-teal-700">Vocab</div>
                     <div className="text-lg font-black text-teal-950">{catCounts.vocab.length}</div>
                     <div className="text-[10px] text-teal-600 font-bold">{pVocabPct}% of platform</div>
-                  </div>
+                  </button>
 
-                  <div className="p-3 bg-amber-50/60 rounded-2xl border border-amber-200 text-center space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('stem_game'); setActiveAdminTab('activities'); }}
+                    className="p-3 bg-amber-50/60 hover:bg-amber-100/80 active:scale-95 rounded-2xl border border-amber-200 text-center space-y-1 cursor-pointer transition-all focus:outline-none"
+                    title="Click to view all STEM activities"
+                  >
                     <div className="text-[10px] font-black uppercase tracking-wider text-amber-700">STEM</div>
                     <div className="text-lg font-black text-amber-950">{catCounts.stem.length}</div>
                     <div className="text-[10px] text-amber-600 font-bold">{pStemPct}% of platform</div>
-                  </div>
+                  </button>
 
-                  <div className="p-3 bg-blue-50/60 rounded-2xl border border-blue-200 text-center space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('study_task'); setActiveAdminTab('activities'); }}
+                    className="p-3 bg-blue-50/60 hover:bg-blue-100/80 active:scale-95 rounded-2xl border border-blue-200 text-center space-y-1 cursor-pointer transition-all focus:outline-none"
+                    title="Click to view all Habit and Routine activities"
+                  >
                     <div className="text-[10px] font-black uppercase tracking-wider text-blue-700">Habits</div>
                     <div className="text-lg font-black text-blue-950">{catCounts.habits.length}</div>
                     <div className="text-[10px] text-blue-600 font-bold">{pHabitsPct}% of platform</div>
-                  </div>
+                  </button>
 
-                  <div className="p-3 bg-slate-100 rounded-2xl border border-slate-300 text-center space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => { sound.playClick(); setActivityCategoryFilter('admin_action'); setActiveAdminTab('activities'); }}
+                    className="p-3 bg-slate-100 hover:bg-slate-200/80 active:scale-95 rounded-2xl border border-slate-300 text-center space-y-1 cursor-pointer transition-all focus:outline-none"
+                    title="Click to view Admin system action activities"
+                  >
                     <div className="text-[10px] font-black uppercase tracking-wider text-slate-700">Admin</div>
                     <div className="text-lg font-black text-slate-900">{catCounts.admin.length}</div>
                     <div className="text-[10px] text-slate-600 font-bold">{pAdminPct}% of platform</div>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>

@@ -94,6 +94,7 @@ interface StudentViewProps {
   onToggleSimplifiedInterface?: (simplified: boolean) => void;
   onMarkLessonCompleted?: (lesson: Lesson, score?: number) => void;
   onRecordActivity?: (activity: Omit<UserActivityRecord, 'id' | 'timestamp'> & { timestamp?: string }) => void;
+  onUpdateMockTests?: (tests: MockTest[]) => void;
 }
 
 export const StudentView: React.FC<StudentViewProps> = ({
@@ -122,7 +123,8 @@ export const StudentView: React.FC<StudentViewProps> = ({
   onCelebrate,
   onToggleSimplifiedInterface,
   onMarkLessonCompleted,
-  onRecordActivity
+  onRecordActivity,
+  onUpdateMockTests
 }) => {
   const isKidMode = profile.simplifiedInterface !== undefined
     ? profile.simplifiedInterface
@@ -868,6 +870,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
             profile={profile}
             currentUser={currentUser}
             onRecordActivity={recordActivitySafe}
+            onUpdateMockTests={onUpdateMockTests}
           />
         )}
 

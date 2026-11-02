@@ -260,6 +260,8 @@ Testing was conducted using automated browser automation (`puppeteer-core` drivi
 | :--- | :--- | :--- |
 | **Viewport Utilization** | Previously, container max-widths (`max-w-7xl` or `max-w-[1720px]`) left excessive empty margins on wide monitors (>1920px). | Removed restrictive wrappers; replaced with fluid, full-width grid/flex containers spanning 100% width. |
 | **Activity Board Layout** | Activity logs previously consumed vertical space with loose card margins and empty whitespace. | Implemented a dense, responsive Data Table layout alongside a dedicated Question Attempt History log. |
+| **Dashboard Graph Click-to-Filter** | Dashboard charts were non-interactive and did not allow direct drill-down into activity records. | Made 7-day trend bars and category distribution bars clickable; clicks filter the timeline table by day or category and smoothly scroll to the log with a highlight ring. |
+| **Test & Quiz Bank Rotation** | Completed tests, mock exams, and quiz questions remained at the top of selection lists. | Implemented bank rotation in storage; attempted tests and quizzes rotate to the end of the bank, ensuring students always select fresh unattempted content first. |
 | **Graph Authenticity** | Weekly activity charts previously utilized static or scaled fallback arrays. | Implemented authentic timestamp parsing (`act.timestamp.slice(0, 10)`) mapping real daily activity counts over the trailing 7 days. |
 | **Dark Theme Text Contrast** | Resource Vault and modal content boxes exhibited dark text on dark backgrounds (`bg-slate-900` with dark gray text). | Standardized color variables using high-contrast text (`text-slate-100`, `text-slate-300`) and borders (`border-slate-800`). |
 | **MCQ Predictability** | Correct answers in multiple-choice tests were predictably placed at Option A. | Applied Fisher-Yates option shuffling across all practice tests to ensure cognitive challenge. |
@@ -271,4 +273,4 @@ Testing was conducted using automated browser automation (`puppeteer-core` drivi
 
 ## 5. Conclusion & Recommendations
 
-The EduBridge application demonstrates exceptional software architecture, responsive UI mechanics, and robust role-based access control. All 32 interfaces across Admin, Student, Parent, and Teacher roles are fully functional, verified by 53 passing automated unit and integration tests, and documented with live screenshots in `Documentation/EduBridge_Interface_Documentation.docx`.
+The EduBridge application demonstrates exceptional software architecture, responsive UI mechanics, and robust role-based access control. All 32 interfaces across Admin, Student, Parent, and Teacher roles are fully functional, verified by 55 passing automated unit and integration tests, and documented with live screenshots in `Documentation/EduBridge_Interface_Documentation.docx`.

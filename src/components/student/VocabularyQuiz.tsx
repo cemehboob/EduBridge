@@ -94,11 +94,18 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
   // Start Quiz Handler
   const handleStartQuiz = () => {
     sound.playClick();
-    // Filter questions by selected cohort
+    // Filter questions by selected cohort: unattempted questions come first, attempted move to end of bank
     const pool = cohortQuizQuestions.filter((q) => q.cohort === selectedCohort);
-    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    const attemptedIds = StorageService.getAttemptedCohortQuizIds();
+    const unattempted = pool.filter((q) => !attemptedIds.includes(q.id));
+    const attempted = pool
+      .filter((q) => attemptedIds.includes(q.id))
+      .sort((a, b) => attemptedIds.indexOf(a.id) - attemptedIds.indexOf(b.id));
 
-    setCohortQuestions(shuffled);
+    const orderedPool = [...unattempted, ...attempted];
+    const finalSelection = orderedPool.length > 0 ? orderedPool : pool;
+
+    setCohortQuestions(finalSelection);
     setCurrentIndex(0);
     setSelectedOption(null);
     setIsSubmitted(false);
@@ -110,8 +117,8 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
     setIsQuizActive(true);
 
     // Initial voice prompt
-    if (shuffled[0]) {
-      handleSpeak(shuffled[0].prompt);
+    if (finalSelection[0]) {
+      handleSpeak(finalSelection[0].prompt);
     }
   };
 
@@ -222,6 +229,9 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
           subId: selectedCohort
         }
       });
+
+      // Move attempted quiz questions to end of quiz bank
+      StorageService.recordAttemptedCohortQuizIds(cohortQuestions.map((q) => q.id));
 
       if (accuracy >= 80) {
         triggerCelebration('daily_goal');

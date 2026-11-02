@@ -49,6 +49,7 @@ interface ExamPrepViewProps {
   currentUser?: UserAccount | null;
   onRecordAttempt?: (attempt: ExamAttempt) => void;
   onRecordActivity?: (activity: Omit<UserActivityRecord, 'id' | 'timestamp'> & { timestamp?: string }) => void;
+  onUpdateMockTests?: (tests: MockTest[]) => void;
 }
 
 export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
@@ -56,7 +57,8 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
   profile,
   currentUser,
   onRecordAttempt,
-  onRecordActivity
+  onRecordActivity,
+  onUpdateMockTests
 }) => {
   const examOptions: ExamType[] = [
     'IELTS Academic',
@@ -185,8 +187,13 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
   const allPracticeTestsForModule = practiceTests.filter(
     (t) => t.category === currentIeltsCategory && t.module === selectedPracticeModule
   );
-  // Sort practice tests so user's expected difficulty comes first
+  // Sort practice tests so unattempted tests come first, and attempted tests move to end of bank
   const filteredPracticeTests = [...allPracticeTestsForModule].sort((a, b) => {
+    const aAttempted = a.lastAttemptedAt || a.completed ? 1 : 0;
+    const bAttempted = b.lastAttemptedAt || b.completed ? 1 : 0;
+    if (aAttempted !== bAttempted) {
+      return aAttempted - bAttempted;
+    }
     const aMatch = preferredDifficulties.includes(a.difficulty) ? 1 : 0;
     const bMatch = preferredDifficulties.includes(b.difficulty) ? 1 : 0;
     return bMatch - aMatch;
@@ -199,12 +206,22 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
   });
 
   // Filtered by cohort/age/education difficulty if toggle is active
-  const filteredMockTests = filterByCohortLevel
+  const cohortFilteredTests = filterByCohortLevel
     ? examMockTests.filter((t) => preferredDifficulties.includes(t.difficulty))
     : examMockTests;
 
   // Safe fallback to all exam tests if strict filter yields 0
-  const effectiveMockTests = filteredMockTests.length > 0 ? filteredMockTests : examMockTests;
+  const baseMockTests = cohortFilteredTests.length > 0 ? cohortFilteredTests : examMockTests;
+
+  // Sort mock tests: unattempted mock tests come first; attempted mock tests move to end of bank!
+  const effectiveMockTests = [...baseMockTests].sort((a, b) => {
+    const aAttempted = a.lastAttemptedAt ? 1 : 0;
+    const bAttempted = b.lastAttemptedAt ? 1 : 0;
+    if (aAttempted !== bAttempted) {
+      return aAttempted - bAttempted;
+    }
+    return 0;
+  });
   const currentTest = activeTest || effectiveMockTests[0] || mockTests[0];
 
   // Timer countdown
@@ -473,6 +490,9 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
       };
     });
     StorageService.recordBatchQuestionAttempts(questionAttempts);
+
+    // Move attempted practice test to end of bank so user selects a new test next time
+    setPracticeTests((prev) => StorageService.movePracticeTestToEnd(testItem.id, prev));
   };
 
   const handleSubmitPracticeAnswer = (testItem: IELTSPracticeTest) => {
@@ -577,6 +597,9 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
       explanation: testItem.explanation || 'Verified answer against syllabus.',
       timestamp: currentPracticeTimestamp
     });
+
+    // Move attempted practice test to end of bank
+    setPracticeTests((prev) => StorageService.movePracticeTestToEnd(testItem.id, prev));
   };
 
   const handleSubmitForEvaluation = async () => {
@@ -737,6 +760,12 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
       };
     });
     StorageService.recordBatchQuestionAttempts(mockQuestionAttempts);
+
+    // Move attempted mock exam to end of test bank so user selects a new test next time
+    const updatedMockTests = StorageService.moveMockTestToEnd(currentTest.id);
+    if (onUpdateMockTests) {
+      onUpdateMockTests(updatedMockTests);
+    }
 
     try {
       confetti({ particleCount: 90, spread: 60 });
