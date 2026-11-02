@@ -447,6 +447,32 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     if (onRecordActivity) {
       onRecordActivity(actRecord);
     }
+
+    // Record question-by-question attempt history with timestamp details
+    const currentTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const questionAttempts = questions.map((q, idx) => {
+      const userAns = practiceAnswers[idx] || (idx === 0 ? practiceUserAnswer : '');
+      const isCorrect = isWriting
+        ? true
+        : !!(userAns && q.correctAnswer && userAns.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase());
+      return {
+        userId: currentUser?.id || profile?.id || 'usr_student_01',
+        userName: currentUser?.name || profile?.name || 'Alex Rivera',
+        testId: testItem.id,
+        testTitle: testItem.title,
+        moduleOrSubject: `${selectedExam} ${testItem.module}`,
+        questionNumber: q.questionNumber || idx + 1,
+        questionPrompt: q.prompt,
+        options: q.options,
+        userAnswer: isWriting ? writtenText : (userAns || 'No answer submitted'),
+        correctAnswer: isWriting ? 'Band 9.0 Benchmark' : (q.correctAnswer || 'Authentic Rubric'),
+        isCorrect,
+        score: isWriting ? bandScore : (isCorrect ? '1/1' : '0/1'),
+        explanation: q.explanation || 'Evaluated against official exam syllabus.',
+        timestamp: currentTimestamp
+      };
+    });
+    StorageService.recordBatchQuestionAttempts(questionAttempts);
   };
 
   const handleSubmitPracticeAnswer = (testItem: IELTSPracticeTest) => {
@@ -532,6 +558,25 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     if (onRecordActivity) {
       onRecordActivity(practiceActivity);
     }
+
+    // Record question attempt to question attempt ledger
+    const currentPracticeTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    StorageService.recordQuestionAttempt({
+      userId: currentUser?.id || profile?.id || 'usr_student_01',
+      userName: currentUser?.name || profile?.name || 'Alex Rivera',
+      testId: testItem.id,
+      testTitle: testItem.title,
+      moduleOrSubject: `${selectedExam} ${testItem.module}`,
+      questionNumber: 1,
+      questionPrompt: testItem.prompt,
+      options: testItem.options,
+      userAnswer: practiceUserAnswer,
+      correctAnswer: testItem.correctAnswer || 'Authentic Model Answer',
+      isCorrect: isCorrectResult,
+      score: isCorrectResult ? '1/1' : '0/1',
+      explanation: testItem.explanation || 'Verified answer against syllabus.',
+      timestamp: currentPracticeTimestamp
+    });
   };
 
   const handleSubmitForEvaluation = async () => {
@@ -661,6 +706,37 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     if (onRecordActivity) {
       onRecordActivity(mockExamActivity);
     }
+
+    // Record individual mock examination question attempts
+    const mockTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const mockQuestionAttempts = currentTest.questions.map((q, idx) => {
+      let userAns = userAnswers[q.id] || '';
+      if (q.section === 'Writing') {
+        userAns = essayText;
+      } else if (q.section === 'Speaking') {
+        userAns = 'Recorded oral response via microphone';
+      }
+      const isCorrect = q.correctAnswer
+        ? userAns.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()
+        : true;
+      return {
+        userId: currentUser?.id || profile?.id || 'usr_student_01',
+        userName: currentUser?.name || profile?.name || 'Alex Rivera',
+        testId: currentTest.id,
+        testTitle: currentTest.title,
+        moduleOrSubject: `${currentTest.exam} ${q.section}`,
+        questionNumber: idx + 1,
+        questionPrompt: q.questionText,
+        options: q.options,
+        userAnswer: userAns || 'No response recorded',
+        correctAnswer: q.correctAnswer || q.modelAnswer || 'Standard assessment criteria',
+        isCorrect,
+        score: isCorrect ? '1/1' : '0/1',
+        explanation: q.instruction || 'Section evaluated against official exam criteria.',
+        timestamp: mockTimestamp
+      };
+    });
+    StorageService.recordBatchQuestionAttempts(mockQuestionAttempts);
 
     try {
       confetti({ particleCount: 90, spread: 60 });

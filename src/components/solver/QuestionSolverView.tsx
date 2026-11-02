@@ -62,6 +62,7 @@ import {
 } from '../../services/speechService';
 import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
 import { sound } from '../../utils/audio';
+import { StorageService } from '../../services/storage';
 
 interface QuestionSolverViewProps {
   initialSubject?: SolverSubject;
@@ -263,8 +264,29 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
       }
 
       if (notifyParent && onQuestionSolved) {
-        onQuestionSolved(result.subject, questionText, result);
+        onQuestionSolved(result.subject, raw, result);
       }
+
+      // Record verified solver question attempt
+      if (!result.isAmbiguous) {
+        const solverTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        StorageService.recordQuestionAttempt({
+          userId: 'usr_student_01',
+          userName: 'Alex Rivera',
+          testId: `solver_${result.id}`,
+          testTitle: `AI Solver: ${result.topic}`,
+          moduleOrSubject: `${result.subject} Solver`,
+          questionNumber: 1,
+          questionPrompt: raw,
+          userAnswer: raw,
+          correctAnswer: result.finalAnswer,
+          isCorrect: true,
+          score: '100% (Verified)',
+          explanation: result.summary,
+          timestamp: solverTimestamp
+        });
+      }
+
       sound.playSuccess();
     } catch (err) {
       console.error('Error solving question:', err);

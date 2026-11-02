@@ -29,9 +29,10 @@ import {
   ColorSchemeConfig,
   UserActivityRecord,
   PasswordResetRecord,
-  ExamSettingsConfig
+  ExamSettingsConfig,
+  QuestionAttemptRecord
 } from '../types';
-import { initialActivities } from '../data/activityData';
+import { initialActivities, initialQuestionAttempts } from '../data/activityData';
 import { ieltsAcademicUnits } from '../data/ieltsUnitsData';
 import { DEFAULT_COLOR_SCHEME } from '../utils/themeManager';
 import {
@@ -86,6 +87,7 @@ const KEYS = {
   TEST_CONDUCTION_LOGS: 'edubridge_test_conduction_logs_v1',
   COLOR_SCHEME: 'edubridge_color_scheme_v1',
   ACTIVITIES: 'edubridge_user_activities_v1',
+  QUESTION_ATTEMPTS: 'edubridge_question_attempts_v1',
   PASSWORD_RESETS: 'edubridge_password_resets_v1',
   EXAM_SETTINGS: 'edubridge_exam_settings_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp'
@@ -525,6 +527,46 @@ export const StorageService = {
     return newRecord;
   },
 
+  // Practice Question Attempts History & Diagnostics
+  getQuestionAttempts: (userId?: string): QuestionAttemptRecord[] => {
+    const all = safeGet<QuestionAttemptRecord[]>(KEYS.QUESTION_ATTEMPTS, initialQuestionAttempts);
+    if (!userId) return all;
+    return all.filter((q) => q.userId === userId);
+  },
+
+  saveQuestionAttempts: (attempts: QuestionAttemptRecord[]): void => {
+    safeSet(KEYS.QUESTION_ATTEMPTS, attempts);
+  },
+
+  recordQuestionAttempt: (
+    att: Omit<QuestionAttemptRecord, 'id' | 'timestamp'> & { id?: string; timestamp?: string }
+  ): QuestionAttemptRecord => {
+    const existing = StorageService.getQuestionAttempts();
+    const newRecord: QuestionAttemptRecord = {
+      ...att,
+      id: att.id || `q_att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: att.timestamp || new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+    const updated = [newRecord, ...existing];
+    StorageService.saveQuestionAttempts(updated);
+    return newRecord;
+  },
+
+  recordBatchQuestionAttempts: (
+    batch: (Omit<QuestionAttemptRecord, 'id' | 'timestamp'> & { id?: string; timestamp?: string })[]
+  ): QuestionAttemptRecord[] => {
+    const existing = StorageService.getQuestionAttempts();
+    const nowTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const newRecords: QuestionAttemptRecord[] = batch.map((att, idx) => ({
+      ...att,
+      id: att.id || `q_att_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: att.timestamp || nowTimestamp
+    }));
+    const updated = [...newRecords, ...existing];
+    StorageService.saveQuestionAttempts(updated);
+    return newRecords;
+  },
+
   // Password Reset 6-Digit OTP Management
   savePasswordResetOtp: (email: string, otp: string): void => {
     const resets = safeGet<PasswordResetRecord[]>(KEYS.PASSWORD_RESETS, []);
@@ -572,6 +614,8 @@ export const StorageService = {
       certificates: StorageService.getCertificates(),
       dailyTasks: StorageService.getDailyTasks(),
       revisions: StorageService.getRevisions(),
+      activities: StorageService.getUserActivities(),
+      questionAttempts: StorageService.getQuestionAttempts(),
       exportTimestamp: new Date().toISOString(),
       version: '1.0.0'
     };
@@ -593,6 +637,8 @@ export const StorageService = {
       if (parsed.certificates) StorageService.saveCertificates(parsed.certificates);
       if (parsed.dailyTasks) StorageService.saveDailyTasks(parsed.dailyTasks);
       if (parsed.revisions) StorageService.saveRevisions(parsed.revisions);
+      if (parsed.activities) StorageService.saveUserActivities(parsed.activities);
+      if (parsed.questionAttempts) StorageService.saveQuestionAttempts(parsed.questionAttempts);
       return true;
     } catch (e) {
       console.error('[EduBridge Storage] Import failed:', e);

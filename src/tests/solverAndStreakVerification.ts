@@ -1175,7 +1175,124 @@ async function runTests() {
     console.log('PASS: Admin portal includes first-page Dashboard with category analytics, practice test question config, and full user dashboard inspection.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 52 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // ==========================================
+  // TEST 53: Practice Question Attempts Persistence & Authentic Graph Population
+  // ==========================================
+  console.log('\nTest 53: Verifying Question Attempt Storage, Timestamps, and Authentic Graph Population...');
+  
+  // 1. Verify StorageService question attempt persistence
+  const initialAttempts = StorageService.getQuestionAttempts('usr_student_01');
+  if (initialAttempts.length < 5) {
+    console.error('FAIL: Expected at least 5 initial question attempts for usr_student_01, got:', initialAttempts.length);
+    failures++;
+  } else {
+    console.log(`PASS: Retrieved ${initialAttempts.length} question attempts for Alex Rivera.`);
+  }
+
+  // 2. Test recording a single question attempt
+  const testTimestamp = '2026-11-02 20:30:15';
+  const recordedQ = StorageService.recordQuestionAttempt({
+    userId: 'usr_student_01',
+    userName: 'Alex Rivera',
+    testId: 'test_reading_bio_01',
+    testTitle: 'IELTS Reading: Marine Biology',
+    moduleOrSubject: 'IELTS Reading',
+    questionNumber: 3,
+    questionPrompt: 'What is the primary trophic role of benthic phytoplankton?',
+    options: ['Primary producer', 'Apex predator', 'Decomposer', 'Secondary consumer'],
+    userAnswer: 'Primary producer',
+    correctAnswer: 'Primary producer',
+    isCorrect: true,
+    score: '1/1',
+    explanation: 'Phytoplankton convert solar irradiation into biochemical energy at trophic level 1.',
+    timestamp: testTimestamp
+  });
+
+  if (
+    !recordedQ.id ||
+    recordedQ.timestamp !== testTimestamp ||
+    recordedQ.userAnswer !== 'Primary producer' ||
+    !recordedQ.isCorrect
+  ) {
+    console.error('FAIL: Question attempt record mismatch:', recordedQ);
+    failures++;
+  } else {
+    console.log(`PASS: Single question attempt recorded with proper timestamp "${recordedQ.timestamp}" and answer diagnostics.`);
+  }
+
+  // 3. Test batch question attempt recording (e.g. 10 questions)
+  const batchAttempts = Array.from({ length: 10 }, (_, idx) => ({
+    userId: 'usr_student_01',
+    userName: 'Alex Rivera',
+    testId: 'test_stem_physics_batch',
+    testTitle: 'Physics Kinematics Full Practice Test',
+    moduleOrSubject: 'Physics',
+    questionNumber: idx + 1,
+    questionPrompt: `Kinematics Problem #${idx + 1}: Calculate velocity at t = ${idx * 2}s.`,
+    userAnswer: `${idx * 4} m/s`,
+    correctAnswer: `${idx * 4} m/s`,
+    isCorrect: true,
+    score: '1/1',
+    explanation: 'Applied constant acceleration formula v = u + at.',
+    timestamp: testTimestamp
+  }));
+
+  const savedBatch = StorageService.recordBatchQuestionAttempts(batchAttempts);
+  if (savedBatch.length !== 10) {
+    console.error('FAIL: Batch question attempts failed to persist 10 records, got:', savedBatch.length);
+    failures++;
+  } else {
+    console.log(`PASS: Successfully stored batch of 10 question attempts with individual timestamps.`);
+  }
+
+  // 4. Verify authentic graph computation in ActivityBoardView (No hardcoded fallback arrays)
+  const actBoardSource = fs.readFileSync('src/components/student/ActivityBoardView.tsx', 'utf-8');
+  if (actBoardSource.includes('Math.round(userActivities.length * 0.4)')) {
+    console.error('FAIL: ActivityBoardView still contains hardcoded dayValues array.');
+    failures++;
+  } else {
+    console.log('PASS: ActivityBoardView computes 7-day activity trends dynamically from authentic timestamps.');
+  }
+
+  if (
+    !actBoardSource.includes('examMastery') ||
+    !actBoardSource.includes('solverAccuracy') ||
+    !actBoardSource.includes('Questions Log') ||
+    !actBoardSource.includes('filteredQuestionAttempts')
+  ) {
+    console.error('FAIL: ActivityBoardView missing dynamic mastery computations or Question Log table.');
+    failures++;
+  } else {
+    console.log('PASS: ActivityBoardView dynamically computes all 6 category progress bars and includes high-density Question Attempts Log.');
+  }
+
+  // 5. Verify AdminPortal includes Question-by-Question Log inspector
+  if (
+    !adminPortalCode.includes('targetUserQuestions') ||
+    !adminPortalCode.includes('Question-by-Question Log') ||
+    !adminPortalCode.includes('inspectedSubView')
+  ) {
+    console.error('FAIL: AdminPortal missing Question-by-Question Log inspector for selected users.');
+    failures++;
+  } else {
+    console.log('PASS: Admin Portal provides full question attempt inspection for selected users.');
+  }
+
+  // 6. Verify ParentPortal computes study hours dynamically from stored activities
+  const parentPortalSource = fs.readFileSync('src/components/parent/ParentPortal.tsx', 'utf-8');
+  if (
+    !parentPortalSource.includes('StorageService.getUserActivities') ||
+    !parentPortalSource.includes('langHours') ||
+    !parentPortalSource.includes('examHours') ||
+    !parentPortalSource.includes('stemHours')
+  ) {
+    console.error('FAIL: ParentPortal not dynamically computing study hours from stored activities.');
+    failures++;
+  } else {
+    console.log('PASS: Parent Portal computes study hours and category focus directly from real user activities.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 53 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

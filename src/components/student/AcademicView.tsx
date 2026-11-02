@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { AcademicTopic, AcademicSubject } from '../../types';
 import { sound } from '../../utils/audio';
+import { StorageService } from '../../services/storage';
 
 interface AcademicViewProps {
   topics: AcademicTopic[];
@@ -39,10 +40,48 @@ export const AcademicView: React.FC<AcademicViewProps> = ({ topics, onConsultAI 
     sound.playClick();
     setSelectedOption(idx);
     setShowSolution(true);
-    if (activeTopic && idx === activeTopic.practiceProblem.correctIndex) {
+    const isCorrect = activeTopic && idx === activeTopic.practiceProblem.correctIndex;
+    if (isCorrect) {
       sound.playSuccess();
     } else {
       sound.playError();
+    }
+
+    // Record question attempt and learning activity with exact timestamp
+    if (activeTopic) {
+      const nowTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+      StorageService.recordQuestionAttempt({
+        userId: 'usr_student_01',
+        userName: 'Alex Rivera',
+        testId: activeTopic.id,
+        testTitle: activeTopic.title,
+        moduleOrSubject: activeTopic.subject,
+        questionNumber: 1,
+        questionPrompt: activeTopic.practiceProblem.question,
+        options: activeTopic.practiceProblem.options,
+        userAnswer: activeTopic.practiceProblem.options[idx] || `Option #${idx + 1}`,
+        correctAnswer: activeTopic.practiceProblem.options[activeTopic.practiceProblem.correctIndex],
+        isCorrect: !!isCorrect,
+        score: isCorrect ? '1/1 (Correct)' : '0/1 (Needs Review)',
+        explanation: activeTopic.practiceProblem.stepByStepSolution?.join(' ') || 'Standard step-by-step derivation.',
+        timestamp: nowTimestamp
+      });
+
+      StorageService.recordUserActivity({
+        userId: 'usr_student_01',
+        userName: 'Alex Rivera',
+        type: 'stem_game',
+        title: `${activeTopic.subject}: ${activeTopic.title}`,
+        category: `${activeTopic.subject} Mastery`,
+        score: isCorrect ? '100% (Correct)' : 'Needs Review',
+        xpEarned: isCorrect ? 25 : 10,
+        status: 'completed',
+        details: `Practiced ${activeTopic.subCategory} problem: "${activeTopic.practiceProblem.question}". ${isCorrect ? 'Answered correctly!' : 'Reviewed complete step-by-step derivation.'}`,
+        replayPayload: {
+          tab: 'academic',
+          subId: activeTopic.id
+        }
+      });
     }
   };
 

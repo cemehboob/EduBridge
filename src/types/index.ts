@@ -341,6 +341,7 @@ export interface CertificateItem {
 
 // Parent Portal
 export interface ChildProgress {
+  childId?: string;
   childName: string;
   weeklyHours: number;
   weeklyTargetHours: number;
@@ -534,6 +535,25 @@ export interface UserActivityRecord {
     query?: string;
     metadata?: Record<string, any>;
   };
+}
+
+export interface QuestionAttemptRecord {
+  id: string;
+  userId: string;
+  userName: string;
+  testId: string;
+  testTitle: string;
+  moduleOrSubject: string; // e.g. "IELTS Reading", "IELTS Writing", "GRE Verbal", "Mathematics", "Vocabulary"
+  questionNumber: number;
+  questionPrompt: string;
+  options?: string[];
+  userAnswer: string;
+  correctAnswer?: string;
+  isCorrect: boolean;
+  score?: string | number;
+  timeSpentSec?: number;
+  explanation?: string;
+  timestamp: string; // "YYYY-MM-DD HH:mm:ss"
 }
 
 export interface PasswordResetRecord {

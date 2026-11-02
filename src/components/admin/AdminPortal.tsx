@@ -49,7 +49,8 @@ import {
   IngestedItemRecord,
   TestConductionRecord,
   UserActivityRecord,
-  ExamSettingsConfig
+  ExamSettingsConfig,
+  QuestionAttemptRecord
 } from '../../types';
 import { sound } from '../../utils/audio';
 import { StorageService } from '../../services/storage';
@@ -147,6 +148,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // Full User Dashboard Access & Inspector State
   const [selectedUserForDashboard, setSelectedUserForDashboard] = useState<UserAccount | null>(null);
   const [userDashboardSearch, setUserDashboardSearch] = useState('');
+  const [inspectedSubView, setInspectedSubView] = useState<'activities' | 'questions'>('activities');
 
   const [isFlushingCache, setIsFlushingCache] = useState(false);
   const [cacheStatus, setCacheStatus] = useState('Optimal (94.8% hit ratio)');
@@ -535,9 +537,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           return !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
         });
 
-        // Compute activities for inspected user
+        // Compute activities and question attempts for inspected user
         const targetUserActivities = selectedUserForDashboard
           ? allActivities.filter((a) => a.userId === selectedUserForDashboard.id || a.userName?.toLowerCase() === selectedUserForDashboard.name.toLowerCase())
+          : [];
+
+        const targetUserQuestions = selectedUserForDashboard
+          ? StorageService.getQuestionAttempts().filter(
+              (q) =>
+                q.userId === selectedUserForDashboard.id ||
+                q.userName?.toLowerCase() === selectedUserForDashboard.name.toLowerCase()
+            )
           : [];
 
         return (
@@ -845,10 +855,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </div>
 
                   {/* Inspected User Stats Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logged Activities</div>
                       <div className="text-xl font-black text-slate-900">{targetUserActivities.length}</div>
+                    </div>
+                    <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Questions Log</div>
+                      <div className="text-xl font-black text-indigo-600">{targetUserQuestions.length}</div>
                     </div>
                     <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Streak</div>
@@ -871,45 +885,131 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     </div>
                   </div>
 
-                  {/* Inspected User Activity Records Table */}
+                  {/* Inspected User Records View Toggle */}
                   <div className="space-y-3">
-                    <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      Recent Activity History for {selectedUserForDashboard.name} ({targetUserActivities.length} Records)
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => { sound.playClick(); setInspectedSubView('activities'); }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            inspectedSubView === 'activities'
+                              ? 'bg-indigo-600 text-white shadow-2xs'
+                              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          Activity History ({targetUserActivities.length})
+                        </button>
+                        <button
+                          onClick={() => { sound.playClick(); setInspectedSubView('questions'); }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            inspectedSubView === 'questions'
+                              ? 'bg-indigo-600 text-white shadow-2xs'
+                              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          Question-by-Question Log ({targetUserQuestions.length})
+                        </button>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-500">
+                        Inspecting: {selectedUserForDashboard.name} ({selectedUserForDashboard.email})
+                      </span>
                     </div>
 
-                    {targetUserActivities.length > 0 ? (
-                      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 text-slate-600 font-extrabold border-b border-slate-200">
-                            <tr>
-                              <th className="py-2.5 px-3">Activity</th>
-                              <th className="py-2.5 px-3">Category</th>
-                              <th className="py-2.5 px-3">Result / Score</th>
-                              <th className="py-2.5 px-3">Timestamp</th>
-                              <th className="py-2.5 px-3">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {targetUserActivities.map((act) => (
-                              <tr key={act.id} className="hover:bg-slate-50/70">
-                                <td className="py-2.5 px-3 font-bold text-slate-900">{act.title}</td>
-                                <td className="py-2.5 px-3 text-slate-600">{act.category}</td>
-                                <td className="py-2.5 px-3 font-semibold text-emerald-700">{act.score || 'Completed'}</td>
-                                <td className="py-2.5 px-3 font-mono text-slate-500 text-[11px]">{act.timestamp}</td>
-                                <td className="py-2.5 px-3">
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                    {act.status}
-                                  </span>
-                                </td>
+                    {inspectedSubView === 'questions' ? (
+                      targetUserQuestions.length > 0 ? (
+                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-slate-50 text-slate-600 font-extrabold border-b border-slate-200">
+                              <tr>
+                                <th className="py-2.5 px-3 whitespace-nowrap">Timestamp</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap">Module / Test</th>
+                                <th className="py-2.5 px-3">Question Prompt</th>
+                                <th className="py-2.5 px-3">User's Answer</th>
+                                <th className="py-2.5 px-3">Correct Answer</th>
+                                <th className="py-2.5 px-3 text-center whitespace-nowrap">Result</th>
+                                <th className="py-2.5 px-3">Explanation</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {targetUserQuestions.map((q) => (
+                                <tr key={q.id} className="hover:bg-slate-50/70">
+                                  <td className="py-2 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap align-top">
+                                    {q.timestamp}
+                                  </td>
+                                  <td className="py-2 px-3 align-top whitespace-nowrap">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 block w-fit">
+                                      {q.moduleOrSubject}
+                                    </span>
+                                    <div className="text-[11px] font-semibold text-slate-700 truncate max-w-xs">{q.testTitle}</div>
+                                  </td>
+                                  <td className="py-2 px-3 align-top max-w-md">
+                                    <span className="font-bold text-slate-900 block text-xs">Q{q.questionNumber}: {q.questionPrompt}</span>
+                                  </td>
+                                  <td className="py-2 px-3 align-top font-medium text-slate-800 max-w-xs">
+                                    <div className="p-1.5 rounded bg-slate-50 border border-slate-200 text-xs">
+                                      {q.userAnswer}
+                                    </div>
+                                  </td>
+                                  <td className="py-2 px-3 align-top font-medium text-emerald-900 max-w-xs">
+                                    <div className="p-1.5 rounded bg-emerald-50/60 border border-emerald-200 text-xs">
+                                      {q.correctAnswer || 'Standard Rubric'}
+                                    </div>
+                                  </td>
+                                  <td className="py-2 px-3 text-center align-top whitespace-nowrap">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                      q.isCorrect ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+                                    }`}>
+                                      {q.isCorrect ? '✓ Correct' : '✕ Review'}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 px-3 align-top text-[11px] text-slate-500 max-w-xs">
+                                    {q.explanation}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-white rounded-xl border border-slate-200 text-xs text-slate-500 text-center">
+                          No practice questions attempted yet by this user.
+                        </div>
+                      )
                     ) : (
-                      <div className="p-4 bg-white rounded-xl border border-slate-200 text-xs text-slate-500 text-center">
-                        No learning activities recorded yet for this user.
-                      </div>
+                      targetUserActivities.length > 0 ? (
+                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-slate-50 text-slate-600 font-extrabold border-b border-slate-200">
+                              <tr>
+                                <th className="py-2.5 px-3">Activity</th>
+                                <th className="py-2.5 px-3">Category</th>
+                                <th className="py-2.5 px-3">Result / Score</th>
+                                <th className="py-2.5 px-3">Timestamp</th>
+                                <th className="py-2.5 px-3">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {targetUserActivities.map((act) => (
+                                <tr key={act.id} className="hover:bg-slate-50/70">
+                                  <td className="py-2.5 px-3 font-bold text-slate-900">{act.title}</td>
+                                  <td className="py-2.5 px-3 text-slate-600">{act.category}</td>
+                                  <td className="py-2.5 px-3 font-semibold text-emerald-700">{act.score || 'Completed'}</td>
+                                  <td className="py-2.5 px-3 font-mono text-slate-500 text-[11px]">{act.timestamp}</td>
+                                  <td className="py-2.5 px-3">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                      {act.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-white rounded-xl border border-slate-200 text-xs text-slate-500 text-center">
+                          No learning activities recorded yet for this user.
+                        </div>
+                      )
                     )}
                   </div>
                 </div>

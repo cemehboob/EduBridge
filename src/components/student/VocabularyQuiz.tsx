@@ -24,6 +24,7 @@ import { VocabularyWord, UserProfile, AgeCohortId } from '../../types';
 import { sound } from '../../utils/audio';
 import { triggerCelebration } from '../../utils/celebration';
 import { AIService } from '../../services/aiService';
+import { StorageService } from '../../services/storage';
 import { cohortQuizCategories, cohortQuizQuestions, CohortQuizQuestion } from '../../data/cohortQuizzesData';
 import { calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 
@@ -181,6 +182,46 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
 
       setIsQuizFinished(true);
       setIsQuizActive(false);
+
+      // Record question-by-question attempt history with timestamp details
+      const nowTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+      const questionAttempts = userAnswers.map((ans, idx) => {
+        const question = cohortQuestions.find((q) => q.id === ans.questionId) || cohortQuestions[idx];
+        return {
+          userId: profile?.id || 'usr_student_01',
+          userName: profile?.name || 'Alex Rivera',
+          testId: `vocab_quiz_${selectedCohort}`,
+          testTitle: `Vocabulary Quiz: ${activeCategoryInfo.name}`,
+          moduleOrSubject: 'Vocabulary',
+          questionNumber: idx + 1,
+          questionPrompt: question?.prompt || `Vocabulary Word Assessment #${idx + 1}`,
+          options: question?.options,
+          userAnswer: ans.selected,
+          correctAnswer: question?.correctAnswer,
+          isCorrect: ans.isCorrect,
+          score: ans.isCorrect ? '1/1' : '0/1',
+          explanation: question?.explanation || 'Assessed against cohort lexicon standards.',
+          timestamp: nowTimestamp
+        };
+      });
+      StorageService.recordBatchQuestionAttempts(questionAttempts);
+
+      // Record quiz activity to user timeline
+      StorageService.recordUserActivity({
+        userId: profile?.id || 'usr_student_01',
+        userName: profile?.name || 'Alex Rivera',
+        type: 'vocab_quiz',
+        title: `Vocabulary Quiz: ${activeCategoryInfo.name}`,
+        category: 'Vocabulary Track',
+        score: `${correct}/${total} (${accuracy}%)`,
+        xpEarned,
+        status: 'completed',
+        details: `Tested on vocabulary definitions and lexical accuracy: ${correct}/${total} correct (${accuracy}%).`,
+        replayPayload: {
+          tab: 'vocab_quiz',
+          subId: selectedCohort
+        }
+      });
 
       if (accuracy >= 80) {
         triggerCelebration('daily_goal');
