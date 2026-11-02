@@ -1,5 +1,5 @@
 # EduBridge Outstanding Issues and Technical Considerations
-**Document Version:** 1.0.0  
+**Document Version:** 1.1.0  
 **Date:** November 2, 2026  
 **Author:** Antigravity Engineering & QA Team  
 **Scope:** Inventory of Platform Boundaries, External Dependencies, and Future Enhancements

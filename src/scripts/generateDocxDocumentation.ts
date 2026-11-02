@@ -39,6 +39,80 @@ async function buildDocx() {
   }
   const views: AuditItem[] = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
 
+  const descriptions: Record<string, string> = {
+    admin_dashboard_metrics:
+      'Executive first-page landing dashboard providing real-time visibility into platform operations. Features a proportional learning time distribution bar across 7 disciplines, discrete category metric tiles, standardized practice test question count configurator (5 to 20 questions), and a multi-user live activity ledger capturing actions across all four platform roles.',
+    admin_user_inspector:
+      'High-resolution user inspection interface enabling administrators to select any registered user from visual pills or search inputs. Displays their live statistics (Activities, Questions Log, Streak, XP, Level) and provides dual tabbed inspection of their complete Activity History and granular Question-by-Question attempt diagnostics, alongside an Impersonation session launcher.',
+    admin_user_management:
+      'Centralized identity and role-based access control (RBAC) directorate. Features live multi-field account search, role filtering, new user creation, account status toggles (Active vs Suspended), and credential editing with date-of-birth cohort synchronization.',
+    admin_edit_user_modal:
+      'Dedicated modal dialog for modifying user credentials. Captures legal full name, email, encrypted password updates, and Date of Birth (DOB). Automatically recalculates the user\'s age cohort and education level upon DOB modification.',
+    admin_model_management:
+      'Multi-model inference governance hub managing 4 tiers of local Ollama models (Phi-4 Mini, Qwen 3 8B, DeepSeek R1 8B, Llama 3.3 8B). Displays online status, latency, parameter size, and allocated VRAM, with active/standby toggles and temperature sliders.',
+    admin_scheduled_jobs:
+      'Autonomous cron scheduler and background daemon hub executing nightly 00:00 UTC batch jobs. Powers automated mock examination synthesis, vocabulary vault expansion, and spaced repetition queue generation with on-demand manual execution triggers.',
+    admin_ingested_ledger:
+      'Cryptographic provenance and verification ledger tracking all educational curriculum documents, practice exams, and reference PDFs ingested into the local knowledge base. Features full-text search and vector re-indexing.',
+    admin_system_telemetry:
+      'Infrastructure DevOps health cockpit providing real-time gauges for CPU, Memory, VRAM, and Storage utilization. Includes active session counters, latency distribution charts, in-memory cache flush actions, and full JSON platform backup export.',
+    admin_feature_flags:
+      'Dynamic platform configuration console allowing administrators to toggle feature flags (e.g. Speech Listening, Tournaments, Kid Mode) and tune percentage rollout sliders in real time without redeploying code.',
+    admin_feedback_center:
+      'Customer support and issue resolution center aggregating user bug reports, feature requests, and content suggestions. Provides status filtering (Pending, Investigating, Resolved) and direct triage response dispatching.',
+    admin_security_audit:
+      'Immutable compliance and DevSecOps audit ledger recording all privileged administrative operations. Captures timestamp, administrator ID, action category, client IP address, and cryptographic verification status.',
+    student_activity_board_table:
+      'Primary first-page landing dashboard for students positioned directly under the navigation menu. Features a full-width high-density data table utilizing 100% of viewport space, proportional categorical learning time bar, 7-day authentic weekly volume trend chart, and 6 competency skill cards with dynamic mastery progress bars and "Perform Again" replay buttons.',
+    student_questions_log:
+      'Dedicated question-by-question attempt history ledger storing every practice problem, mock test question, vocabulary quiz word, and STEM challenge attempted by the learner. Displays exact timestamps (YYYY-MM-DD HH:mm:ss), module titles, question prompts, options, student responses, benchmark answers, scores, and pedagogical explanations.',
+    student_activity_board_cards:
+      'Alternative responsive visual card view for the activity timeline, optimized for touchscreens and mobile devices. Displays activity icons, mastery scores, timestamps, and quick replay triggers.',
+    student_question_solver:
+      'Universal AI-powered question solver and digital classroom. Accepts mathematical, physics, chemistry, and linguistic queries via text, handwriting canvas, speech listening, or image upload. Features human-like cognitive intent analysis, proactive clarification prompts, persistent step-by-step derivations on the left, and a dedicated right-side Answer Palette with Piper voice speech controls.',
+    student_exam_prep_hub:
+      'Comprehensive standardized exam preparation library supporting IELTS, TOEFL, PTE, Duolingo English Test, GRE, and SAT. Offers full-length timed mock exams and targeted multi-question practice test modules.',
+    student_exam_prep_practice_test:
+      'Interactive modular practice test session featuring a numbered question stepper (Q1 to Q10+) and Fisher-Yates shuffled multiple-choice options. Prevents predictability of Option A, provides real-time progress tracking, and yields immediate diagnostic feedback.',
+    student_exam_prep_writing:
+      'Isolated IELTS Academic Writing practice interface dedicated strictly to 1 comprehensive writing task. Completely eliminates multiple-choice distractions, features a real-time word counter with target indicators (180/250 words), collapsible official Band 9.0 benchmark model answer, and AI multi-metric rubric evaluator.',
+    student_language_tree:
+      'Interactive skill tree progression modeled after Duolingo, organizing CEFR-calibrated language lessons from A1 to C2 into visual checkpoint nodes with unlockable mastery levels.',
+    student_cohort_arena:
+      'Universal Learning Arena providing developmental curricula adapted across 5 cohorts (Early Childhood, Junior Discovery, Academy, Professional Fluency, Golden Age) spanning ages 5 to 100+.',
+    student_vocabulary_quizzes:
+      'Dynamic lexicon vault and vocabulary quiz interface. Features CEFR-tagged word pools, contextual usage drills, audio speech soundboard, and streak multiplier combo rewards.',
+    student_academic_stem:
+      'Khan Academy-style first-principles STEM learning modules covering Mathematics, Science, and Technology. Provides conceptual deconstruction, interactive formulas, and step-by-step practice problem derivations.',
+    student_career_portfolio:
+      'Multi-regional CV builder and AI career architect. Adapts learner profiles to UK Standard, Europass, US Resume, Canada CV, Gulf Executive, and Modern Tech standards, with portrait customization and Word/PDF export.',
+    student_study_planner:
+      'Daily study routine manager featuring habit goal checklists, streak defense shield, and exponential decay spaced repetition flashcard review queues.',
+    student_leaderboard:
+      'Gamified global tournament arena featuring tiered leagues (Bronze, Silver, Gold, Sapphire, Ruby, Diamond), top-3 podium showcase, and weekly promotion cutoffs.',
+    student_resource_vault:
+      'Universal resource vault modal offering printable offline study worksheets and summaries with symmetric, high-contrast readable paper styling across dark and light modes.',
+    student_user_guide:
+      'Illustrated user manual and knowledge base modal containing 21 comprehensive guide articles with verified live application screenshots.',
+    student_preferences:
+      'Personalization modal enabling learners to choose among 8 curated accessible color presets, customize primary and accent color tones, and adjust global typography scaling.',
+    parent_portal_overview:
+      'Parental oversight dashboard tracking child learning journey, weekly study hours vs target (computed dynamically from student activities), subject breakdown, cognitive strengths, and cryptographic test conduction proof hashes.',
+    teacher_curriculum:
+      'Teacher studio and cohort curriculum directorate managing active courses, student enrollment rosters, curriculum pacing, and homework assignment dispatching.',
+    teacher_question_bank:
+      'Centralized item master question bank organizing assessment questions across STEM, exams, and language by Bloom\'s taxonomy cognitive depth and subject taxonomy.',
+    teacher_create_question_modal:
+      'Assessment question authoring studio allowing faculty to construct multiple-choice, short-answer, and essay questions with custom rubrics and curriculum alignment tags.'
+  };
+
+  function getDetailedInterfaceDescription(view: AuditItem): string {
+    return (
+      descriptions[view.id] ||
+      `Comprehensive interactive interface for ${view.title} within the ${view.module} module. Facilitates core operational workflows for the ${view.role} user role, providing validated controls, clear visual hierarchies, and responsive feedback.`
+    );
+  }
+
   const docChildren: any[] = [];
 
   // ==========================================
@@ -288,6 +362,24 @@ async function buildDocx() {
               text: `${view.id}`,
               size: 18,
               font: 'Courier New'
+            })
+          ]
+        }),
+        new Paragraph({
+          spacing: { before: 100, after: 150 },
+          children: [
+            new TextRun({
+              text: 'Interface Overview & Purpose: ',
+              bold: true,
+              size: 18,
+              color: '1E3A8A',
+              font: 'Arial'
+            }),
+            new TextRun({
+              text: getDetailedInterfaceDescription(view),
+              size: 18,
+              color: '334155',
+              font: 'Arial'
             })
           ]
         })
