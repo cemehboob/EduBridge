@@ -68,3 +68,4 @@ This document details these items, explains their underlying technical causes, a
 | **Medium** | Neural Voice Synthesis | Provide optional neural TTS provider integration for standardized voice timbre. | Phase 2.5 (Accessibility Expansion) |
 | **Low** | Isolated Multi-Tab Sessions | Enable optional tab-isolated session storage for rapid multi-role testing. | Phase 2.5 (Developer Tooling) |
 | **Low** | Microphone Hardware Diagnostics | Add pre-flight audio input diagnostics modal before initiating voice exam speaking sections. | Phase 2.5 (Exam Suite) |
+

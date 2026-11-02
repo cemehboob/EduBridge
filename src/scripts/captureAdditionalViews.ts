@@ -272,3 +272,4 @@ async function captureAdditionalViews() {
 }
 
 captureAdditionalViews().catch(console.error);
+
