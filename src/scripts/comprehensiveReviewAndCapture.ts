@@ -481,7 +481,7 @@ async function runReviewAndCapture() {
   console.log('Capturing Student: Activity Board (Table View)...');
   await page.evaluate(() => {
     const tab = Array.from(document.querySelectorAll('nav[aria-label="Student Learning Navigation"] button')).find(b => b.textContent?.includes('Dashboard') || b.textContent?.includes('Activity'));
-    if (tab) tab.click();
+    if (tab) (tab as HTMLElement).click();
   });
   await new Promise((r) => setTimeout(r, 500));
 
@@ -591,7 +591,7 @@ async function runReviewAndCapture() {
   console.log('Capturing Student: Question Solver & Classroom...');
   await page.evaluate(() => {
     const tab = Array.from(document.querySelectorAll('nav[aria-label="Student Learning Navigation"] button')).find(b => b.textContent?.includes('Solver') || b.textContent?.includes('Classroom'));
-    if (tab) tab.click();
+    if (tab) (tab as HTMLElement).click();
   });
   await new Promise((r) => setTimeout(r, 600));
 
@@ -664,7 +664,7 @@ async function runReviewAndCapture() {
   console.log('Capturing Student: Exam Prep & Practice Tests Hub...');
   await page.evaluate(() => {
     const tab = Array.from(document.querySelectorAll('nav[aria-label="Student Learning Navigation"] button')).find(b => b.textContent?.includes('Exam') || b.textContent?.includes('IELTS'));
-    if (tab) tab.click();
+    if (tab) (tab as HTMLElement).click();
   });
   await new Promise((r) => setTimeout(r, 600));
 
@@ -724,7 +724,7 @@ async function runReviewAndCapture() {
   console.log('Capturing Student: Language Skill Tree...');
   await page.evaluate(() => {
     const tab = Array.from(document.querySelectorAll('nav[aria-label="Student Learning Navigation"] button')).find(b => b.textContent?.includes('Language') || b.textContent?.includes('Tree'));
-    if (tab) tab.click();
+    if (tab) (tab as HTMLElement).click();
   });
   await new Promise((r) => setTimeout(r, 600));
   const shotStudentLangTree = path.join(screenshotsDir, 'student_05_language_skill_tree.png');

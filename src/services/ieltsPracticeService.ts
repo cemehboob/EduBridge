@@ -10,6 +10,7 @@
  */
 
 import { IELTSPracticeTest, PracticeTestQuestion } from '../types';
+import { StorageService } from './storage';
 import {
   AUTHENTIC_READING_ACADEMIC,
   AUTHENTIC_LISTENING_PRACTICE,
@@ -17,6 +18,29 @@ import {
   AUTHENTIC_SPEAKING_PRACTICE
 } from '../data/authenticIeltsPracticeData';
 import { THEMED_PRACTICE_SETS } from '../data/multiQuestionPracticeSets';
+
+/**
+ * Fisher-Yates option shuffler that guarantees the correct answer is not
+ * predictably placed at index 0 (Option A), forcing the user to evaluate all choices.
+ */
+export function shuffleOptions(options?: string[], correctAnswer?: string): string[] | undefined {
+  if (!options || options.length <= 1) return options;
+  const shuffled = [...options];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  // Ensure the correct answer does not consistently land at index 0 (Option A)
+  if (
+    correctAnswer &&
+    shuffled[0].trim().toLowerCase() === correctAnswer.trim().toLowerCase() &&
+    shuffled.length > 1
+  ) {
+    const targetIdx = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+    [shuffled[0], shuffled[targetIdx]] = [shuffled[targetIdx], shuffled[0]];
+  }
+  return shuffled;
+}
 
 // General Training Reading authentic templates
 const AUTHENTIC_READING_GENERAL = [
@@ -74,7 +98,8 @@ Travel outside of these designated windows is classified as Off-Peak and is char
 ];
 
 /**
- * Builds an authentic set of 10 interrelated, subject-specific questions for any practice test.
+ * Builds an authentic set of questions for any practice test.
+ * Number of questions is configurable (default 10) and multiple-choice options are shuffled.
  */
 function buildTenQuestionsForTest(
   testId: string,
@@ -84,33 +109,42 @@ function buildTenQuestionsForTest(
   basePrompt: string,
   baseOptions?: string[],
   baseCorrect?: string,
-  baseExpl?: string
+  baseExpl?: string,
+  targetCount: number = 10
 ): PracticeTestQuestion[] {
-  // 1. Check if an authored 10-question set exists for this topic in THEMED_PRACTICE_SETS
+  // 1. Check if an authored question set exists for this topic in THEMED_PRACTICE_SETS
   const themedMatch = THEMED_PRACTICE_SETS.find(
     (s) => s.topic.toLowerCase().trim() === topic.toLowerCase().trim()
   );
-  if (themedMatch && themedMatch.questions.length >= 10) {
-    return themedMatch.questions.map((q, idx) => ({
+  if (themedMatch && themedMatch.questions.length >= 1) {
+    const count = Math.min(targetCount, themedMatch.questions.length);
+    return themedMatch.questions.slice(0, count).map((q, idx) => ({
       ...q,
       id: `${testId}_q${idx + 1}`,
-      questionNumber: idx + 1
+      questionNumber: idx + 1,
+      options: shuffleOptions(q.options, q.correctAnswer)
     }));
   }
 
-  // 2. Synthesize 10 coherent, subject-grounded questions under the same subject
-  const q1: PracticeTestQuestion = {
-    id: `${testId}_q1`,
-    questionNumber: 1,
-    subject,
-    prompt: basePrompt,
-    options: baseOptions || [
+  // 2. Synthesize coherent, subject-grounded questions under the same subject
+  const q1Correct = baseCorrect || baseOptions?.[0] || 'Evidence-based empirical findings supported directly by the text.';
+  const q1Options = shuffleOptions(
+    baseOptions || [
       'Evidence-based empirical findings supported directly by the text.',
       'Speculative unverified claims without supporting documentation.',
       'Contradictory assumptions refuted in the final synthesis.',
       'Irrelevant external hypotheses not mentioned in the context.'
     ],
-    correctAnswer: baseCorrect || baseOptions?.[0] || 'Evidence-based empirical findings supported directly by the text.',
+    q1Correct
+  );
+
+  const q1: PracticeTestQuestion = {
+    id: `${testId}_q1`,
+    questionNumber: 1,
+    subject,
+    prompt: basePrompt,
+    options: q1Options,
+    correctAnswer: q1Correct,
     explanation: baseExpl || `Identified directly from context analysis of ${topic}.`
   };
 
@@ -218,13 +252,16 @@ function buildTenQuestionsForTest(
 
   const questions: PracticeTestQuestion[] = [q1];
 
-  domainQuestions.forEach((dq, index) => {
+  const needed = Math.max(0, targetCount - 1);
+  const subset = domainQuestions.slice(0, needed);
+
+  subset.forEach((dq, index) => {
     questions.push({
       id: `${testId}_q${index + 2}`,
       questionNumber: index + 2,
       subject,
       prompt: dq.prompt,
-      options: dq.options,
+      options: shuffleOptions(dq.options, dq.correctAnswer),
       correctAnswer: dq.correctAnswer,
       explanation: dq.explanation
     });
@@ -253,8 +290,12 @@ export const IELTSPracticeService = {
 
     const tests: IELTSPracticeTest[] = [];
 
-    // Prepend dedicated 10-Question Themed Practice Sets
+    // Prepend dedicated Themed Practice Sets with shuffled options
     THEMED_PRACTICE_SETS.forEach((set, index) => {
+      const shuffledQuestions = set.questions.map((q) => ({
+        ...q,
+        options: shuffleOptions(q.options, q.correctAnswer)
+      }));
       const setTest: IELTSPracticeTest = {
         id: `pt_themed_${index + 1}`,
         category: 'IELTS Academic',
@@ -262,15 +303,15 @@ export const IELTSPracticeService = {
         title: `${set.module}: ${set.topic}`,
         difficulty: set.difficulty,
         durationMinutes: 25,
-        questionCount: set.questions.length,
+        questionCount: shuffledQuestions.length,
         subject: set.subject,
-        questions: set.questions,
-        prompt: set.questions[0]?.prompt || `Practice set on ${set.topic}`,
+        questions: shuffledQuestions,
+        prompt: shuffledQuestions[0]?.prompt || `Practice set on ${set.topic}`,
         passage: set.passage,
         audioTranscript: set.audioTranscript,
-        options: set.questions[0]?.options,
-        correctAnswer: set.questions[0]?.correctAnswer,
-        explanation: set.questions[0]?.explanation,
+        options: shuffledQuestions[0]?.options,
+        correctAnswer: shuffledQuestions[0]?.correctAnswer,
+        explanation: shuffledQuestions[0]?.explanation,
         completed: false
       };
       tests.push(setTest);
@@ -291,7 +332,9 @@ export const IELTSPracticeService = {
 
   /**
    * Builds an authentic IELTS test item with real passages, transcripts, prompts,
-   * options, correct answers, and thorough explanations, GUARANTEEING at least 10 questions.
+   * shuffled options, and thorough explanations.
+   * Standardized tests use the configurable question count (default 10), while
+   * Writing practice tests are strictly 1 comprehensive task.
    */
   createAuthenticTest: (
     cat: 'IELTS Academic' | 'IELTS General Training',
@@ -301,6 +344,14 @@ export const IELTSPracticeService = {
     const testId = `pt_${cat === 'IELTS Academic' ? 'acad' : 'gen'}_${mod.toLowerCase()}_${index}`;
     const diffList: ('Foundation' | 'Standard' | 'Advanced')[] = ['Foundation', 'Standard', 'Advanced'];
     const baseDiff = diffList[(index - 1) % 3];
+
+    // Read admin-configured questions count (default 10)
+    let configuredCount = 10;
+    try {
+      configuredCount = StorageService.getExamSettings().questionsPerTest || 10;
+    } catch {
+      configuredCount = 10;
+    }
 
     // 1. READING MODULE
     if (mod === 'Reading') {
@@ -318,7 +369,8 @@ export const IELTSPracticeService = {
         tpl.prompt,
         tpl.options,
         tpl.correctAnswer,
-        tpl.explanation
+        tpl.explanation,
+        configuredCount
       );
 
       return {
@@ -333,7 +385,7 @@ export const IELTSPracticeService = {
         questions,
         prompt: tpl.prompt,
         passage: tpl.passage,
-        options: tpl.options,
+        options: questions[0]?.options,
         correctAnswer: tpl.correctAnswer,
         explanation: tpl.explanation,
         completed: index <= 2
@@ -353,7 +405,8 @@ export const IELTSPracticeService = {
         tpl.prompt,
         tpl.options,
         tpl.correctAnswer,
-        tpl.explanation
+        tpl.explanation,
+        configuredCount
       );
 
       return {
@@ -368,28 +421,17 @@ export const IELTSPracticeService = {
         questions,
         prompt: tpl.prompt,
         audioTranscript: tpl.audioTranscript,
-        options: tpl.options,
+        options: questions[0]?.options,
         correctAnswer: tpl.correctAnswer,
         explanation: tpl.explanation,
         completed: index <= 1
       };
     }
 
-    // 3. WRITING MODULE
+    // 3. WRITING MODULE: Strictly 1 comprehensive essay / letter prompt without MCQs!
     if (mod === 'Writing') {
       const tpl = AUTHENTIC_WRITING_PRACTICE[(index - 1) % AUTHENTIC_WRITING_PRACTICE.length];
       const subject = 'Academic Writing & Rhetoric';
-
-      const questions = buildTenQuestionsForTest(
-        testId,
-        tpl.topic,
-        subject,
-        mod,
-        tpl.prompt,
-        undefined,
-        tpl.correctAnswer,
-        tpl.explanation
-      );
 
       return {
         id: testId,
@@ -397,12 +439,23 @@ export const IELTSPracticeService = {
         module: mod,
         title: `${cat} Writing #${index}: ${tpl.topic}`,
         difficulty: tpl.difficulty || baseDiff,
-        durationMinutes: 20,
-        questionCount: questions.length,
+        durationMinutes: 40,
+        questionCount: 1, // Officially strictly 1 question per writing practice!
         subject,
-        questions,
+        questions: [
+          {
+            id: `${testId}_q1`,
+            questionNumber: 1,
+            subject,
+            prompt: tpl.prompt,
+            options: undefined, // No MCQs for writing practice!
+            correctAnswer: undefined,
+            sampleAnswer: tpl.sampleAnswer,
+            explanation: tpl.explanation
+          }
+        ],
         prompt: tpl.prompt,
-        correctAnswer: tpl.correctAnswer,
+        correctAnswer: undefined,
         sampleAnswer: tpl.sampleAnswer,
         explanation: tpl.explanation,
         completed: false
@@ -421,7 +474,8 @@ export const IELTSPracticeService = {
       tpl.prompt,
       undefined,
       tpl.correctAnswer,
-      tpl.explanation
+      tpl.explanation,
+      configuredCount
     );
 
     return {
@@ -569,7 +623,7 @@ export const IELTSPracticeService = {
     ];
 
     questionBlueprints.forEach((qb, idx) => {
-      const options = [qb.correct, ...qb.distractors].sort(() => 0.5 - Math.random());
+      const options = shuffleOptions([qb.correct, ...qb.distractors], qb.correct);
       questions.push({
         id: `${testId}_q${idx + 1}`,
         questionNumber: idx + 1,

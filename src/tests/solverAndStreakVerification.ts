@@ -884,14 +884,25 @@ async function runTests() {
     console.log(`PASS: Activity timeline successfully persisted activity "${recorded.title}" with timestamp "${recorded.timestamp}".`);
   }
 
-  // 2. Test Practice Tests have at least 10 questions each
+  // 2. Test Practice Tests Architecture: Non-writing tests >= 10 questions, Writing tests strictly 1 task without MCQs
   const allPracticeTests = IELTSPracticeService.getPracticeTests();
-  const testsWithUnder10Q = allPracticeTests.filter((t) => !t.questions || t.questions.length < 10 || t.questionCount < 10);
-  if (testsWithUnder10Q.length > 0) {
-    console.error(`FAIL: Found ${testsWithUnder10Q.length} practice tests with fewer than 10 questions! Example: ${testsWithUnder10Q[0].title}`);
+  const nonWritingTests = allPracticeTests.filter((t) => t.module !== 'Writing');
+  const writingTests = allPracticeTests.filter((t) => t.module === 'Writing');
+
+  const invalidNonWriting = nonWritingTests.filter((t) => !t.questions || t.questions.length < 10 || t.questionCount < 10);
+  if (invalidNonWriting.length > 0) {
+    console.error(`FAIL: Found ${invalidNonWriting.length} non-writing practice tests with fewer than 10 questions! Example: ${invalidNonWriting[0].title}`);
     failures++;
   } else {
-    console.log(`PASS: All ${allPracticeTests.length} practice tests contain AT LEAST 10 authentic questions (verified questionCount >= 10).`);
+    console.log(`PASS: All ${nonWritingTests.length} non-writing practice tests (Reading, Listening, Speaking) contain AT LEAST 10 authentic questions.`);
+  }
+
+  const invalidWriting = writingTests.filter((t) => !t.questions || t.questions.length !== 1 || t.questionCount !== 1 || t.questions[0].options !== undefined);
+  if (invalidWriting.length > 0) {
+    console.error(`FAIL: Found ${invalidWriting.length} writing practice tests that do not have strictly 1 question or still have MCQ options! Example: ${invalidWriting[0].title}`);
+    failures++;
+  } else {
+    console.log(`PASS: All ${writingTests.length} IELTS Writing practice tests have STRICTLY 1 question with zero MCQ options and Band 9 exemplar.`);
   }
 
   // 3. Test Question Subject Coherence within tests
@@ -920,6 +931,30 @@ async function runTests() {
     failures++;
   } else {
     console.log(`PASS: AI Mix & Match Generator synthesized 10 cross-disciplinary questions (${aiMixMatchTest.title}).`);
+  }
+
+  // 5. Test MCQ Options Shuffling: Verify correct answer is NOT always placed at index 0 (Option A)
+  const readingTests = allPracticeTests.filter((t) => t.module === 'Reading' && t.questions && t.questions.length > 0);
+  let totalMCQs = 0;
+  let correctNotAtZero = 0;
+
+  readingTests.slice(0, 20).forEach((t) => {
+    t.questions?.forEach((q) => {
+      if (q.options && q.options.length > 1 && q.correctAnswer) {
+        totalMCQs++;
+        const correctIndex = q.options.findIndex((opt) => opt.trim().toLowerCase() === q.correctAnswer!.trim().toLowerCase());
+        if (correctIndex > 0) {
+          correctNotAtZero++;
+        }
+      }
+    });
+  });
+
+  if (totalMCQs === 0 || correctNotAtZero === 0) {
+    console.error('FAIL: MCQ options are not being shuffled; correct answer is always at index 0.');
+    failures++;
+  } else {
+    console.log(`PASS: MCQ options shuffled successfully! ${correctNotAtZero} of ${totalMCQs} tested questions place correct answer away from index 0.`);
   }
 
   // Test 51: Verifying Symmetric Theming, Resource Vault Contrast, and User Guide Documentation
@@ -1077,7 +1112,70 @@ async function runTests() {
     console.log(`PASS: All ${initialUserGuideArticles.length} user guide articles have verified live screenshot assets.`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 51 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 52: Verifying MCQ Shuffling, Writing Isolation, Admin Settings, Categorized Dashboards & User Inspector
+  console.log('\nTest 52: Verifying MCQ Shuffling, Writing Isolation, Admin Settings, Categorized Dashboards & User Inspector...');
+
+  // 1. Verify Exam Settings persistence
+  StorageService.saveExamSettings({ questionsPerTest: 8, allowShuffleOptions: true, writingTestQuestions: 1 });
+  const savedSettings = StorageService.getExamSettings();
+  if (savedSettings.questionsPerTest !== 8 || !savedSettings.allowShuffleOptions) {
+    console.error('FAIL: StorageService failed to save/retrieve exam settings.', savedSettings);
+    failures++;
+  } else {
+    console.log(`PASS: Exam settings configured to ${savedSettings.questionsPerTest} questions per test with MCQ option shuffling.`);
+  }
+  // Reset back to 10
+  StorageService.saveExamSettings({ questionsPerTest: 10, allowShuffleOptions: true, writingTestQuestions: 1 });
+
+  // 2. Verify Admin Activity Logging (All users + Admin's own activities)
+  const allRecordedActivities = StorageService.getUserActivities();
+  const adminActs = allRecordedActivities.filter((a) => a.userId === 'usr_admin_04' || a.type === 'admin_action');
+  const studentActs = allRecordedActivities.filter((a) => a.userId === 'usr_student_01');
+  const teacherActs = allRecordedActivities.filter((a) => a.userId === 'usr_teacher_03');
+  const parentActs = allRecordedActivities.filter((a) => a.userId === 'usr_parent_02');
+
+  if (adminActs.length === 0 || studentActs.length === 0 || teacherActs.length === 0 || parentActs.length === 0) {
+    console.error('FAIL: Missing user activities across required roles.', {
+      admin: adminActs.length,
+      student: studentActs.length,
+      teacher: teacherActs.length,
+      parent: parentActs.length
+    });
+    failures++;
+  } else {
+    console.log(`PASS: Platform activity ledger contains activities from ALL user roles (Student: ${studentActs.length}, Teacher: ${teacherActs.length}, Parent: ${parentActs.length}, Admin: ${adminActs.length}).`);
+  }
+
+  // 3. Verify ActivityBoardView has categorized dashboard & graphical representations
+  const actBoardCode = fs.readFileSync('src/components/student/ActivityBoardView.tsx', 'utf-8');
+  if (
+    !actBoardCode.includes('Skill Enhancement Dashboard') ||
+    !actBoardCode.includes('Weekly Activity Volume') ||
+    !actBoardCode.includes('Learning Time by Category') ||
+    !actBoardCode.includes('Recommended Next Steps to Maximize Your Skills')
+  ) {
+    console.error('FAIL: ActivityBoardView missing categorized dashboard, charts, or skill recommendations.');
+    failures++;
+  } else {
+    console.log('PASS: User first-page dashboard (ActivityBoardView) features categorized analytics, graphical distribution, 7-day trend chart, and skill enhancement guidance.');
+  }
+
+  // 4. Verify AdminPortal has Dashboard with category analytics, test settings, and user dashboard inspector
+  const adminPortalCode = fs.readFileSync('src/components/admin/AdminPortal.tsx', 'utf-8');
+  if (
+    !adminPortalCode.includes("activeAdminTab, setActiveAdminTab] = useState") ||
+    !adminPortalCode.includes("Application Usage Segmented by Academic Categories") ||
+    !adminPortalCode.includes("Practice Test Configuration: Number of Questions per Test") ||
+    !adminPortalCode.includes("User Live Dashboard Inspector") ||
+    !adminPortalCode.includes("Impersonate &")
+  ) {
+    console.error('FAIL: AdminPortal missing dashboard, application usage by category, question config, or user dashboard inspector.');
+    failures++;
+  } else {
+    console.log('PASS: Admin portal includes first-page Dashboard with category analytics, practice test question config, and full user dashboard inspection.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 52 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

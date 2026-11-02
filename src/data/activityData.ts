@@ -237,6 +237,133 @@ export const initialActivities: UserActivityRecord[] = [
       tab: 'vocab_quiz',
       subId: 'junior'
     }
+  },
+
+  // Marcus Vance (usr_teacher_03, Teacher) Activities
+  {
+    id: 'act_marcus_01',
+    userId: 'usr_teacher_03',
+    userName: 'Marcus Vance',
+    type: 'lesson',
+    title: 'Curriculum Directorate: Published Unit 4 Physics Pacing',
+    category: 'Curriculum Directorate',
+    timestamp: '2026-11-02 11:30:00',
+    relativeTime: '6 hours ago',
+    score: 'Published',
+    xpEarned: 40,
+    status: 'completed',
+    details: 'Configured syllabus milestones, lesson plans, and experimental learning objectives for High School Physics.',
+    replayPayload: {
+      tab: 'curriculum',
+      subId: 'physics_u4'
+    }
+  },
+  {
+    id: 'act_marcus_02',
+    userId: 'usr_teacher_03',
+    userName: 'Marcus Vance',
+    type: 'mock_test',
+    title: 'Item Master Bank: Created 10 Multi-Choice Exam Questions',
+    category: 'Item Master Bank',
+    timestamp: '2026-11-01 16:45:00',
+    relativeTime: 'Yesterday',
+    score: '10 Items Added',
+    xpEarned: 50,
+    status: 'completed',
+    details: 'Authored calibrated items for thermodynamics, wave optics, and fluid mechanics with detailed answer rationales.',
+    replayPayload: {
+      tab: 'questions'
+    }
+  },
+
+  // Eleanor Rivera (usr_parent_02, Parent) Activities
+  {
+    id: 'act_eleanor_01',
+    userId: 'usr_parent_02',
+    userName: 'Eleanor Rivera',
+    type: 'study_task',
+    title: 'Parental Growth & Oversight Review: Alex Rivera',
+    category: 'Parental Oversight',
+    timestamp: '2026-11-02 09:15:00',
+    relativeTime: '8 hours ago',
+    score: 'Reviewed',
+    xpEarned: 20,
+    status: 'completed',
+    details: 'Inspected weekly study duration (14.5 hours), subject mastery radar, and screen time balance metrics.',
+    replayPayload: {
+      tab: 'growth'
+    }
+  },
+
+  // System Administrator (usr_admin_04, Root Admin) Activities
+  {
+    id: 'act_admin_01',
+    userId: 'usr_admin_04',
+    userName: 'System Administrator',
+    type: 'admin_action',
+    title: 'Configured Practice Test Architecture: 10 Questions Standard',
+    category: 'System Administration',
+    timestamp: '2026-11-02 14:10:00',
+    relativeTime: '3 hours ago',
+    score: 'Active Setting',
+    xpEarned: 50,
+    status: 'completed',
+    details: 'Configured global practice test question counts to 10 questions per test and enabled automated option shuffling for MCQs.',
+    replayPayload: {
+      tab: 'dashboard',
+      subId: 'test_settings'
+    }
+  },
+  {
+    id: 'act_admin_02',
+    userId: 'usr_admin_04',
+    userName: 'System Administrator',
+    type: 'admin_action',
+    title: 'Model Management: Configured Claude 3.5 Sonnet & Gemini Pro',
+    category: 'AI Model Management',
+    timestamp: '2026-11-02 12:05:00',
+    relativeTime: '5 hours ago',
+    score: 'Verified Latency: 240ms',
+    xpEarned: 40,
+    status: 'completed',
+    details: 'Optimized inference temperature parameters (0.2 for Math/Science, 0.7 for Writing Feedback) and confirmed 99.9% uptime.',
+    replayPayload: {
+      tab: 'models'
+    }
+  },
+  {
+    id: 'act_admin_03',
+    userId: 'usr_admin_04',
+    userName: 'System Administrator',
+    type: 'admin_action',
+    title: 'Triggered Automation Job: Daily Spaced Repetition Queue',
+    category: 'Automation Engine',
+    timestamp: '2026-11-01 23:00:00',
+    relativeTime: 'Yesterday',
+    score: 'Processed 150 Users',
+    xpEarned: 35,
+    status: 'completed',
+    details: 'Executed scheduled cron task for spaced repetition intervals and streak retention verification across active cohorts.',
+    replayPayload: {
+      tab: 'jobs'
+    }
+  },
+  {
+    id: 'act_admin_04',
+    userId: 'usr_admin_04',
+    userName: 'System Administrator',
+    type: 'admin_action',
+    title: 'Security Audit: Verified Session Authorization & Audit Logs',
+    category: 'Security & Audit',
+    timestamp: '2026-10-31 19:40:00',
+    relativeTime: '2 days ago',
+    score: 'Zero Vulnerabilities',
+    xpEarned: 30,
+    status: 'completed',
+    details: 'Inspected 14 administrative audit entries, validated IP whitelists, and verified password salt hashes.',
+    replayPayload: {
+      tab: 'audit'
+    }
   }
 ];
 

@@ -62,7 +62,7 @@ async function captureAdditionalViews() {
   console.log('Capturing Student: Academic Hub...');
   await page.evaluate(() => {
     const tab = Array.from(document.querySelectorAll('nav[aria-label="Student Learning Navigation"] button')).find(b => b.textContent?.includes('Academic') || b.textContent?.includes('Arena'));
-    if (tab) tab.click();
+    if (tab) (tab as HTMLElement).click();
   });
   await new Promise((r) => setTimeout(r, 600));
   const shotAcad = path.join(screenshotsDir, 'student_09_academic_hub.png');
@@ -90,7 +90,7 @@ async function captureAdditionalViews() {
   console.log('Capturing Student: Career & Portfolio...');
   await page.evaluate(() => {
     const tab = Array.from(document.querySelectorAll('nav[aria-label="Student Learning Navigation"] button')).find(b => b.textContent?.includes('Career') || b.textContent?.includes('Portfolio'));
-    if (tab) tab.click();
+    if (tab) (tab as HTMLElement).click();
   });
   await new Promise((r) => setTimeout(r, 600));
   const shotCareer = path.join(screenshotsDir, 'student_10_career_portfolio.png');
@@ -126,7 +126,7 @@ async function captureAdditionalViews() {
   console.log('Capturing Student: Study Planner...');
   await page.evaluate(() => {
     const tab = Array.from(document.querySelectorAll('nav[aria-label="Student Learning Navigation"] button')).find(b => b.textContent?.includes('Planner') || b.textContent?.includes('Habits'));
-    if (tab) tab.click();
+    if (tab) (tab as HTMLElement).click();
   });
   await new Promise((r) => setTimeout(r, 600));
   const shotPlanner = path.join(screenshotsDir, 'student_11_study_planner.png');
@@ -162,7 +162,7 @@ async function captureAdditionalViews() {
   console.log('Capturing Student: Vocabulary Quizzes...');
   await page.evaluate(() => {
     const tab = Array.from(document.querySelectorAll('nav[aria-label="Student Learning Navigation"] button')).find(b => b.textContent?.includes('Vocab') || b.textContent?.includes('Vocabulary'));
-    if (tab) tab.click();
+    if (tab) (tab as HTMLElement).click();
   });
   await new Promise((r) => setTimeout(r, 600));
   const shotVocab = path.join(screenshotsDir, 'student_12_vocabulary_quizzes.png');
@@ -190,7 +190,7 @@ async function captureAdditionalViews() {
   console.log('Capturing Student: Leaderboard...');
   await page.evaluate(() => {
     const tab = Array.from(document.querySelectorAll('nav[aria-label="Student Learning Navigation"] button')).find(b => b.textContent?.includes('Leaderboard') || b.textContent?.includes('Rankings'));
-    if (tab) tab.click();
+    if (tab) (tab as HTMLElement).click();
   });
   await new Promise((r) => setTimeout(r, 600));
   const shotLeaderboard = path.join(screenshotsDir, 'student_13_leaderboard_tournaments.png');

@@ -506,7 +506,14 @@ export type ActivityType =
   | 'stem_game'
   | 'study_task'
   | 'career_cv'
-  | 'daily_schedule';
+  | 'daily_schedule'
+  | 'admin_action';
+
+export interface ExamSettingsConfig {
+  questionsPerTest: number; // default: 10, configurable from Admin Portal
+  allowShuffleOptions: boolean; // default: true
+  writingTestQuestions: number; // strictly: 1
+}
 
 export interface UserActivityRecord {
   id: string;

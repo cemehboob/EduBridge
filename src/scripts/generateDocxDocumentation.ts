@@ -307,7 +307,7 @@ async function buildDocx() {
                   width: 600,
                   height: 375
                 }
-              })
+              } as any)
             ]
           }),
           new Paragraph({

@@ -28,7 +28,8 @@ import {
   TestConductionRecord,
   ColorSchemeConfig,
   UserActivityRecord,
-  PasswordResetRecord
+  PasswordResetRecord,
+  ExamSettingsConfig
 } from '../types';
 import { initialActivities } from '../data/activityData';
 import { ieltsAcademicUnits } from '../data/ieltsUnitsData';
@@ -86,6 +87,7 @@ const KEYS = {
   COLOR_SCHEME: 'edubridge_color_scheme_v1',
   ACTIVITIES: 'edubridge_user_activities_v1',
   PASSWORD_RESETS: 'edubridge_password_resets_v1',
+  EXAM_SETTINGS: 'edubridge_exam_settings_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp'
 };
 
@@ -486,6 +488,18 @@ export const StorageService = {
 
   getColorScheme: (): ColorSchemeConfig => safeGet<ColorSchemeConfig>(KEYS.COLOR_SCHEME, DEFAULT_COLOR_SCHEME),
   saveColorScheme: (scheme: ColorSchemeConfig): void => safeSet(KEYS.COLOR_SCHEME, scheme),
+
+  // Standardized Exam & Practice Test Configuration
+  getExamSettings: (): ExamSettingsConfig => {
+    return safeGet<ExamSettingsConfig>(KEYS.EXAM_SETTINGS, {
+      questionsPerTest: 10,
+      allowShuffleOptions: true,
+      writingTestQuestions: 1
+    });
+  },
+  saveExamSettings: (settings: ExamSettingsConfig): void => {
+    safeSet(KEYS.EXAM_SETTINGS, settings);
+  },
 
   // User Activities (Chronological History & Dashboard Board)
   getUserActivities: (userId?: string): UserActivityRecord[] => {
