@@ -96,6 +96,8 @@ async function buildDocx() {
       'Illustrated user manual and knowledge base modal containing 21 comprehensive guide articles with verified live application screenshots.',
     student_preferences:
       'Personalization modal enabling learners to choose among 8 curated accessible color presets, customize primary and accent color tones, and adjust global typography scaling.',
+    student_day_streak:
+      'Day streak motivation and habit continuity directorate. Features a prominent pulsating flame hero counter, best streak record badge, monthly habit consistency tracking, verified Day 1 status pill, habit freeze shield protection, celebratory animation button, and an expandable 31-day study habit calendar heatmap with 5-level XP intensity color coding and granular day detail inspection.',
     parent_portal_overview:
       'Parental oversight dashboard tracking child learning journey, weekly study hours vs target (computed dynamically from student activities), subject breakdown, cognitive strengths, and cryptographic test conduction proof hashes.',
     teacher_curriculum:

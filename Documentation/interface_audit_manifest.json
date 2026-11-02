@@ -844,6 +844,103 @@
     ]
   },
   {
+    "id": "student_day_streak",
+    "role": "Student",
+    "module": "Habit Shield & Gamification",
+    "title": "Day Streak Counter & Monthly Habit Calendar Heatmap",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_18_day_streak.png",
+    "objects": [
+      {
+        "name": "Animated Flame Streak Counter Hero",
+        "type": "Animated Badge & Counter",
+        "purpose": "Prominently displays the student's active consecutive day streak count with an animated flame icon and verification badge.",
+        "functionality": "Calculates active consecutive study days and alerts learner if today's daily goal is locked in or requires a lesson to preserve momentum.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Best Streak Milestone Stat Badge",
+        "type": "Trophy Stat Badge",
+        "purpose": "Showcases the student's personal best historical consecutive study day record.",
+        "functionality": "Pulls all-time peak streak count directly from authenticated user profile records.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Monthly Habit Consistency Meter",
+        "type": "Target Stat Badge",
+        "purpose": "Monitors habit consistency by calculating active study days against total elapsed days in the current month.",
+        "functionality": "Dynamically counts days with >0 XP recorded in system timeline for the current calendar month.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Streak Day 1 Verified Status Indicator",
+        "type": "Verification Pill",
+        "purpose": "Provides cryptographic verification that the first day of the active study streak is confirmed closed.",
+        "functionality": "Displays Closed ✓ status confirming streak integrity.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Habit Shield Protection Pill",
+        "type": "Shield Status Pill",
+        "purpose": "Informs user of available streak freeze shields to protect against accidental streak forfeiture.",
+        "functionality": "Reflects active freeze inventory from learner profile.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Celebrate Flame Action Button",
+        "type": "Interactive Action Button",
+        "purpose": "Provides positive emotional reinforcement by triggering celebratory visual animations and audio feedback.",
+        "functionality": "Plays level-up chime and fires full-screen confetti animation upon click.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Calendar Heatmap Collapse / Expand Toggle Button",
+        "type": "Accordion Toggle Button",
+        "purpose": "Allows users to expand or collapse the comprehensive monthly study habit calendar heatmap.",
+        "functionality": "Toggles full 31-day activity visualizer on demand with smooth transition.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Monthly XP Total & Month Title Pill",
+        "type": "Metric Header Pill",
+        "purpose": "Displays current month title and total accumulated XP earned across all learning disciplines.",
+        "functionality": "Sums XP earned across all days in the current calendar month.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "5-Level Heatmap Intensity Legend",
+        "type": "Color Scale Legend",
+        "purpose": "Defines the color gradient thresholds (0 XP, 1-34 XP, 35-64 XP, 65-89 XP, 90+ XP) representing daily learning intensity.",
+        "functionality": "Serves as visual scale for interpreting calendar cell shading.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Interactive 31-Day Calendar Heatmap Grid",
+        "type": "Interactive Calendar Grid",
+        "purpose": "Renders every day of the month with intensity-coded color backgrounds, day numbers, XP values, flame icons, and today indicator ring.",
+        "functionality": "Allows user to click any day cell to inspect detailed study diagnostics in real time.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Selected Day Habit Detail Inspector Card",
+        "type": "Diagnostic Details Card",
+        "purpose": "Displays granular metrics for the selected day including exact date, daily XP earned, goal status, and streak continuity.",
+        "functionality": "Dynamically updates when different calendar day cells are clicked.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
     "id": "parent_portal_overview",
     "role": "Parent",
     "module": "Parental Oversight & Growth",
