@@ -11,7 +11,7 @@ export function calculateAge(dobString?: string): number {
     if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
       age--;
     }
-    return age >= 1 ? age : 20;
+    return age >= 0 ? age : 0;
   } catch {
     return 20;
   }
@@ -36,8 +36,14 @@ export function calculateEducationLevel(dobString?: string): string {
 }
 
 export function userAccountToProfile(user: UserAccount): UserProfile {
-  const cohort = user.preferences.ageCohort || calculateCohortFromDob(user.dateOfBirth);
-  const educationLevel = user.preferences.educationLevel || calculateEducationLevel(user.dateOfBirth);
+  // Date of Birth (DOB) is the authoritative single source of truth for age cohort and education level
+  const cohort: AgeCohortId = user.dateOfBirth
+    ? calculateCohortFromDob(user.dateOfBirth)
+    : (user.preferences.ageCohort || 'academy');
+
+  const educationLevel: string = user.dateOfBirth
+    ? calculateEducationLevel(user.dateOfBirth)
+    : (user.preferences.educationLevel || calculateEducationLevel(undefined));
 
   return {
     id: user.id,

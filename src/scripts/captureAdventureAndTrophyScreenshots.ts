@@ -122,3 +122,4 @@ captureAdventureAndTrophyScreenshots().catch((err) => {
   console.error('Error capturing adventure and trophy screenshots:', err);
   process.exit(1);
 });
+

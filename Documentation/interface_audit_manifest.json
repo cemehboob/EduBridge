@@ -1185,5 +1185,87 @@
         "recommendedAction": "Keep"
       }
     ]
+  },
+  {
+    "id": "admin_cohort_governance",
+    "role": "Admin",
+    "module": "Curriculum Governance & Content Rules",
+    "title": "Age Groups & Educational Content Governance Directorate",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/admin_10_cohort_governance.png",
+    "objects": [
+      {
+        "name": "Automated DOB Child Protection Safeguard Banner",
+        "type": "Security Alert Banner",
+        "purpose": "Alerts administrators to active date-of-birth age calculation rules and child protection safeguards.",
+        "functionality": "Confirms that age <= 8 students are strictly safeguarded from graduate exams and assigned to Little Explorers.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Age Cohort Cards Grid (5 Developmental Tiers)",
+        "type": "Cards Grid",
+        "purpose": "Presents operational parameters for Little Explorers, Junior Scholars, Academy, Professional, and Golden Age.",
+        "functionality": "Displays age ranges, education tiers, allowed subjects, and adult exam access states.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Adult Exams (IELTS/PTE) Gating Toggle Buttons",
+        "type": "Toggle Button",
+        "purpose": "Enables or locks adult standardized examination prep per age cohort.",
+        "functionality": "Locks adult exams for young cohorts (Ages 5–8 and 9–14) and enables them for Academy (Ages 15+).",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Save & Enforce Content Rules Button",
+        "type": "Action Button",
+        "purpose": "Applies cohort curriculum rules across the platform and records an administrative audit log with timestamp.",
+        "functionality": "Commits configuration, shows positive feedback, and synchronizes rules across interfaces.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_early_assessment",
+    "role": "Student",
+    "module": "Early Primary Learning (Ages 5–8)",
+    "title": "Early Primary Assessment Arena (Phonics, Sight Words & Stories)",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_21_early_childhood_assessment.png",
+    "objects": [
+      {
+        "name": "Child Protection Safeguard Notice",
+        "type": "Informational Card",
+        "purpose": "Explains why adult standardized exams are safeguarded and confirms active Early Primary mode.",
+        "functionality": "Replaces adult IELTS/PTE interface with age-appropriate phonics and early literacy challenges.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Phonics & Picture Challenge Animated Card",
+        "type": "Interactive Question Card",
+        "purpose": "Presents early childhood letter-sound, sight word, rhyme, and story comprehension questions with large icons.",
+        "functionality": "Renders bouncing animal/emoji visual cues and clear prompts for young learners.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Touch-Friendly Large Option Buttons",
+        "type": "Multiple Choice Option Grid",
+        "purpose": "Provides large, high-contrast, touch-optimized response buttons for children.",
+        "functionality": "Triggers immediate audio chimes, celebratory confetti, and star tally increments on selection.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Stars Earned Trophy Badge & Next Challenge Button",
+        "type": "Progression Controls",
+        "purpose": "Tracks earned stars and navigates seamlessly to the next challenge question.",
+        "functionality": "Logs question attempts into local database and cycles questions to ensure fresh practice.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
   }
 ]

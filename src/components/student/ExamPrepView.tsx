@@ -21,7 +21,8 @@ import {
   TrendingUp,
   BrainCircuit,
   BookOpen,
-  CheckSquare
+  CheckSquare,
+  ShieldCheck
 } from 'lucide-react';
 import {
   ExamType,
@@ -33,7 +34,8 @@ import {
   UserProfile,
   UserAccount,
   UserActivityRecord,
-  AgeCohortId
+  AgeCohortId,
+  QuestionAttemptRecord
 } from '../../types';
 import { IELTSPracticeService } from '../../services/ieltsPracticeService';
 import { AIService } from '../../services/aiService';
@@ -181,6 +183,138 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
   const [isRecordingSpeaking, setIsRecordingSpeaking] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [examResult, setExamResult] = useState<ExamAttempt | null>(null);
+
+  // Early Childhood Assessment Challenges (Ages 5–8)
+  const earlyLearningChallenges = [
+    {
+      id: 'early_q1',
+      title: 'Phonics Letter Sounds',
+      category: 'Phonics & Letters',
+      question: 'Which letter does this friendly animal start with? 🐱 CAT',
+      icon: '🐱',
+      options: ['C', 'M', 'P', 'T'],
+      correctAnswer: 'C',
+      explanation: 'Great job! Cat starts with the letter C (/k/ sound)!'
+    },
+    {
+      id: 'early_q2',
+      title: 'Sight Word & Picture Match',
+      category: 'Sight Words',
+      question: 'Look at the picture: 🌟. Choose the matching word:',
+      icon: '🌟',
+      options: ['Star', 'Sun', 'Moon', 'Tree'],
+      correctAnswer: 'Star',
+      explanation: 'Awesome! That is a bright golden Star!'
+    },
+    {
+      id: 'early_q3',
+      title: 'Rhyme Time Fun',
+      category: 'Rhymes & Word Families',
+      question: 'Which word rhymes with FROG? 🐸',
+      icon: '🐸',
+      options: ['Dog', 'Cat', 'Fish', 'Bird'],
+      correctAnswer: 'Dog',
+      explanation: 'Super star! Frog and Dog rhyme because they both end in "-og"!'
+    },
+    {
+      id: 'early_q4',
+      title: 'Little Story Explorer',
+      category: 'Story Comprehension',
+      question: 'Bella the bunny loves eating crunchy orange carrots. What does Bella love to eat? 🥕',
+      icon: '🐰',
+      options: ['Carrots', 'Cookies', 'Apples', 'Bread'],
+      correctAnswer: 'Carrots',
+      explanation: 'Brilliant! Bella the bunny loves crunchy orange carrots!'
+    },
+    {
+      id: 'early_q5',
+      title: 'Counting Star Fun',
+      category: 'Early Math & Count',
+      question: 'How many apples are here? 🍎 🍎 🍎 🍎',
+      icon: '🍎',
+      options: ['4', '2', '3', '5'],
+      correctAnswer: '4',
+      explanation: 'Hooray! 1, 2, 3, 4 delicious red apples!'
+    },
+    {
+      id: 'early_q6',
+      title: 'Colors of the World',
+      category: 'Early Vocabulary',
+      question: 'What color is the fresh green grass? 🌿',
+      icon: '🌿',
+      options: ['Green', 'Blue', 'Purple', 'Yellow'],
+      correctAnswer: 'Green',
+      explanation: 'Spot on! Grass is fresh green!'
+    }
+  ];
+
+  const [earlyQuestionIndex, setEarlyQuestionIndex] = useState(0);
+  const [earlySelectedAnswer, setEarlySelectedAnswer] = useState<string | null>(null);
+  const [earlyFeedback, setEarlyFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
+  const [earlyStars, setEarlyStars] = useState(0);
+
+  const handleEarlyAnswer = (chosen: string) => {
+    sound.playClick();
+    setEarlySelectedAnswer(chosen);
+    const curr = earlyLearningChallenges[earlyQuestionIndex];
+    const isCorrect = chosen === curr.correctAnswer;
+    if (isCorrect) {
+      sound.playSuccess();
+      try {
+        confetti({ particleCount: 60, spread: 50 });
+      } catch {}
+      setEarlyStars((prev) => prev + 1);
+      setEarlyFeedback({ isCorrect: true, message: curr.explanation });
+    } else {
+      sound.playError();
+      setEarlyFeedback({
+        isCorrect: false,
+        message: `Nice try! The correct answer is "${curr.correctAnswer}". Let's keep exploring!`
+      });
+    }
+
+    const qAttempt: QuestionAttemptRecord = {
+      id: `qatt_early_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      userId: profile?.id || 'usr_student_01',
+      userName: profile?.name || 'Little Learner',
+      userRole: profile?.role || 'student',
+      testOrQuizId: 'early_primary_assessment_01',
+      testOrQuizTitle: `Early Primary Assessment · ${curr.title}`,
+      moduleOrSubject: curr.category,
+      questionNumber: earlyQuestionIndex + 1,
+      questionPrompt: curr.question,
+      options: curr.options,
+      userAnswer: chosen,
+      correctAnswer: curr.correctAnswer,
+      isCorrect,
+      score: isCorrect ? '1/1' : '0/1',
+      explanation: curr.explanation,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
+    };
+    StorageService.recordBatchQuestionAttempts([qAttempt]);
+
+    if (onRecordActivity) {
+      onRecordActivity({
+        userId: profile?.id || 'usr_student_01',
+        userName: profile?.name || 'Little Learner',
+        type: 'lesson',
+        title: `Completed Early Primary Challenge: ${curr.title}`,
+        category: 'Early Childhood Phonics',
+        score: isCorrect ? '100%' : '75%',
+        xpEarned: isCorrect ? 25 : 10,
+        status: 'completed',
+        details: `Little explorer answered "${chosen}" for question: ${curr.question}`,
+        replayPayload: { tab: 'exam', subId: curr.id }
+      });
+    }
+  };
+
+  const handleNextEarlyQuestion = () => {
+    sound.playClick();
+    setEarlySelectedAnswer(null);
+    setEarlyFeedback(null);
+    setEarlyQuestionIndex((prev) => (prev + 1) % earlyLearningChallenges.length);
+  };
 
   // Filter practice tests by selected IELTS category & module
   const currentIeltsCategory = selectedExam === 'IELTS General Training' ? 'IELTS General Training' : 'IELTS Academic';
@@ -834,8 +968,103 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
         </div>
       </div>
 
-      {/* Top Exam Navigation Bar */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs space-y-6">
+      {/* If Early Childhood Learner (Ages 5–8), Render Dedicated Phonics & Early Assessment Arena */}
+      {userCohort === 'early' ? (
+        <div className="space-y-6">
+          {/* Child Protection Safeguard Banner */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-indigo-500/10 rounded-3xl p-6 sm:p-8 border border-amber-200 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-700">
+              <ShieldCheck className="w-5 h-5 text-amber-600" />
+              <span>Child Safety &amp; Age-Appropriate Content Safeguard Active</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Early Primary Assessment Arena (Ages 5–8)
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              Standardized adult examinations (IELTS Academic, PTE, TOEFL, OET, GRE) are safeguarded for high school and university students. Your interface is automatically configured with playful phonics, picture words, rhyming challenges, and story comprehension!
+            </p>
+            <div className="flex items-center gap-3 pt-1">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 rounded-xl text-amber-900 text-xs font-black">
+                <span>⭐ Stars Earned: {earlyStars}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 rounded-xl text-emerald-900 text-xs font-black">
+                <span>👶 Little Explorers (Ages 5–8)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Early Challenge Interactive Card */}
+          <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-sm space-y-6 text-center max-w-2xl mx-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <span className="text-xs font-black text-indigo-600 uppercase tracking-wider">
+                {earlyLearningChallenges[earlyQuestionIndex].category}
+              </span>
+              <span className="text-xs font-bold text-slate-500">
+                Question {earlyQuestionIndex + 1} of {earlyLearningChallenges.length}
+              </span>
+            </div>
+
+            <div className="py-4 space-y-3">
+              <div className="text-6xl animate-bounce">
+                {earlyLearningChallenges[earlyQuestionIndex].icon}
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                {earlyLearningChallenges[earlyQuestionIndex].question}
+              </h3>
+            </div>
+
+            {/* Large Touch-Friendly Options */}
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              {earlyLearningChallenges[earlyQuestionIndex].options.map((opt) => {
+                const isSelected = earlySelectedAnswer === opt;
+                const isCorrect = opt === earlyLearningChallenges[earlyQuestionIndex].correctAnswer;
+                let btnStyle = 'bg-slate-100 text-slate-800 hover:bg-slate-200 border-slate-200';
+                if (earlyFeedback) {
+                  if (isCorrect) {
+                    btnStyle = 'bg-emerald-500 text-white border-emerald-600 shadow-md';
+                  } else if (isSelected) {
+                    btnStyle = 'bg-rose-500 text-white border-rose-600';
+                  }
+                }
+                return (
+                  <button
+                    key={opt}
+                    disabled={!!earlyFeedback}
+                    onClick={() => handleEarlyAnswer(opt)}
+                    className={`py-4 px-6 rounded-2xl text-lg font-black border-2 transition-all transform active:scale-95 cursor-pointer ${btnStyle}`}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Feedback & Next Button */}
+            {earlyFeedback && (
+              <div className="space-y-4 pt-4 animate-fadeIn">
+                <div
+                  className={`p-4 rounded-2xl text-sm font-black border ${
+                    earlyFeedback.isCorrect
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                  }`}
+                >
+                  {earlyFeedback.message}
+                </div>
+                <button
+                  onClick={handleNextEarlyQuestion}
+                  className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-md transition-all cursor-pointer"
+                >
+                  Next Challenge ➔
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Top Exam Navigation Bar */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600">
@@ -2233,6 +2462,8 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
             );
           })()}
         </div>
+      )}
+        </>
       )}
 
     </div>

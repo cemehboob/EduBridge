@@ -109,7 +109,11 @@ async function buildDocx() {
     teacher_question_bank:
       'Centralized item master question bank organizing assessment questions across STEM, exams, and language by Bloom\'s taxonomy cognitive depth and subject taxonomy.',
     teacher_create_question_modal:
-      'Assessment question authoring studio allowing faculty to construct multiple-choice, short-answer, and essay questions with custom rubrics and curriculum alignment tags.'
+      'Assessment question authoring studio allowing faculty to construct multiple-choice, short-answer, and essay questions with custom rubrics and curriculum alignment tags.',
+    admin_cohort_governance:
+      'Administrative age groups and curriculum content governance directorate. Enables administrators to define and maintain age groups, age ranges, educational levels, allowed subjects, question bank access, and adult exam gating policies across all 5 developmental cohorts. Features automated Date-of-Birth (DOB) child protection safeguarding children (Ages 5–8) from graduate-level standardized exams, difficulty ceiling controls, and real-time audit logging.',
+    student_early_assessment:
+      'Dedicated Early Primary Assessment Arena tailored for young children aged 5 to 8 (Little Explorers). Features automated child safety gating shielding young learners from university exams, interactive phonics letter-sound challenges, sight word picture matching, rhyming puzzles, little story comprehension, large touch-friendly buttons, confetti celebration, star trophies, and question attempt logging.'
   };
 
   function getDetailedInterfaceDescription(view: AuditItem): string {

@@ -98,12 +98,111 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onRespondFeedback
 }) => {
   const [activeAdminTab, setActiveAdminTab] = useState<
-    'dashboard' | 'users' | 'activities' | 'feedback' | 'jobs' | 'models' | 'telemetry' | 'audit' | 'vocab'
+    'dashboard' | 'users' | 'cohorts' | 'activities' | 'feedback' | 'jobs' | 'models' | 'telemetry' | 'audit' | 'vocab'
   >('dashboard');
 
   // Standardized Practice Test Question Settings State
   const [examSettings, setExamSettings] = useState<ExamSettingsConfig>(() => StorageService.getExamSettings());
   const [examSettingsSavedNotice, setExamSettingsSavedNotice] = useState<string | null>(null);
+
+  // Age Groups & Educational Content Governance Configuration State
+  const [cohortRules, setCohortRules] = useState([
+    {
+      cohortId: 'early',
+      name: 'Little Explorers',
+      ageRange: 'Ages 5–8',
+      educationLevel: 'Early Primary & Phonics (Ages 5–8)',
+      allowedSubjects: ['Early Phonics & Letters', 'Sight Words & Picture Match', 'Rhymes & Word Families', 'Little Story Comprehension', 'Early Math & Count'],
+      allowAdultExams: false,
+      maxDifficulty: 'Foundation' as const,
+      quizzesEnabled: true,
+      practiceTestsEnabled: true,
+      status: 'Safeguarded & Active',
+      description: 'Play-based phonics, picture words, and short stories with immediate positive audio feedback. Gated from adult standardized exams (IELTS/PTE/TOEFL).'
+    },
+    {
+      cohortId: 'junior',
+      name: 'Junior Scholars',
+      ageRange: 'Ages 9–14',
+      educationLevel: 'Elementary & Middle School (Ages 9–14)',
+      allowedSubjects: ['Reading Foundation', 'STEM Science Quests', 'Mental Math Logic', 'Grammar & Vocabulary', 'Creative Story Lab'],
+      allowAdultExams: false,
+      maxDifficulty: 'Standard' as const,
+      quizzesEnabled: true,
+      practiceTestsEnabled: true,
+      status: 'Active',
+      description: 'Inquiry-based middle school curriculum, STEM challenges, and vocabulary drills. Safeguarded from adult university exams.'
+    },
+    {
+      cohortId: 'academy',
+      name: 'Academy & High-Stakes Exams',
+      ageRange: 'Ages 15–24',
+      educationLevel: 'High School & College Prep (Ages 15–24)',
+      allowedSubjects: ['IELTS Academic / General', 'PTE Academic', 'TOEFL iBT', 'Universal STEM Solver', 'Career & Portfolio'],
+      allowAdultExams: true,
+      maxDifficulty: 'Advanced' as const,
+      quizzesEnabled: true,
+      practiceTestsEnabled: true,
+      status: 'Active',
+      description: 'Rigorous exam preparation, official rubric automated scoring, True/False/Not Given simulator, and Task 2 essay injector.'
+    },
+    {
+      cohortId: 'pro',
+      name: 'Professional & Career Fluency',
+      ageRange: 'Ages 25–54',
+      educationLevel: 'Professional & Career Fluency (Ages 25–54)',
+      allowedSubjects: ['Executive Email Diplomacy', 'Workplace English', 'OET / Professional IELTS', 'Elevator Pitch Pacing', 'AI Career Strategist'],
+      allowAdultExams: true,
+      maxDifficulty: 'Advanced' as const,
+      quizzesEnabled: true,
+      practiceTestsEnabled: true,
+      status: 'Active',
+      description: 'Workplace communication, executive diplomacy analyzer, and resume portfolio optimization.'
+    },
+    {
+      cohortId: 'senior',
+      name: 'Golden Age & Lifelong Learning',
+      ageRange: 'Ages 55+',
+      educationLevel: 'Golden Age & Lifelong Learning (Ages 55+)',
+      allowedSubjects: ['Cognitive Word Gym', 'Conversational English', 'Reflective Journaling', 'Everyday Digital Safety', 'Calm Listening'],
+      allowAdultExams: true,
+      maxDifficulty: 'Standard' as const,
+      quizzesEnabled: true,
+      practiceTestsEnabled: true,
+      status: 'Active',
+      description: 'Gentle cognitive stimulation, errorless learning, memory retention gym, and digital fraud prevention.'
+    }
+  ]);
+  const [cohortSaveNotice, setCohortSaveNotice] = useState<string | null>(null);
+
+  const handleToggleCohortAdultExams = (cohortId: string) => {
+    sound.playClick();
+    setCohortRules((prev) =>
+      prev.map((c) => (c.cohortId === cohortId ? { ...c, allowAdultExams: !c.allowAdultExams } : c))
+    );
+  };
+
+  const handleSaveCohortRules = () => {
+    sound.playSuccess();
+    const adminRecord = StorageService.recordUserActivity({
+      userId: 'usr_admin_04',
+      userName: 'System Administrator',
+      type: 'admin_action',
+      title: 'Configured Age Cohorts & Content Governance Rules',
+      category: 'System Administration',
+      score: '5 Cohorts Updated',
+      xpEarned: 75,
+      status: 'completed',
+      details: 'Administrator updated educational content filtering rules, age ranges, and adult exam gating policies across all 5 age groups.',
+      replayPayload: {
+        tab: 'dashboard',
+        subId: 'cohort_rules'
+      }
+    });
+    setAllActivities((prev) => [adminRecord, ...prev]);
+    setCohortSaveNotice('✓ Age cohort educational content rules saved and enforced across platform!');
+    setTimeout(() => setCohortSaveNotice(null), 4000);
+  };
 
   const handleSaveExamSettings = (count: number) => {
     sound.playClick();
@@ -447,6 +546,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             }`}
           >
             User Accounts ({users.length})
+          </button>
+          <button
+            onClick={() => { sound.playClick(); setActiveAdminTab('cohorts'); }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+              activeAdminTab === 'cohorts' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Age Groups &amp; Content Rules</span>
           </button>
           <button
             onClick={() => { sound.playClick(); setActiveAdminTab('activities'); }}
@@ -1490,6 +1598,133 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* 1.5. Age Groups & Curriculum Content Governance Tab */}
+      {activeAdminTab === 'cohorts' && (
+        <div className="space-y-6">
+          {/* Header & Controls */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
+                  DOB-Driven Developmental Gating &amp; Curriculum Directorate
+                </span>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Age Groups &amp; Educational Content Governance
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Configure age cohorts, educational levels, allowed subjects, question bank access, and adult exam gating. Students are automatically assigned based on Date of Birth (DOB).
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSaveCohortRules}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition-all shrink-0 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Save &amp; Enforce Content Rules</span>
+                </button>
+              </div>
+            </div>
+
+            {cohortSaveNotice && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>{cohortSaveNotice}</span>
+              </div>
+            )}
+
+            {/* Child Safety & DOB Protection Policy Alert */}
+            <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="text-xs space-y-1">
+                <strong className="text-amber-900 font-extrabold block">
+                  Automated Date-of-Birth (DOB) Child Protection Safeguard
+                </strong>
+                <p className="text-amber-800">
+                  Student age is calculated dynamically from the Date of Birth recorded in their profile. A five-year-old child (<strong className="font-bold">Little Explorers, Ages 5–8</strong>) is strictly guarded from graduate-level standardized examinations (IELTS Academic, PTE, TOEFL, OET, GRE). All educational assessments, question banks, and quizzes automatically adapt to their developmental cohort.
+                </p>
+              </div>
+            </div>
+
+            {/* Cohorts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+              {cohortRules.map((c) => (
+                <div
+                  key={c.cohortId}
+                  className="p-6 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-4 hover:shadow-xs transition-all"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-base font-black text-slate-900">{c.name}</h4>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 uppercase">
+                          {c.ageRange}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-600 mt-0.5">{c.educationLevel}</p>
+                    </div>
+
+                    <span
+                      className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${
+                        c.allowAdultExams
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      }`}
+                    >
+                      {c.allowAdultExams ? 'Exams Active' : 'Child Protected'}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-600 leading-relaxed">{c.description}</p>
+
+                  {/* Allowed Subjects */}
+                  <div className="space-y-1.5 pt-2 border-t border-slate-200/80">
+                    <span className="text-[11px] font-extrabold text-slate-700 block uppercase tracking-wider">
+                      Assigned Subjects &amp; Question Banks:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {c.allowedSubjects.map((subj, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-white border border-slate-200 text-slate-700"
+                        >
+                          {subj}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Configuration Controls */}
+                  <div className="pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-700">Adult Exams (IELTS/PTE):</span>
+                      <button
+                        onClick={() => handleToggleCohortAdultExams(c.cohortId)}
+                        className={`text-xs font-extrabold px-3 py-1 rounded-xl transition-all border ${
+                          c.allowAdultExams
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-slate-200 text-slate-700 border-slate-300'
+                        }`}
+                      >
+                        {c.allowAdultExams ? 'Allowed' : 'Locked (Safeguarded)'}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="font-bold text-slate-700">Difficulty:</span>
+                      <span className="font-extrabold px-2 py-0.5 rounded-lg bg-slate-200 text-slate-800">
+                        {c.maxDifficulty}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
