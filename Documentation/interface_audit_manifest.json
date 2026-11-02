@@ -941,6 +941,120 @@
     ]
   },
   {
+    "id": "student_adventure_hub",
+    "role": "Student",
+    "module": "Adaptive Learning Launchpad",
+    "title": "Adventure Learning Hub & 4-Step Learner Pathway",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_19_adventure_hub.png",
+    "objects": [
+      {
+        "name": "Spoken Instructions Button (🔊 Read to Me)",
+        "type": "Speech Synthesis Button",
+        "purpose": "Speaks aloud step-by-step instructions for young children, early readers, or visually impaired learners.",
+        "functionality": "Narrates friendly spoken guidance explaining how to start lessons, ask AI questions, play word quizzes, and unlock trophies.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "5-Yr Kid Mode Switch (🧸 Switch to Kid Mode)",
+        "type": "Interface Toggle Switch",
+        "purpose": "Toggles between the standard secondary interface and a simplified, gamified visual launchpad for young learners.",
+        "functionality": "Instantly simplifies navigation, enlarges interaction targets, and adapts tone across all activities.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "1. Start Today's Lesson Card (🚀 START LESSON NOW)",
+        "type": "Curriculum Launch Card",
+        "purpose": "Directs learners into their daily interactive curriculum lesson without requiring manual syllabus browsing.",
+        "functionality": "Immediately launches the first available uncompleted lesson in the skill tree with +50 XP reward.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "2. Ask AI Magic Teacher Card (💡 ASK A QUESTION)",
+        "type": "AI Solver Launch Card",
+        "purpose": "Connects learners directly to the AI Universal Problem Solver when stuck on homework, math, science, or words.",
+        "functionality": "Navigates to the AI Problem Solver pre-calibrated for human-like multi-step derivation and speech.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "3. Fun Star Quiz Card (⭐ PLAY WORD QUIZ)",
+        "type": "Vocabulary Quiz Launch Card",
+        "purpose": "Launches an adaptive vocabulary and word definition challenge allowing learners to collect bonus stars and XP.",
+        "functionality": "Transitions directly to the Vocabulary Quiz calibrated to the student's developmental age cohort.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "4. Open Trophy Box Card (🏆 MY BADGES)",
+        "type": "Achievement Trophy Vault Card",
+        "purpose": "Rewards learner achievement by opening the Milestone Badges & Trophy Vault to view unlocked medals and honors.",
+        "functionality": "Opens the Milestone Badges & Trophy Vault view, showing unlocked achievements and progress toward milestones.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_trophy_box_badges",
+    "role": "Student",
+    "module": "Gamification & Achievement Architecture",
+    "title": "Trophy Box & Milestone Achievements Vault",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_20_trophy_box_badges.png",
+    "objects": [
+      {
+        "name": "Trophy Vault Banner & Unlocked Counter",
+        "type": "Hero Header Banner",
+        "purpose": "Celebrates the student's cumulative achievements with a glowing trophy icon and live unlocked counter.",
+        "functionality": "Displays total unlocked badges vs locked badges dynamically computed from user activities.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Badge Category Filter Pills (Streak, Vocabulary, Mastery, Tournaments)",
+        "type": "Filter Pills Group",
+        "purpose": "Categorizes achievement badges by pedagogical focus area so students can view progress in specific disciplines.",
+        "functionality": "Filters the badge grid in real time to show badges in the selected category.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Badge Status Filter Buttons (All, Unlocked, Locked)",
+        "type": "Segmented Filter Buttons",
+        "purpose": "Allows students to view completed awards or inspect remaining locked challenges to plan upcoming study goals.",
+        "functionality": "Immediately filters cards by unlock state with badge count badges.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Interactive Achievement Badge Cards",
+        "type": "Achievement Card Grid",
+        "purpose": "Displays each commemorative badge with distinctive bronze, silver, gold, and diamond iconography, XP rewards, and descriptive titles.",
+        "functionality": "Displays locked vs unlocked state, visual progress percentage bar, and current metric value. Clicking opens the Badge Detail Modal.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Milestone Unlock Progress Meters",
+        "type": "Progress Meter",
+        "purpose": "Informs the student of exact remaining requirements needed to earn each badge.",
+        "functionality": "Dynamically updates from genuine user activities, vocabulary words learned, and examination test scores.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Practice Now to Unlock Action Link",
+        "type": "Deep Link Action Button",
+        "purpose": "Provides direct navigation from a locked badge to the corresponding practice module (e.g. Vocabulary Quiz, Exam Prep, or Lessons) to help the student earn the badge.",
+        "functionality": "Navigates the student directly to the relevant curriculum module with one click.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
     "id": "parent_portal_overview",
     "role": "Parent",
     "module": "Parental Oversight & Growth",

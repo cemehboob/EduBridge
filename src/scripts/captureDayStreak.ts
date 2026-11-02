@@ -119,3 +119,4 @@ captureDayStreakScreenshot().catch((err) => {
   console.error('Error capturing day streak screenshot:', err);
   process.exit(1);
 });
+

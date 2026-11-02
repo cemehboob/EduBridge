@@ -98,6 +98,10 @@ async function buildDocx() {
       'Personalization modal enabling learners to choose among 8 curated accessible color presets, customize primary and accent color tones, and adjust global typography scaling.',
     student_day_streak:
       'Day streak motivation and habit continuity directorate. Features a prominent pulsating flame hero counter, best streak record badge, monthly habit consistency tracking, verified Day 1 status pill, habit freeze shield protection, celebratory animation button, and an expandable 31-day study habit calendar heatmap with 5-level XP intensity color coding and granular day detail inspection.',
+    student_adventure_hub:
+      'Daily adventure launchpad and 4-step guided pathway tailored for early childhood, primary scholars, and beginner learners. Features a speech-enabled audio guidance narrator ("🔊 Read to Me"), one-click 5-Year Kid Mode toggle switch, and 4 high-contrast action cards: Step 1 (Start Today\'s Animated Lesson), Step 2 (Ask AI Magic Teacher), Step 3 (Fun Star Quiz with Word Challenges), and Step 4 (Open Trophy Box for Medals and Honors).',
+    student_trophy_box_badges:
+      'Comprehensive achievement vault and milestone trophy directorate. Organizes collectible commemorative badges across Streak Defense, Lexical Vocabulary, Academic Mastery, and Tournament Leagues with live progress bars, unlock requirements, status filters (All, Unlocked, Locked), and direct action links to launch practice modules.',
     parent_portal_overview:
       'Parental oversight dashboard tracking child learning journey, weekly study hours vs target (computed dynamically from student activities), subject breakdown, cognitive strengths, and cryptographic test conduction proof hashes.',
     teacher_curriculum:
