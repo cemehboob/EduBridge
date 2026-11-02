@@ -1,0 +1,788 @@
+[
+  {
+    "id": "admin_model_management",
+    "role": "Admin",
+    "module": "Model Management & VRAM Allocation",
+    "title": "Ollama Multi-Model Governance",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/admin_01_model_management.png",
+    "objects": [
+      {
+        "name": "Ollama 4-Tier Model Cards (Phi-4, Qwen 3, DeepSeek R1, Llama 3.3)",
+        "type": "Status Cards & Telemetry",
+        "purpose": "Displays online status, parameter size, latency, and allocated VRAM for local inference models.",
+        "functionality": "Accurately displays real-time telemetry metrics and offline readiness indicators.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Model Active / Standby Toggle Buttons",
+        "type": "Toggle Switch Button",
+        "purpose": "Enables or suspends specific models to preserve system RAM and GPU resources.",
+        "functionality": "Toggles model status and saves state to local JSON configuration store.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Temperature & Top-P Sliders",
+        "type": "Range Slider Input",
+        "purpose": "Allows administrators to adjust model creativity and deterministic reasoning.",
+        "functionality": "Updates inference parameters dynamically with live numeric feedback.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "admin_user_management",
+    "role": "Admin",
+    "module": "User Management Directorate",
+    "title": "Enterprise Accounts & Credential Controls",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/admin_02_user_management.png",
+    "objects": [
+      {
+        "name": "Search Users & Roles Input",
+        "type": "Text Input Box",
+        "purpose": "Filter account list by student name, username, email, or role in real time.",
+        "functionality": "Instant responsive filtering matching any keyword.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Role Filter Dropdown (All, Student, Parent, Teacher, Admin)",
+        "type": "Select Dropdown",
+        "purpose": "Filters table to specific RBAC role hierarchies.",
+        "functionality": "Accurately isolates accounts belonging to selected role.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Add New User Button",
+        "type": "Action Button",
+        "purpose": "Opens modal to create a new user account with designated role, DOB, and credentials.",
+        "functionality": "Launches user creation modal with full form validation.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Edit User Credentials Button (Pencil Icon)",
+        "type": "Table Row Action Button",
+        "purpose": "Allows admin to update user full name, email, password, and Date of Birth.",
+        "functionality": "Opens edit modal; modifying DOB triggers real-time cohort recalculation.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Account Status Toggle (Active / Suspended)",
+        "type": "Status Action Button",
+        "purpose": "Permits admin to suspend or re-activate access without deleting account data.",
+        "functionality": "Updates account status flag and logs event in immutable audit ledger.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "admin_edit_user_modal",
+    "role": "Admin",
+    "module": "User Management Directorate",
+    "title": "Edit User Credentials Modal",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/admin_03_edit_user_modal.png",
+    "objects": [
+      {
+        "name": "Full Name Input Field",
+        "type": "Text Input",
+        "purpose": "Updates student or faculty official legal name displayed on certificates.",
+        "functionality": "Validates string input and updates account profile state.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Date of Birth (DOB) Datepicker",
+        "type": "Date Input",
+        "purpose": "Source of truth for calculating age, cohort level, and interface gating.",
+        "functionality": "Modifying DOB automatically recalculates learner age and assigns proper cohort.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "New Password Field",
+        "type": "Password Input",
+        "purpose": "Enables administrative password reset with bcrypt/secure local store.",
+        "functionality": "Overwrites existing password hash upon save.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Save Credentials Button",
+        "type": "Primary Action Button",
+        "purpose": "Commits updated credentials to local storage JSON database.",
+        "functionality": "Validates inputs, commits record, and updates system telemetry.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "admin_scheduled_jobs",
+    "role": "Admin",
+    "module": "Autonomous Schedulers",
+    "title": "Nightly 00:00 UTC Cron Daemon Hub",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/admin_04_scheduled_jobs.png",
+    "objects": [
+      {
+        "name": "Cron Job Cards (Mock Exam Daemon, Vocabulary Expansion Daemon)",
+        "type": "Job Execution Card",
+        "purpose": "Displays scheduler status, target frequency (00:00 UTC), and generation metrics.",
+        "functionality": "Shows execution statistics, active status, and timestamp of last run.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Run Job Now Action Button",
+        "type": "Action Button",
+        "purpose": "Manually triggers execution of batch generators on demand without waiting for cron.",
+        "functionality": "Synthesizes authentic tests or vocabulary words and appends them to ledger.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Enable / Disable Job Toggle",
+        "type": "Toggle Switch",
+        "purpose": "Allows administrators to pause autonomous background generation.",
+        "functionality": "Toggles active state and persists setting in scheduler config.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "admin_ingested_ledger",
+    "role": "Admin",
+    "module": "Content Verification Ledger",
+    "title": "Ingested Items Verification Ledger",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/admin_05_ingested_ledger.png",
+    "objects": [
+      {
+        "name": "Ledger Table (Timestamp, Item Type, Title, Source, Verified Hash)",
+        "type": "Data Table",
+        "purpose": "Immutable audit log of all generated mock tests, practice sets, and vocabulary.",
+        "functionality": "Renders verified cryptographic hashes and ISO timestamps for all items.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Content Type Filter (All, Mock Exams, Vocabulary Words)",
+        "type": "Filter Pills",
+        "purpose": "Filters ledger entries by artifact type.",
+        "functionality": "Instantly filters table rows according to selected category.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "admin_system_telemetry",
+    "role": "Admin",
+    "module": "System Telemetry & DevOps",
+    "title": "Infrastructure Health & Backup Maintenance",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/admin_06_system_telemetry.png",
+    "objects": [
+      {
+        "name": "Hardware Gauges (CPU Utilization, Memory Allocation, Disk Usage)",
+        "type": "Progress Meter Gauges",
+        "purpose": "Monitors container and node hardware health in real time.",
+        "functionality": "Displays memory consumption, uptime, and system status.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Export Complete System Backup Button",
+        "type": "Action Button",
+        "purpose": "Dumps all local JSON tables (users, tests, vocab, ledger, audit logs) into a single downloadable JSON backup file.",
+        "functionality": "Generates formatted JSON blob and triggers browser file download.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Reset System to Initial Baseline Button",
+        "type": "Destructive Action Button",
+        "purpose": "Restores initial factory fixtures while safeguarding administrator access.",
+        "functionality": "Prompts confirmation and reseeds default database tables.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "admin_feature_flags",
+    "role": "Admin",
+    "module": "Platform Configuration",
+    "title": "Dynamic Feature Flags & Experiments",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/admin_07_feature_flags.png",
+    "objects": [
+      {
+        "name": "Feature Flag Toggle Cards (Ollama GPU, Speech Synthesis, Kid-Mode, etc.)",
+        "type": "Feature Toggle Grid",
+        "purpose": "Enables gradual rollout or hot-toggling of platform subsystems without code redeployment.",
+        "functionality": "Updates flag state immediately in local storage and records audit event.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "admin_feedback_center",
+    "role": "Admin",
+    "module": "Support & Feedback Directorate",
+    "title": "User Feedback & Issue Resolution Center",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/admin_08_feedback_center.png",
+    "objects": [
+      {
+        "name": "Support Ticket List & Status Badges",
+        "type": "Interactive Ticket List",
+        "purpose": "Displays learner reports, bug filings, and feature suggestions.",
+        "functionality": "Filters tickets by Pending Review, In Progress, and Resolved.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Admin Response Textarea & Status Update",
+        "type": "Form Textarea & Select",
+        "purpose": "Enables administrators to reply directly to user tickets.",
+        "functionality": "Submits response, updates user notification badge, and updates ticket status.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "admin_security_audit",
+    "role": "Admin",
+    "module": "DevSecOps & Compliance",
+    "title": "Immutable Administrative Security Audit Log",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/admin_09_security_audit.png",
+    "objects": [
+      {
+        "name": "Audit Event Ledger (Timestamp, Category, Action, User, Severity)",
+        "type": "Data Table",
+        "purpose": "Permanent, immutable security ledger recording all credential, role, and configuration changes.",
+        "functionality": "Chronologically displays security events with color-coded severity tags.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_activity_board_table",
+    "role": "Student",
+    "module": "Activity Board & History",
+    "title": "Real-Time Activity Dashboard & Full-Width Data Table",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_01_activity_board_table.png",
+    "objects": [
+      {
+        "name": "Real-Time Activity Summary Banner",
+        "type": "Information Banner & Metric Counters",
+        "purpose": "Displays live tracking badge, personal greeting, activities count, streak, today XP, and total XP.",
+        "functionality": "Dynamically computes and presents authentic learner metrics with zero lag.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Pick Up Where You Left Off Spotlight Card",
+        "type": "Hero Action Card",
+        "purpose": "Anchors the learner to their most recent study activity with instant resumption.",
+        "functionality": "Displays exact timestamp and dedicated \"Perform Activity Again\" action button.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Activity Category Filter Pills (All, Lessons, Mock Exams, Solvers, STEM, Vocab, Habits)",
+        "type": "Filter Navigation Pills",
+        "purpose": "Filters activity timeline by specific learning modalities.",
+        "functionality": "Instantly filters table rows to selected activity type.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "View Mode Switcher (Table View / Card View)",
+        "type": "Toggle Segment Button",
+        "purpose": "Switches between full-space high-density data table and card layout.",
+        "functionality": "Toggles between table and cards with smooth zero-gap layout adaptation.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "High-Density Activity Data Table",
+        "type": "Responsive Data Table",
+        "purpose": "Utilizes 100% full screen width to present Date & Time, Activity, Details, Score, XP, Status, and Action.",
+        "functionality": "Eliminates wasted gaps, providing clear monospace timestamps and status indicators.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Perform Again Row Action Button",
+        "type": "Table Action Button",
+        "purpose": "Allows student to instantly repeat any historical lesson, exam, or quiz.",
+        "functionality": "Routes student directly to module and restores exercise state.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_activity_board_cards",
+    "role": "Student",
+    "module": "Activity Board & History",
+    "title": "Activity Board Responsive Card Layout",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_02_activity_board_cards.png",
+    "objects": [
+      {
+        "name": "Activity Timeline Card Feed",
+        "type": "Card Grid Layout",
+        "purpose": "Alternative card presentation tailored for mobile devices and tactile touchscreens.",
+        "functionality": "Renders individual activity cards with icon, badges, timestamps, and replay buttons.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_question_solver",
+    "role": "Student",
+    "module": "AI Problem Solving",
+    "title": "Universal AI Question Solver & Digital Classroom",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_03_question_solver.png",
+    "objects": [
+      {
+        "name": "Multimodal Input Selector Tabs (Keyboard, Digital Pen, Voice Speech, Image OCR)",
+        "type": "Mode Selector Tabs",
+        "purpose": "Allows student to input problems via typed formula palette, digital stylus canvas, microphone speech, or uploaded image diagrams.",
+        "functionality": "Switches between formula keyboard, pen whiteboard, speech dictation, and OCR upload.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Formula Quick Palette (Powers, Roots, Fractions, Integrals, Greek)",
+        "type": "Character Injection Buttons",
+        "purpose": "Provides single-click insertion of complex mathematical notation and scientific symbols.",
+        "functionality": "Inserts symbols directly into cursor position in editor.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Step-by-Step Cognitive Solution Workspace (Left Column)",
+        "type": "Solution Workspace",
+        "purpose": "Presents verified chain-of-thought derivations, intermediate equations, and conceptual rationale.",
+        "functionality": "Renders formatted mathematical steps with verified proofs.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Answer Palette & Verified Conclusion (Right Column)",
+        "type": "Palette Card",
+        "purpose": "Anchors final verified answer, core formulas, common mistakes, and spoken voice narration.",
+        "functionality": "Displays highlight badges and contains listening audio button.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Listen to Explanation Audio Button",
+        "type": "Audio Playback Button",
+        "purpose": "Reads the solution and steps aloud in natural spoken speech with adjustable persona voices.",
+        "functionality": "Converts scientific equations into spoken English sentences and initiates Piper audio.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_exam_prep",
+    "role": "Student",
+    "module": "Standardized Exam Prep",
+    "title": "Multi-Question Practice Tests Hub & Question Stepper",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_04_exam_prep_practice_hub.png",
+    "objects": [
+      {
+        "name": "Target Exam Selector Pills (PTE, TOEFL, OET, DET, Cambridge, IELTS)",
+        "type": "Exam Selector Pills",
+        "purpose": "Switches test bank across 6 premier international English and standardized test standards.",
+        "functionality": "Instantly updates test selections and passages to selected exam format.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Interactive Question Stepper Buttons ([1] [2] ... [10])",
+        "type": "Numbered Step Navigation Pills",
+        "purpose": "Allows students to navigate seamlessly through all 10 in-depth questions under the same subject.",
+        "functionality": "Switches active question index, shows answered status, and updates question content.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Dual AI 10-Question Synthesizers (Same-Subject & Mix & Match)",
+        "type": "AI Generation Action Buttons",
+        "purpose": "Synthesizes fresh 10-question standardized exam sets on demand either thematically linked or mixed-topic.",
+        "functionality": "Generates 10 interrelated questions, saves test to test bank, and activates it in stepper.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Submit Practice Answer & Overall Evaluation Button",
+        "type": "Action Button",
+        "purpose": "Scores selected multiple-choice answers and displays paragraph-referenced reasoning.",
+        "functionality": "Evaluates answers, awards XP, and updates activity history timeline.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_language_tree",
+    "role": "Student",
+    "module": "Language Learning",
+    "title": "Interactive Duolingo-Style Skill Trees",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_05_language_skill_tree.png",
+    "objects": [
+      {
+        "name": "Branching Unit Modules & Stepping Nodes",
+        "type": "Interactive Node Path",
+        "purpose": "Presents sequential skill units with unlock requirements and visual progress rings.",
+        "functionality": "Clicking active lesson launches interactive exercise modal with audio flashcards.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Daily Language Goal & Streak Momentum Bar",
+        "type": "Gamified Status Bar",
+        "purpose": "Tracks active daily vocabulary words reviewed and preserves unbroken habit streak.",
+        "functionality": "Displays progress toward 100 XP daily goal with celebratory feedback.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_resource_vault",
+    "role": "Student",
+    "module": "Universal Resource Vault",
+    "title": "Universal Resource Vault & Symmetric Theming Modal",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_06_resource_vault_modal.png",
+    "objects": [
+      {
+        "name": "Developmental Stage Cohort Filter (Ages 5–8, 9–14, 15–24, 25–54, 55+)",
+        "type": "Filter Dropdown Select",
+        "purpose": "Filters printable study cheat sheets by learner age group.",
+        "functionality": "Instantly filters list of authentic documents tailored to developmental stage.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Symmetric High-Contrast Document Paper View",
+        "type": "Printable Sheet Container",
+        "purpose": "Presents printable study guides with high-contrast readable typography in both light & dark mode.",
+        "functionality": "Eliminates black-on-black or white-on-white text clipping with clean monospaced styling.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Print & Download Document Action Buttons",
+        "type": "Utility Action Buttons",
+        "purpose": "Outputs clean physical printout or downloads plain-text/PDF formatted reference files.",
+        "functionality": "Triggers system print dialog and downloads clean formatted study cheat sheets.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_user_guide",
+    "role": "Student",
+    "module": "Platform Knowledge Base",
+    "title": "Illustrated User Manual & Knowledge Base Modal",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_07_user_manual_modal.png",
+    "objects": [
+      {
+        "name": "Windows-Style Search Box & Keyword Index",
+        "type": "Live Search Box",
+        "purpose": "Searches 21 comprehensive guide topics across all platform features.",
+        "functionality": "Filters table of contents in real time with keyword matching.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Illustrated Article Reader with Live Screenshots",
+        "type": "Document Reader Panel",
+        "purpose": "Displays clear instructions, step-by-step procedures, pro tips, and verified screenshots.",
+        "functionality": "Renders verified UI screenshots, step-by-step breakdowns, and role badges.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_preferences",
+    "role": "Student",
+    "module": "User Preferences",
+    "title": "Personalized Preferences & Visual Theming",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_08_user_preferences_modal.png",
+    "objects": [
+      {
+        "name": "Color Scheme Presets (Oceanic Indigo, Emerald, Royal Amethyst, Sunset, Midnight OLED, etc.)",
+        "type": "Preset Palette Cards",
+        "purpose": "Allows learners to choose their ideal high-contrast visual environment.",
+        "functionality": "Applies CSS variables globally across all components and saves to account.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Voice Persona Selector (Man, Woman, Boy, Girl)",
+        "type": "Persona Voice Options",
+        "purpose": "Configures voice timbre, pitch, and cadence for reading solutions and exam audio.",
+        "functionality": "Updates Web Speech API synthesizer settings globally.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Child-Friendly Mode Toggle",
+        "type": "Toggle Switch",
+        "purpose": "Simplifies UI for young scholars with large buttons and phonics builders.",
+        "functionality": "Toggles between simplified adventure hub and advanced standardized prep.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "parent_portal_overview",
+    "role": "Parent",
+    "module": "Parental Oversight",
+    "title": "Parent Portal & Child Growth Directorate",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/parent_01_growth_and_oversight.png",
+    "objects": [
+      {
+        "name": "Child Weekly Study Hour Distribution & Cognitive Radar",
+        "type": "Analytical Visualization",
+        "purpose": "Visualizes weekly study time across Language Arts, Exam Simulations, and STEM disciplines.",
+        "functionality": "Renders dynamic hours breakdown, active streak verification, and mastery percentages.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Screen Time Guardrail Setting Slider",
+        "type": "Range Slider & Time Cap",
+        "purpose": "Allows parents to establish healthy daily screen study limits (e.g. 3.5 hours).",
+        "functionality": "Enforces restorative offline pause recommendations when screen limits are reached.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Encouragement Praise Messenger",
+        "type": "Interactive Form Box",
+        "purpose": "Enables parents to send positive reinforcement messages directly to their child’s learning screen.",
+        "functionality": "Dispatches custom words of praise stored in local notification channel.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "AI Pedagogical Insight Card",
+        "type": "Socratic Advice Card",
+        "purpose": "Provides AI-generated recommendations identifying subject strengths and areas needing review.",
+        "functionality": "Analyzes test completion history and delivers constructive study guidance.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "teacher_curriculum",
+    "role": "Teacher",
+    "module": "Teacher Studio",
+    "title": "Curriculum & Cohort Assignment Directorate",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/teacher_01_curriculum_directorate.png",
+    "objects": [
+      {
+        "name": "Cohort Assignment Cards (Homework, Quizzes, Rubrics)",
+        "type": "Assignment Manager Cards",
+        "purpose": "Displays active cohort assignments, due dates, submission percentages, and average band scores.",
+        "functionality": "Tracks student submissions and computes grading averages in real time.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Deploy New Assignment Button",
+        "type": "Action Button",
+        "purpose": "Opens modal to create and schedule homework tasks for specific student cohorts.",
+        "functionality": "Launches assignment builder with deadline and module selection.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "teacher_question_bank",
+    "role": "Teacher",
+    "module": "Question Bank Directorate",
+    "title": "Item Master Question Bank & Curriculum Repository",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/teacher_02_item_master_question_bank.png",
+    "objects": [
+      {
+        "name": "Item Master Question Bank Table",
+        "type": "Curated Question Repository",
+        "purpose": "Catalog of standardized assessment items across multiple difficulty tiers (Easy, Medium, Hard).",
+        "functionality": "Renders tagged questions with difficulty badges and subject categories.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Add Question to Bank Action Button",
+        "type": "Action Button",
+        "purpose": "Opens modal to author new multiple-choice, essay, or STEM problem items.",
+        "functionality": "Opens authoring form and validates fields before appending to question bank.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Question Difficulty Filter (All, Easy, Medium, Hard)",
+        "type": "Filter Dropdown / Pills",
+        "purpose": "Filters question catalog by cognitive complexity tier.",
+        "functionality": "Instantly filters displayed items according to selected difficulty.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_academic_hub",
+    "role": "Student",
+    "module": "Academic Hub & Developmental Cohorts",
+    "title": "Universal Learning Arena (5 Cohorts)",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_09_academic_hub.png",
+    "objects": [
+      {
+        "name": "Developmental Stage Cohort Arena Cards",
+        "type": "Interactive Cohort Matrix",
+        "purpose": "Displays age-appropriate curricula, essay templates, and interactive science challenges across all 5 age groups.",
+        "functionality": "Opens targeted modules suited for learner cognitive maturity.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_career_portfolio",
+    "role": "Student",
+    "module": "Career Development",
+    "title": "Career Roadmap & AI Resume / CV Builder",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_10_career_portfolio.png",
+    "objects": [
+      {
+        "name": "AI Resume Builder with ATS Keyword Scorer",
+        "type": "CV Document Builder",
+        "purpose": "Synthesizes verified credentials, coursework, and skills into exportable resumes (PDF/DOC).",
+        "functionality": "Scores keywords, reformulates bullets, and previews formatted CV.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Career Roadmap Milestones Track",
+        "type": "Visual Progression Path",
+        "purpose": "Outlines competency milestones toward target career objectives.",
+        "functionality": "Tracks completed course units and required certifications.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_study_planner",
+    "role": "Student",
+    "module": "Study Habits & Scheduling",
+    "title": "Daily Study Planner & Habit Shield",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_11_study_planner.png",
+    "objects": [
+      {
+        "name": "Daily Study Schedule & Task Checkboxes",
+        "type": "Interactive Task Manager",
+        "purpose": "Organizes daily study agenda with completion tracking and XP rewards.",
+        "functionality": "Toggles task completion and awards XP toward daily study goals.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Habit Shield Streak Freeze Indicator",
+        "type": "Streak Protection Status",
+        "purpose": "Preserves active habit streak in the event of an unplanned rest day.",
+        "functionality": "Protects streak integrity across reloads.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_vocabulary_quizzes",
+    "role": "Student",
+    "module": "Dynamic Lexicon Vault",
+    "title": "CEFR-Tagged Vocabulary Quizzes & Soundboard",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_12_vocabulary_quizzes.png",
+    "objects": [
+      {
+        "name": "Vocabulary Flashcards with Audio Pronunciation",
+        "type": "Interactive Flashcard Deck",
+        "purpose": "Provides definitions, CEFR ratings (A1 to C2), phonetic transcriptions, and audio playback.",
+        "functionality": "Flips card, plays Piper audio, and evaluates multiple-choice recall.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "student_leaderboard",
+    "role": "Student",
+    "module": "Gamification & Honors",
+    "title": "Weekly Tournament Leaderboard & XP Podium",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_13_leaderboard_tournaments.png",
+    "objects": [
+      {
+        "name": "Weekly League Roster & Top 3 Podium",
+        "type": "Tournament Ladder",
+        "purpose": "Ranks learners within their league division (Bronze, Silver, Gold, Sapphire, Diamond).",
+        "functionality": "Computes authentic rank based on weekly study XP and displays promotion zone indicators.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "teacher_create_question_modal",
+    "role": "Teacher",
+    "module": "Question Bank Directorate",
+    "title": "Author New Assessment Question Modal",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/teacher_03_create_question_modal.png",
+    "objects": [
+      {
+        "name": "Question Prompt Textarea",
+        "type": "Form Textarea",
+        "purpose": "Accepts question prompt text, instructions, or reading excerpts.",
+        "functionality": "Validates prompt content and binds to question state.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Difficulty Level Selector (Easy, Medium, Hard)",
+        "type": "Select Dropdown",
+        "purpose": "Tags question with Bloom taxonomy cognitive difficulty level.",
+        "functionality": "Assigns difficulty level and updates question metadata.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Save Question to Bank Button",
+        "type": "Primary Action Button",
+        "purpose": "Appends authored question to the local Item Master repository.",
+        "functionality": "Validates fields and commits question into active storage.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  }
+]
