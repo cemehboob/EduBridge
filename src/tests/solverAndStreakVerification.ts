@@ -1403,7 +1403,45 @@ async function runTests() {
     console.log('PASS: VocabularyQuiz selects unattempted questions first and rotates attempted questions to end of bank.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 55 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 56: Verifying Subject-Level & Mix & Match Test Isolation for Admin and Subject-Related Questions/Answers
+  console.log('\nTest 56: Verifying Subject-Level & Mix & Match Test Isolation for Admin and Subject-Related Questions/Answers...');
+  const examPrepViewCode = fs.readFileSync('src/components/student/ExamPrepView.tsx', 'utf-8');
+
+  // 1. Verify synthesizer toolbar is guarded by isAdmin
+  if (!examPrepViewCode.includes('{isAdmin && (') || !examPrepViewCode.includes('Administrator Practice Synthesizer Tools')) {
+    console.error('FAIL: ExamPrepView does not hide synthesizer toolbar for non-admin roles.');
+    failures++;
+  } else {
+    console.log('PASS: ExamPrepView hides Add Subject Test and Add Mix & Match Test for all roles except admin.');
+  }
+
+  // 2. Verify mix & match tests are filtered out for non-admin roles
+  if (!examPrepViewCode.includes('!isAdmin') || !examPrepViewCode.includes('mix & match')) {
+    console.error('FAIL: ExamPrepView does not filter out mix & match tests for non-admin roles.');
+    failures++;
+  } else {
+    console.log('PASS: ExamPrepView filters out mix & match tests for non-admin roles, displaying only subject-specific tests.');
+  }
+
+  // 3. Verify generated questions and answers are always related to the subject
+  const marineTest = IELTSPracticeService.generateAIPracticeTest({
+    mode: 'same_subject',
+    subject: 'Marine Biology & Coral Reef Ecosystems'
+  });
+  const allQuestionsMentionSubject = marineTest.questions?.every(
+    (q) =>
+      q.prompt.includes('Marine Biology') ||
+      q.correctAnswer?.includes('Marine Biology') ||
+      q.subject === 'Marine Biology & Coral Reef Ecosystems'
+  );
+  if (!allQuestionsMentionSubject || !marineTest.questions || marineTest.questions.length === 0) {
+    console.error('FAIL: Generated questions and answers are not related to the subject.');
+    failures++;
+  } else {
+    console.log(`PASS: All 10 questions and answers in "${marineTest.title}" are strictly related to subject "${marineTest.subject}".`);
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 56 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

@@ -316,11 +316,32 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     setEarlyQuestionIndex((prev) => (prev + 1) % earlyLearningChallenges.length);
   };
 
+  const isAdmin = currentUser?.role === 'admin' || profile?.role === 'admin';
+
   // Filter practice tests by selected IELTS category & module
   const currentIeltsCategory = selectedExam === 'IELTS General Training' ? 'IELTS General Training' : 'IELTS Academic';
-  const allPracticeTestsForModule = practiceTests.filter(
-    (t) => t.category === currentIeltsCategory && t.module === selectedPracticeModule
-  );
+  const allPracticeTestsForModule = practiceTests.filter((t) => {
+    if (t.category !== currentIeltsCategory || t.module !== selectedPracticeModule) {
+      return false;
+    }
+    // Mix and match tests are hidden for all roles except admin role.
+    // Non-admin roles only see tests where questions and answers are always strictly related to the subject.
+    if (!isAdmin) {
+      const subj = (t.subject || '').toLowerCase();
+      const title = (t.title || '').toLowerCase();
+      if (
+        subj.includes('mix & match') ||
+        subj.includes('mix and match') ||
+        subj.includes('cross-disciplinary') ||
+        title.includes('mix & match') ||
+        title.includes('mix and match') ||
+        title.includes('cross-disciplinary')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
   // Sort practice tests so unattempted tests come first, and attempted tests move to end of bank
   const filteredPracticeTests = [...allPracticeTestsForModule].sort((a, b) => {
     const aAttempted = a.lastAttemptedAt || a.completed ? 1 : 0;
@@ -1224,40 +1245,42 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
               </div>
             </div>
 
-            {/* AI Practice Generator Toolbar */}
-            <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 p-4 rounded-2xl border border-emerald-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-600" />
-                  <span className="font-extrabold text-xs text-emerald-950 uppercase tracking-wider">
-                    AI 10-Question Practice Synthesizer
-                  </span>
+            {/* AI Practice Generator Toolbar: Adding subject-level tests and mix & match tests is exclusively reserved for Admin role. Hidden for Student, Parent, and Teacher roles. */}
+            {isAdmin && (
+              <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 p-4 rounded-2xl border border-emerald-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    <span className="font-extrabold text-xs text-emerald-950 uppercase tracking-wider">
+                      Administrator Practice Synthesizer Tools
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Background scheduler automatically adds questions and quizzes of all patterns for students. Use these on-demand controls to synthesize subject-level or mix-and-match tests.
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-600 mt-0.5">
-                  Synthesize additional 10-question practice tests under identical subjects, inter-related domains, or cross-disciplinary mix & match.
-                </p>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  disabled={aiGenerating}
-                  onClick={() => handleGenerateAITest('same_subject')}
-                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{aiGenerating ? 'Synthesizing...' : '🤖 Add 10-Question Subject Test (AI)'}</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    disabled={aiGenerating}
+                    onClick={() => handleGenerateAITest('same_subject')}
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{aiGenerating ? 'Synthesizing...' : '🤖 Add 10-Question Subject Test (AI)'}</span>
+                  </button>
 
-                <button
-                  disabled={aiGenerating}
-                  onClick={() => handleGenerateAITest('mix_match')}
-                  className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
-                >
-                  <BrainCircuit className="w-3.5 h-3.5" />
-                  <span>{aiGenerating ? 'Synthesizing...' : '⚡ Add 10-Question Mix & Match (AI)'}</span>
-                </button>
+                  <button
+                    disabled={aiGenerating}
+                    onClick={() => handleGenerateAITest('mix_match')}
+                    className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+                  >
+                    <BrainCircuit className="w-3.5 h-3.5" />
+                    <span>{aiGenerating ? 'Synthesizing...' : '⚡ Add 10-Question Mix & Match (AI)'}</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* AI Generator Notification Banner */}
             {aiBannerMsg && (

@@ -1,5 +1,5 @@
 # EduBridge Modification Report
-**Document Version:** 1.3.0  
+**Document Version:** 1.4.0  
 **Date:** November 2, 2026  
 **Author:** Antigravity Engineering & QA Team  
 **Scope:** Record of Architectural, Functional, Security, and Documentation Enhancements
@@ -31,8 +31,11 @@ All modifications were implemented with strict adherence to backwards compatibil
 | **Dashboard Graph Click-to-Filter** | Interactivity & Focus | Added interactive click handlers on the 7-day trend chart bars, category proportional bars, and legend items in `ActivityBoardView` and `AdminPortal`. | Clicking any graph bar automatically filters the timeline table to that exact date or category, displays an active filter banner, and smoothly scrolls/focuses the user activity log. |
 | **Question-Level History Persistence** | Diagnostics & Audit | Defined `QuestionAttemptRecord` and implemented batch recording across tests, quizzes, STEM problems, and the AI solver. | Stores prompt, options, user answer, correct answer, score, explanation, and exact timestamp (`YYYY-MM-DD HH:mm:ss`) permanently in system storage. |
 | **Parent Portal Metrics** | Parental Oversight | Connected Parent Portal study duration meters, weekly target percentages, and recent milestones directly to stored child activity records. | Reflects real child study hours across Language, Exam Prep, and STEM with verified cryptographic proof hashes. |
-| **Comprehensive User Guide (.docx)** | Deliverable | Generated `EduBridge_Comprehensive_User_Guide.docx` (578.2 KB) organized by 4 user roles and 5 student age cohorts. | Provides step-by-step instructions for Students (5–8, 9–14, 15–24, 25–54, 55+), Parents, Teachers, and Administrators. |
+| **Comprehensive User Guide (.docx)** | Deliverable | Generated `EduBridge_Comprehensive_User_Guide.docx` (7.46 MB) synchronized directly from interface detail audit manifest covering all 37 interfaces with screenshots and itemwise object functions & reasons tables. | Provides step-by-step instructions for Students (5–8, 9–14, 15–24, 25–54, 55+), Parents, Teachers, and Administrators with comprehensive object-level tables. |
 | **Screenshot-Based Interface Doc (.docx)** | Deliverable | Generated 37 high-resolution screenshots and compiled `EduBridge_Interface_Documentation.docx` (7.29 MB). | Provides complete visual documentation and functional object evaluation tables across Admin, Student, Parent, and Teacher roles. |
+| **Admin-Gated Test Synthesizers** | RBAC & Assessment Architecture | Restricted "Add 10-Question Subject Test (AI)" and "Add 10-Question Mix & Match (AI)" exclusively to the Admin role (`currentUser?.role === 'admin' || profile?.role === 'admin'`). | Non-admin roles (Students, Parents, Teachers) do not see manual on-demand test synthesizer toolbars. Automated background schedulers handle catalog expansion. |
+| **Filtered Mix & Match Catalog** | Academic Coherence | Filtered out all practice tests containing "Mix & Match" or "Cross-Disciplinary" for non-admin roles in `ExamPrepView.tsx`. | Learners only encounter cohesive, single-subject practice tests aligned with standard educational curricula. |
+| **Strict Subject-Related Questions & Answers** | Pedagogical Integrity | Rewrote `generateAIPracticeTest` blueprints in `ieltsPracticeService.ts` so that every question prompt, correct answer, distractor, and explanation is strictly and dynamically anchored to `${subject}` and `${topic}`. | Completely eliminates generic or irrelevant distractors, ensuring rigorous subject-matter fidelity across all generated tests. |
 
 ---
 
@@ -111,16 +114,31 @@ All modifications were implemented with strict adherence to backwards compatibil
   - Made category proportional bar segments interactive: clicking a category filters the timeline table.
   - Added interactive category tiles in `AdminPortal.tsx` that jump directly to the Activity Audit Ledger pre-filtered to the clicked category.
 
+### 3.10. Admin-Only Practice Synthesizers & Mix-and-Match Filtering
+- **Files Modified:** `src/components/student/ExamPrepView.tsx`
+- **Issue:** Non-admin students, teachers, and parents were exposed to on-demand AI test generator buttons, and non-admin students could see mixed-discipline tests rather than pure single-subject tests.
+- **Solution:**
+  - Evaluated `isAdmin = currentUser?.role === 'admin' || profile?.role === 'admin';`.
+  - Conditioned the `AI Practice Generator Toolbar` (`Add 10-Question Subject Test (AI)` and `Add 10-Question Mix & Match (AI)`) on `{isAdmin && ...}`, hiding it completely from Student, Teacher, and Parent sessions.
+  - Filtered `allPracticeTestsForModule` to hide tests containing `mix & match`, `mix and match`, or `cross-disciplinary` for all non-admin roles so learners only receive pure single-subject tests.
+
+### 3.11. Strict Subject-Anchored Questions, Answers & Distractors
+- **Files Modified:** `src/services/ieltsPracticeService.ts`
+- **Issue:** Synthesized practice tests previously contained generic distractors (e.g. "To maximize unverified intuitive assumptions without measuring outcomes") that did not explicitly reference the target subject.
+- **Solution:**
+  - Rewrote all 10 question blueprints in `generateAIPracticeTest` so that every prompt, correct answer, incorrect distractor, and pedagogical explanation explicitly incorporates `${subject}` and `${topic}`.
+  - Distractors now incorporate domain-specific failure modes, uncalibrated parameters, and erroneous methodologies specific to the subject (e.g., thermodynamic entropy in Silicon Photonics, baseline drift in Environmental Science).
+
 ---
 
 ## 4. Verification and Validation
 
 All modified files were thoroughly validated through:
-1. **TypeScript Build Verification:** Executed `npm run build` with zero TypeScript compiler errors (1,723 modules transformed in 243ms).
-2. **Automated Test Execution:** Executed `src/tests/solverAndStreakVerification.ts` with all 55 automated unit and integration tests passing cleanly.
+1. **TypeScript Build Verification:** Executed `npm run build` with zero TypeScript compiler errors (1,723 modules transformed in 240ms).
+2. **Automated Test Execution:** Executed `src/tests/solverAndStreakVerification.ts` with all 56 automated unit and integration tests passing cleanly (including Test 55 for Bank Rotation and Test 56 for Subject-Level / Mix & Match Admin Isolation and Subject Q&A fidelity).
 3. **Headless Browser Screenshot Audit:** Captured 37 real-time browser screenshots confirming visual fidelity, alignment, and interactive behavior across Admin, Student, Parent, and Teacher roles.
 4. **Deliverable Generation:**
    - Compiled `Documentation/EduBridge_Interface_Documentation.docx` (7.29 MB) containing all 37 screenshots and object evaluation tables.
-   - Compiled `Documentation/EduBridge_Comprehensive_User_Guide.docx` (578.2 KB) organized by 4 roles and 5 student age cohorts.
+   - Compiled `Documentation/EduBridge_Comprehensive_User_Guide.docx` (7.46 MB) synchronized from the interface audit manifest with screenshots and itemwise object tables for all 4 roles and 5 age cohorts.
    - Updated `Documentation/Application_Assessment_Report.md`.
    - Updated `Documentation/Modification_Report.md`.

@@ -522,102 +522,102 @@ export const IELTSPracticeService = {
     const questionBlueprints = [
       {
         type: 'Foundational Concept',
-        prompt: `According to principles of ${subject}, what is the primary objective of modern empirical analysis?`,
-        correct: `To validate systemic hypotheses using reproducible, quantitative data under controlled constraints.`,
+        prompt: `According to core principles of ${subject}, what is the primary objective of modern empirical analysis?`,
+        correct: `To validate systemic hypotheses regarding ${subject} using reproducible, quantitative data under controlled constraints.`,
         distractors: [
-          'To maximize unverified intuitive assumptions without measuring outcomes.',
-          'To eliminate all mathematical modeling in favor of subjective narrative descriptions.',
-          'To permanently ban peer review and empirical validation.'
+          `To maximize unverified intuitive assumptions regarding ${subject} without empirical validation.`,
+          `To eliminate all mathematical modeling in ${subject} in favor of subjective narrative descriptions.`,
+          `To abandon systematic calibration and reproducible standards across ${subject}.`
         ]
       },
       {
         type: 'Causal Mechanism',
-        prompt: `What underlying causal mechanism governs operational efficiency in ${subject}?`,
-        correct: `Optimizing input energy conversion and minimizing dissipative thermal or systematic entropy.`,
+        prompt: `What underlying causal mechanism governs operational efficiency and reliability in ${subject}?`,
+        correct: `Optimizing energy conversion and mitigating thermodynamic or systemic entropy specific to ${subject}.`,
         distractors: [
-          'Increasing uncontrolled friction and internal resistance across all components.',
-          'Allowing random voltage fluctuations without regulating current.',
-          'Relying entirely on external manual intervention every second.'
+          `Allowing uncalibrated friction and dissipative loss to escalate unchecked across ${subject} systems.`,
+          `Operating ${subject} infrastructure without negative feedback loops or safety margins.`,
+          `Disregarding material fatigue and variance thresholds in ${subject} components.`
         ]
       },
       {
         type: 'Factual Detail',
-        prompt: `Which metric provides the most accurate indicator of success in evaluating ${topic}?`,
-        correct: `Standardized variance reduction and high-fidelity measurement repeatability.`,
+        prompt: `Which diagnostic metric provides the most rigorous indicator of success in evaluating ${topic}?`,
+        correct: `Standardized variance reduction and high-fidelity measurement repeatability in ${subject}.`,
         distractors: [
-          'Random public opinion polls collected from non-specialists.',
-          'The gross physical weight of the testing laboratory building.',
-          'The color of the digital display monitor.'
+          `Qualitative public polling collected from unverified observers outside ${subject}.`,
+          `Total uncalibrated physical mass regardless of ${subject} precision standards.`,
+          `Superficial aesthetic coloration of the monitoring sensors.`
         ]
       },
       {
         type: 'Vocabulary in Context',
-        prompt: `In the passage, what does the term "closed-loop empirical testing" denote?`,
-        correct: `An iterative experimental cycle where measured outputs continuously inform and refine inputs.`,
+        prompt: `In the context of ${subject}, what does the passage emphasize regarding experimental methodology?`,
+        correct: `An iterative empirical cycle where measured outputs continuously inform and refine ${subject} inputs.`,
         distractors: [
-          'A test conducted inside a physically locked concrete room with no windows.',
-          'A procedure that cannot be repeated once initiated.',
-          'An obsolete historical technique from the bronze age.'
+          `A non-reproducible procedure conducted without baseline reference data in ${subject}.`,
+          `A rigid linear protocol that prohibits any mid-course parameter adjustments in ${subject}.`,
+          `A purely theoretical thought experiment that rejects physical measurement.`
         ]
       },
       {
         type: 'Inference',
-        prompt: `What can be logically inferred regarding unconstrained systemic variables?`,
-        correct: `Unconstrained variables introduce noise that compromises analytical reliability.`,
+        prompt: `What can be logically deduced regarding unconstrained variables in ${subject} models?`,
+        correct: `Unconstrained variables introduce noise that compromises analytical reliability in ${subject}.`,
         distractors: [
-          'Unconstrained variables automatically improve mathematical precision.',
-          'They eliminate the need for error margin calculations.',
-          'They guarantee identical results across all test trials.'
+          `Unconstrained variables automatically improve predictive fidelity in ${subject}.`,
+          `They eliminate the requirement for confidence interval calculations in ${subject}.`,
+          `They guarantee identical outcomes across all heterogeneous ${subject} test runs.`
         ]
       },
       {
         type: 'True/False Deduction',
-        prompt: `Which of the following statements is demonstrably TRUE based on the context?`,
-        correct: `Modern methodologies in ${subject} synthesize empirical testing with mathematical modeling.`,
+        prompt: `Which of the following statements is demonstrably substantiated by the ${subject} analysis?`,
+        correct: `Contemporary advancements in ${subject} synthesize empirical experimentation with rigorous quantitative modeling.`,
         distractors: [
-          'Mathematical modeling has been completely replaced by random guessing.',
-          'Physical sciences and sustainability share no overlapping methodologies.',
-          'Operational constraints are irrelevant to real-world deployment.'
+          `Empirical experimentation has been proven obsolete by arbitrary guesswork in ${subject}.`,
+          `${subject} shares zero methodological overlap with adjacent scientific disciplines.`,
+          `Operational constraints and safety thresholds have no bearing on ${subject} performance.`
         ]
       },
       {
         type: 'Comparative Analysis',
-        prompt: `When comparing traditional linear approaches to modern systems in ${subject}, what stands out?`,
-        correct: `Modern systems prioritize circular resilience, adaptive feedback, and multi-variable optimization.`,
+        prompt: `When evaluating traditional versus modern methodologies in ${subject}, what fundamental transition is evident?`,
+        correct: `A transition toward closed-loop circular resilience, adaptive telemetry, and multi-variable optimization in ${subject}.`,
         distractors: [
-          'Traditional linear approaches consumed zero energy and had no failure modes.',
-          'Modern systems discard all safety protocols to prioritize speed.',
-          'Linear methods were proven to be physically impossible.'
+          `A complete cessation of error analysis and peer verification in ${subject}.`,
+          `A mandate that all ${subject} research abandon mathematical formalisms.`,
+          `A total reliance on static, unmonitored operational assumptions.`
         ]
       },
       {
         type: 'Practical Application',
-        prompt: `How are findings from ${topic} directly applied in industrial or societal frameworks?`,
-        correct: `By establishing robust, scalable protocols that enhance public infrastructure and ecological health.`,
+        prompt: `How are empirical findings from ${topic} directly applied to enhance modern institutional practices?`,
+        correct: `By establishing robust, evidence-backed protocols that strengthen infrastructure, safety, and operational standards in ${subject}.`,
         distractors: [
-          'By destroying existing communications and transit networks.',
-          'By restricting access to educational materials exclusively to algorithms.',
-          'By preventing all international scientific collaboration.'
+          `By destabilizing established communication and diagnostic networks in ${subject}.`,
+          `By restricting access to educational materials exclusively to proprietary black-box algorithms.`,
+          `By discouraging interdisciplinary collaboration across specialized ${subject} laboratories.`
         ]
       },
       {
         type: 'Authorial Intent',
-        prompt: `What is the primary rhetorical purpose of presenting these multidisciplinary considerations?`,
-        correct: `To demonstrate that holistic, cross-domain reasoning is essential for solving complex modern challenges.`,
+        prompt: `What is the primary analytical rationale for investigating ${topic} within ${subject}?`,
+        correct: `To establish how interconnected principles collaborate to resolve complex domain challenges in ${subject}.`,
         distractors: [
-          'To argue that individual scientific disciplines should never communicate with each other.',
-          'To discourage students from pursuing careers in science or engineering.',
-          'To prove that historical knowledge has zero value in modern society.'
+          `To argue that sub-disciplines in ${subject} should operate in complete mutual isolation.`,
+          `To prove that previous foundational research in ${subject} holds no evidentiary validity.`,
+          `To prevent graduate candidates from specializing in ${subject} technologies.`
         ]
       },
       {
         type: 'Synthesis & Outlook',
-        prompt: `What final synthesis best encapsulates the future trajectory of ${subject}?`,
-        correct: `Continuous evidence-driven refinement, ethical governance, and harmonious human-AI collaboration.`,
+        prompt: `What overarching conclusion encapsulates the future evolutionary trajectory of ${subject}?`,
+        correct: `Continuous evidence-based refinement, ethical governance, and disciplined technological integration in ${subject}.`,
         distractors: [
-          'Total abandonment of scientific inquiry within the next five years.',
-          'Unregulated exploitation of ecological resources without sustainability oversight.',
-          'A complete return to pre-industrial trial and error without digital tools.'
+          `The permanent deprecation of empirical inquiry in ${subject} within the decade.`,
+          `Unregulated resource exploitation devoid of sustainability safeguards in ${subject}.`,
+          `A total regression to unscientific heuristics without quantitative validation.`
         ]
       }
     ];
