@@ -1044,5 +1044,275 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
         tip: 'All client-side JSON data can be exported to a single backup file or reset via the System Telemetry & Maintenance tab in the Admin Portal.'
       }
     ]
+  },
+  {
+    id: 'guide_admin_dashboard_metrics',
+    title: 'Admin Operations Dashboard & Usage Analytics',
+    category: 'System Setup & DevSecOps',
+    icon: 'BarChart3',
+    minRole: 'admin',
+    summary: 'Executive first-page operational cockpit providing real-time platform metrics, proportional learning distribution across 7 disciplines, global practice test question count configurator, and multi-user live activity ledger.',
+    keywords: ['admin dashboard', 'proportional distribution', 'question count', 'practice test config', 'recent activities', 'operations'],
+    screenshotUrl: '/assets/guide/admin_operations_dashboard.jpg',
+    screenshotCaption: 'Executive Dashboard: Proportional discipline bar, category metric tiles, question count configurator, and multi-user activity timeline.',
+    contentSections: [
+      {
+        heading: '1. Interface Description & Operational Purpose',
+        text: 'The Executive Operations Dashboard is positioned as the primary first-page landing interface for root administrators. It provides instantaneous high-level visibility into total activity volume, platform usage shares across 7 academic disciplines, and immediate multi-role audit operations.',
+        steps: [
+          'Access by logging in as Administrator; the Operations Dashboard displays as the default landing view under the navigation menu.',
+          'Review the real-time Proportional Distribution Bar to observe relative learner engagement across Exams, AI Solver, Lessons, Vocabulary, STEM, Habits, and Admin operations.',
+          'Inspect discrete metric tiles for each discipline displaying total event count and percentage of total application traffic.'
+        ]
+      },
+      {
+        heading: '2. Functional Objects & Interactive Controls',
+        text: 'Key interactive elements on this interface include:',
+        steps: [
+          'Application Usage Proportional Distribution Bar: Visual breakdown of total activity volume. Calculates real-time percentage shares directly from the multi-user activity timeline ledger.',
+          'Academic Discipline Metrics Grid (7 Category Tiles): Displays discrete activity counts and platform usage percentages. Clicking any tile filters the activity ledger below.',
+          'Practice Test Question Count Selector Buttons (5, 8, 10, 12, 15, 20, 25): Configures global institutional test length. Saves selection to localStorage and records an administrative audit log with ISO timestamp.',
+          'Recent Platform Activities Live Feed: Aggregates chronological events across all four roles (Student, Teacher, Parent, Admin) with timestamps, usernames, role badges, and scores.'
+        ],
+        tip: 'Updating the practice test question count immediately governs the question stepper and test synthesis across all student sessions without restarting the server.'
+      }
+    ]
+  },
+  {
+    id: 'guide_admin_user_inspector',
+    title: 'User Live Dashboard Inspector & Question Attempt History',
+    category: 'System Setup & DevSecOps',
+    icon: 'Users',
+    minRole: 'admin',
+    summary: 'Deep diagnostic inspector allowing administrators to select any registered user, view their live statistics, inspect their activity history, and audit individual question-by-question attempts.',
+    keywords: ['user inspector', 'question log', 'student diagnostic', 'impersonation', 'user attempts', 'live inspector'],
+    screenshotUrl: '/assets/guide/admin_user_inspector.jpg',
+    screenshotCaption: 'User Inspector: User selector pills, diagnostic metric tiles, sub-tabs for activities vs questions log, and session impersonation.',
+    contentSections: [
+      {
+        heading: '1. Interface Description & Diagnostic Purpose',
+        text: 'The User Live Dashboard Inspector enables administrators and educational evaluators to drill down into any individual student, teacher, or parent account. It surfaces live statistics (activities completed, questions answered, current streak, total XP, and league level) and provides granular diagnostic auditing.',
+        steps: [
+          'Select any registered user from the visual user pills or type their name/email into the search input.',
+          'Review the 5 diagnostic stat tiles: Logged Activities, Questions Log, Active Streak, Total XP, and League Level.',
+          'Toggle between "Activity History" and "Question-by-Question Log" to audit complete attempt records.'
+        ]
+      },
+      {
+        heading: '2. Functional Objects & Itemwise Breakdown',
+        text: 'Operational controls available on the User Inspector interface:',
+        steps: [
+          'Registered User Selector Pills: Interactive badges for registered learners with real-time active indicators.',
+          'User Live Diagnostic Tiles: Display live statistics for activities, question attempts, streaks, and XP points.',
+          'Sub-Tab Toggle (Activities vs Questions Log): Switches view between high-level activity sessions and granular question-level responses.',
+          'Impersonate & Launch User Session Button: Securely launches a simulated session as the selected user to verify exact user experience and permissions.'
+        ],
+        tip: 'The Question-by-Question Log displays the prompt, student answer, benchmark answer, and explanation for every practice problem, mock test, vocabulary quiz, and STEM challenge.'
+      }
+    ]
+  },
+  {
+    id: 'guide_admin_cohort_governance',
+    title: 'Age Groups & Educational Content Governance Directorate',
+    category: 'System Setup & DevSecOps',
+    icon: 'Layers',
+    minRole: 'admin',
+    summary: 'Centralized curriculum governance console allowing administrators to define age groups, educational levels, allowed subjects, difficulty ceilings, and adult standardized exam gating policies across all 5 developmental cohorts.',
+    keywords: ['cohort governance', 'age groups', 'dob gating', 'adult exams', 'child protection', 'difficulty ceilings'],
+    screenshotUrl: '/assets/guide/admin_cohort_governance.jpg',
+    screenshotCaption: 'Age Groups Directorate: 5 developmental cohort cards, adult exam gating toggles, difficulty ceilings, and Save & Enforce button.',
+    contentSections: [
+      {
+        heading: '1. Interface Description & Governance Mandate',
+        text: 'The Age Groups & Content Governance interface provides administrators with centralized authority to configure educational policies across the platform. It enforces automated Date-of-Birth (DOB) child protection, ensuring that young learners (Ages 5–8) cannot access graduate university tests (IELTS/PTE/TOEFL) and receive age-appropriate phonics and picture challenges.',
+        steps: [
+          'Navigate to the "Age Groups & Content Rules" tab in the Admin Portal navigation bar.',
+          'Review the 5 developmental cohorts: Little Explorers (Ages 5–8), Junior Scholars (Ages 9–14), Academy (Ages 15–24), Professional Fluency (Ages 25–54), and Golden Age (Ages 55+).',
+          'Configure Adult Standardized Exam Gating per cohort: Toggle between "Locked (Safeguarded)" and "Allowed".',
+          'Click "Save & Enforce Content Rules" to apply changes globally across all interfaces and log an administrative audit event.'
+        ]
+      },
+      {
+        heading: '2. Functional Objects & Controls',
+        text: 'Detailed description of objects on this interface:',
+        steps: [
+          'Automated DOB Child Protection Safeguard Banner: Informs administrators of active date-of-birth age calculation rules and child protection safeguards.',
+          'Age Cohort Cards Grid (5 Developmental Tiers): Displays age ranges, education tiers, allowed subjects, and adult exam access states for all 5 cohorts.',
+          'Adult Exams (IELTS/PTE) Gating Toggle Buttons: Locks or unlocks standardized adult exam prep per age cohort.',
+          'Save & Enforce Content Rules Button: Commits configuration changes, displays positive feedback, and synchronizes rules across interfaces with an immutable timestamp.'
+        ],
+        tip: 'Standardized adult exams are locked by default for Little Explorers (Ages 5–8) and Junior Scholars (Ages 9–14) to maintain child safety and developmental alignment.'
+      }
+    ]
+  },
+  {
+    id: 'guide_admin_scheduled_jobs',
+    title: 'Autonomous Cron Scheduler & 00:00 Batch Daemons',
+    category: 'System Setup & DevSecOps',
+    icon: 'Clock',
+    minRole: 'admin',
+    summary: 'Autonomous background cron scheduler executing nightly 00:00 UTC batch daemons to synthesize full multi-exam mock tests, expand the vocabulary vault, and maintain offline learning pipelines.',
+    keywords: ['cron jobs', '00:00 utc', 'batch daemons', 'mock test generator', 'vocabulary expansion', 'scheduled jobs'],
+    screenshotUrl: '/assets/guide/admin_scheduled_jobs.jpg',
+    screenshotCaption: 'Cron Scheduler: Nightly jobs cards, cron expressions (0 0 * * *), next run timers, and manual execution triggers.',
+    contentSections: [
+      {
+        heading: '1. Interface Description & Operational Purpose',
+        text: 'The Autonomous Cron Scheduler interface allows administrators to inspect, manage, and manually trigger background jobs that execute automatically every midnight at 00:00 UTC. These jobs enrich the platform with fresh mock examinations and vocabulary words while maintaining cryptographic provenance.',
+        steps: [
+          'Navigate to "Scheduled Jobs (00:00)" in the Admin Portal.',
+          'Inspect active background daemons: Nightly Multi-Exam Mock Test Generator and Nightly Vocabulary Vault Expansion.',
+          'Review job metrics: cron expression ("0 0 * * *"), last run timestamp, next scheduled run timer, and total items generated count.',
+          'Click "Run Job Now" to execute any job immediately on demand without waiting for midnight.'
+        ]
+      },
+      {
+        heading: '2. Functional Objects & Itemwise Breakdown',
+        text: 'Interactive controls and functional elements:',
+        steps: [
+          'Cron Daemon Status Grid: Shows cards for active batch workers with status pills (Idle, Running, Completed, Paused).',
+          'Execution Timers & Next Run Timestamps: Displays precise target execution times and countdowns.',
+          'Run Job Now Action Trigger: Executes the batch worker in real time, generates new content items with authentic ISO timestamps, and updates the Ingested Verification Ledger.',
+          'Job Enable/Disable Toggle Switch: Allows pausing or resuming specific cron daemons.'
+        ],
+        tip: 'Manual job execution records items into the Ingested Verification Ledger with real-time timestamps, allowing instant QA inspection.'
+      }
+    ]
+  },
+  {
+    id: 'guide_admin_model_management',
+    title: 'Local Ollama 4-Tier AI Model Governance',
+    category: 'System Setup & DevSecOps',
+    icon: 'Brain',
+    minRole: 'admin',
+    summary: 'Multi-tier local AI model inference console governing 4 tiers of Ollama models (Phi-4 Mini 3.8B, Qwen 3 8B, DeepSeek R1 8B, Llama 3.3 8B) with VRAM monitoring and temperature calibration.',
+    keywords: ['ollama models', 'ai models', 'vram allocation', 'temperature calibration', 'model management', 'phi-4', 'deepseek', 'llama'],
+    screenshotUrl: '/assets/guide/admin_model_management.jpg',
+    screenshotCaption: 'Model Management: 4-tier Ollama model tiles, parameter sizes, VRAM utilization, latency meters, and temperature sliders.',
+    contentSections: [
+      {
+        heading: '1. Interface Description & Inference Purpose',
+        text: 'The Ollama AI Model Governance console manages local model deployment across four specialized tiers: Phi-4 Mini (3.8B, ultra-fast language drills), Qwen 3 (8B, multilingual and conversational fluency), DeepSeek R1 (8B, rigorous STEM step-by-step reasoning), and Llama 3.3 (8B, executive essay evaluation and career strategy).',
+        steps: [
+          'Navigate to "Ollama AI Models" in the Admin Portal.',
+          'Review live telemetry for each model: status (Online / Standby), latency (ms), parameter size, and allocated VRAM.',
+          'Adjust temperature sliders (0.0 to 1.0) to calibrate model determinism vs creativity.',
+          'Toggle standby status to free up GPU VRAM when specific models are not in active rotation.'
+        ]
+      },
+      {
+        heading: '2. Functional Objects & Controls',
+        text: 'Operational controls available on the Model Management interface:',
+        steps: [
+          'Model Status Cards: Display parameter count, quantization format, VRAM consumption, and latency meters.',
+          'Online / Standby Toggle Buttons: Enable or pause model endpoints in memory.',
+          'Temperature Calibration Sliders: Tune inference temperature in 0.05 increments (e.g. 0.2 for strict math vs 0.7 for creative writing).',
+          'Recommended Task Badges: Guide administrators on optimal task routing per model architecture.'
+        ],
+        tip: 'All inference operates 100% locally via local Ollama daemons, guaranteeing absolute data privacy and zero cloud token API fees.'
+      }
+    ]
+  },
+  {
+    id: 'guide_admin_system_telemetry',
+    title: 'Infrastructure DevOps Health Cockpit & Platform Backups',
+    category: 'System Setup & DevSecOps',
+    icon: 'Activity',
+    minRole: 'admin',
+    summary: 'DevOps health cockpit providing real-time hardware gauges for CPU, Memory, VRAM, and Storage, active session counters, in-memory cache flush triggers, and complete JSON platform backup export.',
+    keywords: ['telemetry', 'devops', 'cpu memory vram', 'cache flush', 'backup export', 'system health'],
+    screenshotUrl: '/assets/guide/admin_system_telemetry.jpg',
+    screenshotCaption: 'System Telemetry: Hardware resource gauges, active session counter, cache flush trigger, and JSON export/import.',
+    contentSections: [
+      {
+        heading: '1. Interface Description & DevOps Purpose',
+        text: 'The System Telemetry interface provides systems administrators with real-time operational health gauges, hardware resource utilization tracking, active session monitoring, and platform backup/restore actions.',
+        steps: [
+          'Navigate to "System Telemetry" in the Admin Portal.',
+          'Observe hardware gauges for CPU Load, RAM Utilization, GPU VRAM Allocation, and Storage Capacity.',
+          'Click "Flush In-Memory Cache" to purge expired session tokens and invalidate stale leaderboard caches.',
+          'Click "Export Full Platform Backup (JSON)" to download a complete, portable backup of all user accounts, tests, and logs.'
+        ]
+      },
+      {
+        heading: '2. Functional Objects & Itemwise Breakdown',
+        text: 'Functional elements on the Telemetry interface:',
+        steps: [
+          'Hardware Resource Meters: Live percentage dials for CPU (4-core), RAM (16 GB), VRAM (8 GB Apple Silicon), and Disk Storage.',
+          'Active Session & Throughput Tiles: Monitor current active users and requests-per-minute throughput.',
+          'Flush In-Memory Cache Button: Triggers immediate memory garbage collection and resets cache hit ratio meters.',
+          'Export All Data (JSON) & Import Data Buttons: Exports all localStorage keys into a single timestamped JSON archive for disaster recovery.'
+        ],
+        tip: 'Platform backup JSON archives can be restored into any fresh EduBridge installation with zero data loss.'
+      }
+    ]
+  },
+  {
+    id: 'guide_admin_feature_flags',
+    title: 'Dynamic Feature Flags & Canary Rollout Console',
+    category: 'System Setup & DevSecOps',
+    icon: 'Sparkles',
+    minRole: 'admin',
+    summary: 'Dynamic feature management console enabling administrators to toggle platform features and adjust canary percentage rollout sliders in real time without redeploying code.',
+    keywords: ['feature flags', 'canary rollout', 'runtime config', 'toggles', 'speech synthesis', 'tournaments'],
+    screenshotUrl: '/assets/guide/admin_feature_flags.jpg',
+    screenshotCaption: 'Feature Flags: Toggle switches, percentage sliders (0% to 100%), and runtime state indicators.',
+    contentSections: [
+      {
+        heading: '1. Interface Description & Rollout Purpose',
+        text: 'The Feature Flags console allows administrators to safely gate, test, and gradually roll out experimental capabilities to user cohorts without redeploying application code or disrupting active student learning sessions.',
+        steps: [
+          'Navigate to the Feature Flags section within User Management in the Admin Portal.',
+          'Inspect feature flag cards: Speech Synthesis, Advanced STEM Solver, Competitive Tournaments, Kid-Friendly Mode, etc.',
+          'Click the toggle switch to enable or disable any feature globally.',
+          'Adjust percentage rollout sliders (0% to 100%) to conduct gradual canary rollouts.'
+        ]
+      },
+      {
+        heading: '2. Functional Objects & Controls',
+        text: 'Operational controls available on the Feature Flags interface:',
+        steps: [
+          'Feature Flag Toggle Buttons: Enable or disable features with instant reactive UI synchronization.',
+          'Rollout Percentage Sliders: Dynamically control user sampling rates for new features.',
+          'Description & Impact Notes: Detail the technical scope and intended audience for each flag.',
+          'Runtime Environment Pill: Confirms local vs production state propagation.'
+        ],
+        tip: 'Feature flag changes take effect immediately in localStorage and propagate across all open browser tabs.'
+      }
+    ]
+  },
+  {
+    id: 'guide_admin_security_audit',
+    title: 'Cryptographic Security & Privileged Operation Audit Ledger',
+    category: 'System Setup & DevSecOps',
+    icon: 'ShieldAlert',
+    minRole: 'admin',
+    summary: 'Tamper-evident audit ledger capturing all privileged administrative operations, authentication events, role changes, and system configuration modifications with immutable timestamps.',
+    keywords: ['security audit', 'audit logs', 'compliance', 'rbac changes', 'tamper evident', 'admin log'],
+    screenshotUrl: '/assets/guide/admin_security_audit.jpg',
+    screenshotCaption: 'Audit Logs: Tabular event stream, action categories, IP addresses, usernames, and verification hashes.',
+    contentSections: [
+      {
+        heading: '1. Interface Description & Compliance Purpose',
+        text: 'The Security Audit Ledger provides an immutable, chronological record of every privileged action executed within EduBridge. It serves DevSecOps compliance, security monitoring, and institutional accountability requirements.',
+        steps: [
+          'Navigate to "Audit Logs" in the Admin Portal.',
+          'Review the event stream displaying Timestamp, User, Action, Category (AUTH, RBAC_CHANGE, AI_INFERENCE, DATABASE_SYNC), and Status (SUCCESS, INFO, WARN).',
+          'Use the category filter pills to isolate authentication events, permission modifications, or configuration changes.',
+          'Click "Export Audit Trail" to generate a verified CSV/JSON compliance report.'
+        ]
+      },
+      {
+        heading: '2. Functional Objects & Controls',
+        text: 'Detailed description of objects on this interface:',
+        steps: [
+          'Audit Event Data Table: Structured columns for Timestamp, User, Action, Category, and Status badge.',
+          'Category Filter Pills: Filter audit events by AUTH, RBAC_CHANGE, AI_INFERENCE, DATABASE_SYNC, or EXAM_EVAL.',
+          'Status Indicators (SUCCESS, INFO, WARN): Color-coded badges indicating operation outcome.',
+          'Export Audit Trail Button: Exports the entire compliance ledger into a portable file for external regulatory review.'
+        ],
+        tip: 'Every password update, DOB recalculation, cohort rule modification, and test configuration change is automatically committed to this ledger.'
+      }
+    ]
   }
 ];
