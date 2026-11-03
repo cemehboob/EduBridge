@@ -1,5 +1,40 @@
 [
   {
+    "id": "usr_cross_1793734001210",
+    "name": "Elena Rostova 1793734001210",
+    "username": "learner_1793734001210",
+    "email": "learner_1793734001210@edubridge.org",
+    "password": "SecurePass987!",
+    "dateOfBirth": "2001-06-15",
+    "role": "student",
+    "status": "active",
+    "createdAt": "2026-11-03",
+    "preferences": {
+      "preferredLanguage": "Academic English (IELTS Band 8.0)",
+      "dailyGoalXp": 100,
+      "targetExam": "IELTS Academic",
+      "targetExamDate": "2026-12-01",
+      "targetBand": "8.5 Band",
+      "targetCareer": "Robotics Software Architect",
+      "theme": "system",
+      "soundEnabled": true,
+      "emailNotifications": true,
+      "fontScale": "standard",
+      "simplifiedInterface": false
+    },
+    "profileStats": {
+      "currentStreak": 1,
+      "highestStreak": 1,
+      "xp": 50,
+      "level": 1,
+      "league": "Bronze",
+      "hearts": 5,
+      "maxHearts": 5,
+      "todayXp": 50
+    },
+    "lastLoginAt": "2026-11-03 19:26:41"
+  },
+  {
     "id": "usr_cross_1793733546989",
     "name": "Elena Rostova 1793733546989",
     "username": "learner_1793733546989",

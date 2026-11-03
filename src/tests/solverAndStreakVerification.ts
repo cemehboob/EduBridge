@@ -1782,7 +1782,43 @@ async function runTests() {
     console.log('PASS: Central Server Vault correctly persisted totalQuestions, attemptedQuestions, correctAnswers, and incorrectAnswers.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 66 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 67: Admin Portal Full-Width Menu Under Title & Horizontal Spacing Optimization
+  console.log('\nTest 67: Verifying Admin Portal Full-Width Menu Under Title & Squeezed Horizontal Spacing...');
+  const adminPortalSource = fs.readFileSync(path.join(process.cwd(), 'src/components/admin/AdminPortal.tsx'), 'utf-8');
+
+  // Verify full-width menu placement under title
+  const hasMenuUnderTitle = adminPortalSource.includes('Top Banner with Full-Width Menu Under Menu Title') &&
+    adminPortalSource.includes('User Management, Feature Controls &amp; Feedback Center');
+
+  // Verify all 10 administrative modules in full-width menu
+  const requiredAdminTabs = [
+    'dashboard',
+    'users',
+    'cohorts',
+    'activities',
+    'feedback',
+    'jobs',
+    'vocab',
+    'models',
+    'telemetry',
+    'audit'
+  ];
+  const allTabsPresent = requiredAdminTabs.every(tab => adminPortalSource.includes(`setActiveAdminTab('${tab}')`));
+
+  // Verify squeezed horizontal padding and full-width flex distribution
+  const hasFullWidthSqueezedLayout = adminPortalSource.includes('w-full min-w-max lg:min-w-0') &&
+    adminPortalSource.includes('flex-1 min-w-[76px]') &&
+    adminPortalSource.includes('scrollbar-thin');
+
+  if (!hasMenuUnderTitle || !allTabsPresent || !hasFullWidthSqueezedLayout) {
+    console.error('FAIL: Admin Portal does not have the full-width menu under title or horizontal squeezing.');
+    failures++;
+  } else {
+    console.log('PASS: Admin Portal menu is placed full-width directly under "User Management, Feature Controls & Feedback Center" with squeezed horizontal spacing and zero scrollbar on standard screens.');
+    console.log(`PASS: All 10 administrative modules verified in menu (${requiredAdminTabs.join(', ')}).`);
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 67 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

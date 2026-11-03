@@ -1,5 +1,72 @@
 [
   {
+    "id": "act_test_metrics_1793734001218",
+    "userId": "usr_cross_1793734001210",
+    "userName": "Elena Rostova 1793734001210",
+    "type": "mock_test",
+    "title": "Verification Practice Test with Metrics",
+    "category": "IELTS Academic",
+    "score": "9/10 (90%)",
+    "xpEarned": 90,
+    "status": "completed",
+    "totalQuestions": 10,
+    "attemptedQuestions": 10,
+    "correctAnswers": 9,
+    "incorrectAnswers": 1,
+    "details": "Completed timed section. Total Questions: 10 · Answers: 10 · Correct: 9 · Wrong: 1.",
+    "timestamp": "2026-11-03 21:15:00",
+    "replayPayload": {
+      "tab": "exam",
+      "subId": "test_sample_01"
+    }
+  },
+  {
+    "id": "act_conc_2_1793734001214",
+    "userId": "usr_cross_1793734001210",
+    "userName": "Elena Rostova 1793734001210",
+    "type": "quiz",
+    "title": "Concurrent Vocabulary Quiz 2",
+    "category": "Vocabulary",
+    "score": "100%",
+    "status": "completed",
+    "details": "Completed on Tablet B.",
+    "timestamp": "2026-11-03 21:10:02",
+    "replayPayload": {
+      "tab": "language"
+    }
+  },
+  {
+    "id": "act_conc_1_1793734001214",
+    "userId": "usr_cross_1793734001210",
+    "userName": "Elena Rostova 1793734001210",
+    "type": "quiz",
+    "title": "Concurrent Vocabulary Quiz 1",
+    "category": "Vocabulary",
+    "score": "100%",
+    "status": "completed",
+    "details": "Completed on Laptop A.",
+    "timestamp": "2026-11-03 21:10:01",
+    "replayPayload": {
+      "tab": "language"
+    }
+  },
+  {
+    "id": "act_machineA_1793734001212",
+    "userId": "usr_cross_1793734001210",
+    "userName": "Elena Rostova 1793734001210",
+    "type": "practice_test",
+    "title": "PTE Academic Speaking & Pronunciation Mastery",
+    "category": "PTE Academic",
+    "score": "84 / 90 (Superior English)",
+    "status": "completed",
+    "details": "Completed oral fluency assessment with real-time phoneme alignment.",
+    "timestamp": "2026-11-03 21:00:00",
+    "replayPayload": {
+      "tab": "exam",
+      "subId": "pte_prac_01"
+    }
+  },
+  {
     "id": "act_test_metrics_1793733546995",
     "userId": "usr_cross_1793733546989",
     "userName": "Elena Rostova 1793733546989",

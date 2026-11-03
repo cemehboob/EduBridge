@@ -55,3 +55,4 @@ export const getActivityQuestionStats = (act: UserActivityRecord) => {
     wrong: isCorrect ? 0 : 1
   };
 };
+
