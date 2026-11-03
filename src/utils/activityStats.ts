@@ -47,7 +47,7 @@ export const getActivityQuestionStats = (act: UserActivityRecord) => {
   }
 
   // Default fallback for single-task exercises
-  const isCorrect = act.status === 'completed' && !act.score?.includes('Needs Review');
+  const isCorrect = act.status === 'completed' && !String(act.score || '').includes('Needs Review');
   return {
     total: 1,
     attempted: 1,

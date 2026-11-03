@@ -4,7 +4,9 @@ import {
   QuestionAttemptRecord,
   WrittenResponseRecord,
   IncompleteAttemptRecord,
-  AttemptDetailResponse
+  AttemptDetailResponse,
+  SmtpConfigView,
+  EmailLogEntryView
 } from '../types';
 
 const TOKEN_KEY = 'edubridge_auth_token_v1';
@@ -121,6 +123,61 @@ class ApiService {
       } finally {
         this.setToken(null);
       }
+    },
+
+    requestRegistrationOtp: async (userData: Partial<UserAccount>): Promise<{
+      success: boolean;
+      message: string;
+      email: string;
+      expiresInSeconds: number;
+      deliveryStatus: string;
+      devOtp?: string;
+    }> => {
+      return this.request('/auth/register/request-otp', {
+        method: 'POST',
+        body: JSON.stringify(userData)
+      });
+    },
+
+    verifyRegistrationOtp: async (
+      email: string,
+      otp: string
+    ): Promise<{ success: boolean; message: string; user: UserAccount; token: string }> => {
+      const res = await this.request<{ success: boolean; message: string; user: UserAccount; token: string }>(
+        '/auth/register/verify-otp',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email, otp })
+        }
+      );
+      if (res.token) {
+        this.setToken(res.token);
+      }
+      return res;
+    },
+
+    requestPasswordResetOtp: async (email: string): Promise<{
+      success: boolean;
+      message: string;
+      expiresInSeconds: number;
+      deliveryStatus: string;
+      devOtp?: string;
+    }> => {
+      return this.request('/auth/password-reset/request-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email })
+      });
+    },
+
+    verifyPasswordResetOtp: async (
+      email: string,
+      otp: string,
+      newPassword: string
+    ): Promise<{ success: boolean; message: string }> => {
+      return this.request('/auth/password-reset/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp, newPassword })
+      });
     }
   };
 
@@ -147,6 +204,18 @@ class ApiService {
     getFullHistory: async (userId: string) => {
       const res = await this.request<{ success: boolean; data: any }>(`/admin/users/${userId}/full-history`);
       return res.data;
+    },
+
+    initiatePasswordReset: async (userId: string): Promise<{ success: boolean; message: string }> => {
+      return this.request<{ success: boolean; message: string }>(`/admin/users/${userId}/initiate-reset`, {
+        method: 'POST'
+      });
+    },
+
+    verifyEmail: async (userId: string): Promise<{ success: boolean; user: UserAccount; message: string }> => {
+      return this.request<{ success: boolean; user: UserAccount; message: string }>(`/admin/users/${userId}/verify-email`, {
+        method: 'POST'
+      });
     }
   };
 
@@ -262,6 +331,42 @@ class ApiService {
         method: 'DELETE'
       });
       return res.success;
+    }
+  };
+
+  // --- SMTP Management & Diagnostics APIs ---
+  public smtp = {
+    getConfig: async (): Promise<SmtpConfigView> => {
+      const res = await this.request<{ success: boolean; config: SmtpConfigView }>('/admin/smtp');
+      return res.config;
+    },
+
+    saveConfig: async (config: Partial<SmtpConfigView>): Promise<{ success: boolean; message: string; config: SmtpConfigView }> => {
+      return this.request('/admin/smtp', {
+        method: 'POST',
+        body: JSON.stringify(config)
+      });
+    },
+
+    testConnection: async (payload?: {
+      recipientEmail?: string;
+      host?: string;
+      port?: number;
+      encryption?: 'NONE' | 'SSL' | 'STARTTLS' | 'SSL/TLS' | 'None' | string;
+      authUser?: string;
+      authPass?: string;
+      fromEmail?: string;
+      fromName?: string;
+    }): Promise<{ success: boolean; message: string; logs?: EmailLogEntryView[] }> => {
+      return this.request('/admin/smtp/test', {
+        method: 'POST',
+        body: JSON.stringify(payload || {})
+      });
+    },
+
+    getLogs: async (): Promise<EmailLogEntryView[]> => {
+      const res = await this.request<{ success: boolean; logs: EmailLogEntryView[] }>('/admin/smtp/logs');
+      return res.logs;
     }
   };
 

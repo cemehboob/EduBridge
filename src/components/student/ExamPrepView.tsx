@@ -200,29 +200,29 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
   useEffect(() => {
     const uid = currentUser?.id || profile?.id;
     if (!uid) return;
-    const testId = activeTest?.id || selectedPracticeTest?.id;
+    const testId = activeTest?.id || activePracticeItem?.id;
     if (!testId) return;
 
-    if (!essayText.trim() && Object.keys(userAnswers).length === 0) return;
+    if (!essayText.trim() && Object.keys(userAnswers).length === 0 && Object.keys(practiceAnswers).length === 0 && !practiceUserAnswer.trim()) return;
 
     const timer = setTimeout(() => {
       StorageService.saveIncompleteAttempt({
         id: `inc_${uid}_${testId}`,
         userId: uid,
         testId,
-        testTitle: activeTest?.title || selectedPracticeTest?.title || 'Active Test',
+        testTitle: activeTest?.title || activePracticeItem?.title || 'Active Test',
         examType: selectedExam,
-        module: selectedPracticeModule || 'Full Exam',
-        currentQuestionIndex: currentPracticeQuestionIndex,
-        userAnswers,
-        essayText,
+        module: activePracticeItem ? selectedPracticeModule : (activeTest ? 'Full Exam' : 'Practice'),
+        currentQuestionIndex: activePracticeItem ? currentQuestionIndex : activeSectionIndex,
+        userAnswers: activePracticeItem ? practiceAnswers : userAnswers,
+        essayText: activePracticeItem ? practiceUserAnswer : essayText,
         elapsedSeconds: 0,
         lastSavedAt: new Date().toISOString()
       });
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [userAnswers, essayText, activeTest, selectedPracticeTest, currentPracticeQuestionIndex]);
+  }, [userAnswers, essayText, activeTest, activePracticeItem, currentQuestionIndex, practiceAnswers, practiceUserAnswer, activeSectionIndex, selectedExam, selectedPracticeModule]);
 
   // Early Childhood Assessment Challenges (Ages 5–8)
   const earlyLearningChallenges = [
@@ -318,8 +318,8 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
       userId: profile?.id || 'usr_student_01',
       userName: profile?.name || 'Little Learner',
       userRole: profile?.role || 'student',
-      testOrQuizId: 'early_primary_assessment_01',
-      testOrQuizTitle: `Early Primary Assessment · ${curr.title}`,
+      testId: 'early_primary_assessment_01',
+      testTitle: `Early Primary Assessment · ${curr.title}`,
       moduleOrSubject: curr.category,
       questionNumber: earlyQuestionIndex + 1,
       questionPrompt: curr.question,
@@ -358,24 +358,56 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
 
   const isAdmin = currentUser?.role === 'admin' || profile?.role === 'admin';
 
-  // Filter practice tests by selected IELTS category & module
-  const currentIeltsCategory = selectedExam === 'IELTS General Training' ? 'IELTS General Training' : 'IELTS Academic';
+  // Filter practice tests by selected Exam category & module (Supports IELTS, PTE, TOEFL, OET, DET, Cambridge)
   const allPracticeTestsForModule = practiceTests.filter((t) => {
-    if (t.category !== currentIeltsCategory || t.module !== selectedPracticeModule) {
+    if (t.module !== selectedPracticeModule) {
       return false;
     }
+
+    const cat = (t.category || '').toLowerCase();
+    const title = (t.title || '').toLowerCase();
+
+    let matchesExam = false;
+    if (selectedExam === 'IELTS Academic') {
+      matchesExam = cat.includes('academic') || (!cat.includes('general') && !cat.includes('pte') && !cat.includes('toefl') && !cat.includes('oet') && !cat.includes('det') && !cat.includes('cambridge'));
+    } else if (selectedExam === 'IELTS General Training') {
+      matchesExam = cat.includes('general') || title.includes('general');
+    } else if (selectedExam === 'PTE') {
+      matchesExam = cat.includes('pte') || title.includes('pte');
+    } else if (selectedExam === 'TOEFL') {
+      matchesExam = cat.includes('toefl') || title.includes('toefl');
+    } else if (selectedExam === 'OET') {
+      matchesExam = cat.includes('oet') || title.includes('oet') || cat.includes('medical') || cat.includes('clinical');
+    } else if (selectedExam === 'DET') {
+      matchesExam = cat.includes('det') || title.includes('duolingo') || cat.includes('duolingo');
+    } else if (selectedExam === 'Cambridge English') {
+      matchesExam = cat.includes('cambridge') || title.includes('cambridge');
+    } else {
+      matchesExam = true;
+    }
+
+    // Safe fallback: if this exam does not yet have isolated tests for this specific module, include base practice items so the interface is never broken
+    if (!matchesExam) {
+      const hasSpecific = practiceTests.some((pt) => pt.module === selectedPracticeModule && (pt.category.toLowerCase().includes(selectedExam.toLowerCase()) || pt.title.toLowerCase().includes(selectedExam.toLowerCase())));
+      if (!hasSpecific) {
+        matchesExam = true;
+      }
+    }
+
+    if (!matchesExam) return false;
+
     // Mix and match tests are hidden for all roles except admin role.
     // Non-admin roles only see tests where questions and answers are always strictly related to the subject.
     if (!isAdmin) {
       const subj = (t.subject || '').toLowerCase();
-      const title = (t.title || '').toLowerCase();
+      const testTitle = (t.title || '').toLowerCase();
       if (
         subj.includes('mix & match') ||
         subj.includes('mix and match') ||
         subj.includes('cross-disciplinary') ||
-        title.includes('mix & match') ||
-        title.includes('mix and match') ||
-        title.includes('cross-disciplinary')
+        testTitle.includes('mix & match') ||
+        testTitle.includes('mix and match') ||
+        testTitle.includes('cross-disciplinary')
       ) {
         return false;
       }
@@ -1094,8 +1126,8 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
                 }
                 const matchingPractice = practiceTests.find((t) => t.id === activeIncompleteAttempt.testId);
                 if (matchingPractice) {
-                  setSelectedPracticeTest(matchingPractice);
-                  setCurrentPracticeQuestionIndex(activeIncompleteAttempt.currentQuestionIndex || 0);
+                  setActivePracticeItem(matchingPractice);
+                  setCurrentQuestionIndex(activeIncompleteAttempt.currentQuestionIndex || 0);
                 }
                 setActiveIncompleteAttempt(null);
               }}
@@ -1355,7 +1387,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
             <Award className="w-4 h-4" />
             <span>Timed Mock Exams</span>
           </button>
-          {!profile?.simplifiedInterface && userCohort !== 'early' && userCohort !== 'junior' && (
+          {!profile?.simplifiedInterface && (userCohort as string) !== 'early' && (userCohort as string) !== 'junior' && (
             <>
               <button
                 onClick={() => { sound.playClick(); setActiveTabMode('tfng'); }}
@@ -1395,14 +1427,14 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
         </div>
       </div>
 
-      {/* IELTS Practice Tests Hub Mode */}
-      {selectedExam.includes('IELTS') && activeTabMode === 'practice' ? (
+      {/* Practice Tests Hub Mode for All Supported Exams */}
+      {activeTabMode === 'practice' ? (
         <div className="space-y-6">
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 block">
-                  {currentIeltsCategory} Preparation Curriculum
+                  {selectedExam} Preparation Curriculum
                 </span>
                 <h3 className="text-xl font-black text-slate-900 tracking-tight">
                   Perform Practice Tests Prior to Mock Exam
@@ -2036,7 +2068,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
                 </div>
 
                 <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 text-center text-xs text-emerald-900 font-semibold">
-                  Showing 12 of 1,100+ indexed practice tests for {currentIeltsCategory} ({selectedPracticeModule}). All items available offline with instant AI evaluation.
+                  Showing {Math.min(12, filteredPracticeTests.length)} indexed practice tests for {selectedExam} ({selectedPracticeModule}). All items available offline with instant AI evaluation.
                 </div>
               </div>
             )}

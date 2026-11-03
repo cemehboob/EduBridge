@@ -14,6 +14,9 @@ export default defineConfig(() => {
         name: 'edubridge-api-server',
         configureServer(server) {
           server.middlewares.use(serverApp);
+        },
+        configurePreviewServer(server) {
+          server.middlewares.use(serverApp);
         }
       }
     ],

@@ -461,6 +461,8 @@ export interface UserAccount {
   dateOfBirth: string; // e.g. "2002-05-14"
   role: UserRole;
   status: 'active' | 'disabled';
+  emailVerified?: boolean;
+  emailVerificationStatus?: 'verified' | 'pending_verification' | 'verification_expired';
   createdAt: string;
   lastLoginAt: string;
   preferences: {
@@ -512,7 +514,43 @@ export type ActivityType =
   | 'study_task'
   | 'career_cv'
   | 'daily_schedule'
+  | 'practice_test'
+  | 'quiz'
   | 'admin_action';
+
+export interface SmtpConfigView {
+  host: string;
+  port: number;
+  secure?: boolean;
+  auth?: {
+    user: string;
+    pass: string;
+  };
+  authUser?: string;
+  authPass?: string;
+  fromEmail: string;
+  fromName: string;
+  encryption: 'STARTTLS' | 'SSL/TLS' | 'None' | 'SSL' | 'NONE';
+  timeoutSec?: number;
+  isConfigured?: boolean;
+  active?: boolean;
+  lastTestedAt?: string;
+  lastTestStatus?: 'SUCCESS' | 'FAILED';
+  lastTestError?: string;
+}
+
+export interface EmailLogEntryView {
+  id: string;
+  timestamp: string;
+  recipient: string;
+  type: string;
+  subject: string;
+  provider?: string;
+  status: 'DELIVERED' | 'SIMULATED' | 'FAILED';
+  error?: string;
+  durationMs?: number;
+  responseInfo?: string;
+}
 
 export interface ExamSettingsConfig {
   questionsPerTest: number; // default: 10, configurable from Admin Portal
@@ -560,6 +598,7 @@ export interface QuestionAttemptRecord {
   id: string;
   userId: string;
   userName: string;
+  userRole?: string;
   testId: string;
   testTitle: string;
   moduleOrSubject: string; // e.g. "IELTS Reading", "IELTS Writing", "GRE Verbal", "Mathematics", "Vocabulary"

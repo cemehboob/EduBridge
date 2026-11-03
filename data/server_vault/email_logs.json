@@ -1,0 +1,92 @@
+[
+  {
+    "id": "mail_1793736874299_nr7y",
+    "timestamp": "2026-11-03 20:14:34",
+    "recipient": "admin@edubridge.io",
+    "type": "TEST_EMAIL",
+    "subject": "EduBridge SMTP Integration Test - 11:14:34 PM",
+    "provider": "EduBridge Local Server Dispatcher",
+    "status": "SIMULATED",
+    "durationMs": 0
+  },
+  {
+    "id": "mail_1793736874297_xd65",
+    "timestamp": "2026-11-03 20:14:34",
+    "recipient": "sofia.martinez.1793736874292@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 438109",
+    "provider": "EduBridge Local Server Dispatcher",
+    "status": "SIMULATED",
+    "durationMs": 0
+  },
+  {
+    "id": "mail_1793736874297_39ec",
+    "timestamp": "2026-11-03 20:14:34",
+    "recipient": "elena.rostova.1793736874296@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 619342",
+    "provider": "EduBridge Local Server Dispatcher",
+    "status": "SIMULATED",
+    "durationMs": 0
+  },
+  {
+    "id": "mail_1793736874297_efe7",
+    "timestamp": "2026-11-03 20:14:34",
+    "recipient": "elena.rostova.1793736874296@edubridge.org",
+    "type": "REGISTRATION_OTP",
+    "subject": "Your EduBridge Verification Code: 849201",
+    "provider": "EduBridge Local Server Dispatcher",
+    "status": "SIMULATED",
+    "durationMs": 0
+  },
+  {
+    "id": "mail_1793736823970_ofmq",
+    "timestamp": "2026-11-03 20:13:43",
+    "recipient": "admin@edubridge.io",
+    "type": "TEST_EMAIL",
+    "subject": "EduBridge SMTP Integration Test - 11:13:43 PM",
+    "provider": "EduBridge Local Server Dispatcher",
+    "status": "SIMULATED",
+    "durationMs": 0
+  },
+  {
+    "id": "mail_1793736823967_ru61",
+    "timestamp": "2026-11-03 20:13:43",
+    "recipient": "sofia.martinez.1793736823962@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 438109",
+    "provider": "EduBridge Local Server Dispatcher",
+    "status": "SIMULATED",
+    "durationMs": 0
+  },
+  {
+    "id": "mail_1793736823967_hdkn",
+    "timestamp": "2026-11-03 20:13:43",
+    "recipient": "elena.rostova.1793736823966@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 619342",
+    "provider": "EduBridge Local Server Dispatcher",
+    "status": "SIMULATED",
+    "durationMs": 0
+  },
+  {
+    "id": "mail_1793736823966_ih8w",
+    "timestamp": "2026-11-03 20:13:43",
+    "recipient": "elena.rostova.1793736823966@edubridge.org",
+    "type": "REGISTRATION_OTP",
+    "subject": "Your EduBridge Verification Code: 849201",
+    "provider": "EduBridge Local Server Dispatcher",
+    "status": "SIMULATED",
+    "durationMs": 0
+  },
+  {
+    "id": "mail_1793736750343_ye5w",
+    "timestamp": "2026-11-03 20:12:30",
+    "recipient": "elena.rostova@edubridge.org",
+    "type": "REGISTRATION_OTP",
+    "subject": "Your EduBridge Verification Code: 849201",
+    "provider": "EduBridge Local Server Dispatcher",
+    "status": "SIMULATED",
+    "durationMs": 0
+  }
+]

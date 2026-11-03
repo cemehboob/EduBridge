@@ -816,6 +816,28 @@ export const StorageService = {
     }
   },
 
+  // Centralized Server Synchronization for Platform Administrators (fetches all users' activities)
+  syncAllPlatformActivitiesFromServer: async (): Promise<UserActivityRecord[]> => {
+    try {
+      if (typeof window === 'undefined') {
+        const modulePath = '../../server/storage';
+        const { ServerStorage } = await import(/* @vite-ignore */ modulePath);
+        const acts = ServerStorage.getActivities().items;
+        StorageService.saveUserActivities(acts);
+        return acts;
+      }
+
+      const res = await apiService.activities.getAll();
+      if (res && res.items) {
+        StorageService.saveUserActivities(res.items);
+        return res.items;
+      }
+    } catch (e: any) {
+      console.warn('[EduBridge Storage] Note on platform activities sync:', e.message);
+    }
+    return StorageService.getUserActivities();
+  },
+
   // Password Reset 6-Digit OTP Management
   savePasswordResetOtp: (email: string, otp: string): void => {
     const resets = safeGet<PasswordResetRecord[]>(KEYS.PASSWORD_RESETS, []);

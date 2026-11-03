@@ -88,7 +88,7 @@ export const ShowAttemptModal: React.FC<ShowAttemptModalProps> = ({ isOpen, onCl
     ? activity.correctAnswers
     : questions.length > 0
     ? questions.filter((q) => q.isCorrect).length
-    : (activity.details?.match(/Correct:\s*(\d+)/i)?.[1] ? parseInt(activity.details.match(/Correct:\s*(\d+)/i)![1], 10) : (activity.status === 'completed' && !activity.score?.includes('Needs Review') ? 1 : 0));
+    : (activity.details?.match(/Correct:\s*(\d+)/i)?.[1] ? parseInt(activity.details.match(/Correct:\s*(\d+)/i)![1], 10) : (activity.status === 'completed' && !String(activity.score || '').includes('Needs Review') ? 1 : 0));
 
   const wrongCount = activity.incorrectAnswers !== undefined
     ? activity.incorrectAnswers

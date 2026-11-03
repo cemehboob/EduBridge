@@ -51,6 +51,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loginPassword, setLoginPassword] = useState('');
 
   // Register form state
+  const [regStep, setRegStep] = useState<'form' | 'otp'>('form');
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -59,6 +60,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [regRole, setRegRole] = useState<UserRole>('student');
   const [regTargetExam, setRegTargetExam] = useState('IELTS Academic');
   const [regLanguage, setRegLanguage] = useState('Spanish');
+  const [regOtpCode, setRegOtpCode] = useState('');
+  const [regPendingUser, setRegPendingUser] = useState<UserAccount | null>(null);
 
   // Forgot password & 6-digit OTP state
   const [forgotStep, setForgotStep] = useState<'email' | 'otp' | 'new_password'>('email');
@@ -139,7 +142,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const handleSendOtp = (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -150,6 +153,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    try {
+      // 1. Dispatch OTP through centralized email service / server
+      const res = await apiService.auth.requestPasswordResetOtp(cleanEmail);
+      if (res.devOtp) {
+        setSimulatedEmailNotice(
+          `📬 Dispatched to ${cleanEmail}: Your 6-Digit EduBridge Password Reset OTP is [ ${res.devOtp} ] (Expires in 10 minutes)`
+        );
+        setEnteredOtp(res.devOtp);
+      } else {
+        setSimulatedEmailNotice(`📬 A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your inbox.`);
+      }
+      setResendCooldown(60);
+      sound.playSuccess();
+      setForgotStep('otp');
+      return;
+    } catch (serverErr: any) {
+      if (serverErr.statusCode === 404) {
+        sound.playError();
+        setErrorMsg(`No account found for "${cleanEmail}". Please check the spelling or create a new account.`);
+        return;
+      }
+      console.warn('Server password reset request note, falling back to local store:', serverErr.message);
+    }
+
     const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
     if (!user) {
       sound.playError();
@@ -157,14 +184,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    // Generate 6-digit numeric OTP code
+    // Generate 6-digit numeric OTP code locally as fallback
     const generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
     StorageService.savePasswordResetOtp(cleanEmail, generatedOtp);
 
     setSimulatedEmailNotice(
       `📬 Dispatched to ${cleanEmail}: Your 6-Digit EduBridge Password Reset OTP is [ ${generatedOtp} ] (Expires in 10 minutes)`
     );
-    setEnteredOtp(generatedOtp); // Pre-fill for convenient inspection in offline sandbox
+    setEnteredOtp(generatedOtp);
     setResendCooldown(60);
     sound.playSuccess();
     setForgotStep('otp');
@@ -174,18 +201,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setErrorMsg(null);
 
-    const cleanEmail = forgotEmail.trim().toLowerCase();
     const cleanOtp = enteredOtp.trim();
-
     if (!cleanOtp || cleanOtp.length !== 6) {
       setErrorMsg('Please enter the complete 6-digit OTP code sent to your email.');
-      return;
-    }
-
-    const record = StorageService.getPasswordResetOtp(cleanEmail);
-    if (!record || record.otp !== cleanOtp) {
-      sound.playError();
-      setErrorMsg('Invalid or expired 6-digit code. Please request a new code.');
       return;
     }
 
@@ -193,7 +211,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setForgotStep('new_password');
   };
 
-  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -208,6 +226,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     const cleanEmail = forgotEmail.trim().toLowerCase();
+
+    try {
+      // 1. Authoritative password reset verification against central server
+      await apiService.auth.verifyPasswordResetOtp(cleanEmail, enteredOtp.trim(), newPassword);
+      onResetPassword?.(cleanEmail, newPassword);
+      StorageService.clearPasswordResetOtp(cleanEmail);
+
+      sound.playLevelUp();
+      setSuccessMsg('Your password has been reset successfully! Please sign in with your new password.');
+      setLoginIdentifier(cleanEmail);
+      setLoginPassword('');
+      setTab('login');
+      setForgotStep('email');
+      setSimulatedEmailNotice(null);
+      return;
+    } catch (serverErr: any) {
+      if (serverErr.statusCode === 400 || serverErr.statusCode === 429) {
+        sound.playError();
+        setErrorMsg(serverErr.message || 'Invalid or expired verification code.');
+        return;
+      }
+      console.warn('Server password reset verification note, verifying locally:', serverErr.message);
+    }
+
+    // Local fallback verification
+    const record = StorageService.getPasswordResetOtp(cleanEmail);
+    if (!record || record.otp !== enteredOtp.trim()) {
+      sound.playError();
+      setErrorMsg('Invalid or expired 6-digit code. Please request a new code.');
+      return;
+    }
+
     onResetPassword?.(cleanEmail, newPassword);
     StorageService.clearPasswordResetOtp(cleanEmail);
 
@@ -220,7 +270,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setSimulatedEmailNotice(null);
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -230,6 +280,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     if (!cleanName || !cleanEmail || !regPassword.trim() || !regDob) {
       setErrorMsg('Please fill in all required fields including Date of Birth.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+
+    if (regPassword.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
       return;
     }
 
@@ -276,6 +337,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       dateOfBirth: regDob,
       role: regRole,
       status: 'active',
+      emailVerified: false,
+      emailVerificationStatus: 'pending_verification',
       createdAt: new Date().toISOString().split('T')[0],
       lastLoginAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
       preferences: {
@@ -304,19 +367,66 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     };
 
-    // Synchronize registration with central server (enables cross-device login)
-    apiService.auth.register(newUser)
-      .then(({ user: serverUser }) => {
-        sound.playSuccess();
-        onRegister(serverUser);
-        onClose();
-      })
-      .catch((err) => {
-        console.warn('Central server registration notice, proceeding with local registration:', err.message);
-        sound.playSuccess();
-        onRegister(newUser);
-        onClose();
-      });
+    setRegPendingUser(newUser);
+
+    // Request Registration OTP from server
+    try {
+      const otpRes = await apiService.auth.requestRegistrationOtp(newUser);
+      sound.playSuccess();
+      setRegStep('otp');
+      setResendCooldown(60);
+      if (otpRes.devOtp) {
+        setSimulatedEmailNotice(
+          `📬 Dispatched to ${cleanEmail}: Your 6-Digit EduBridge Registration Verification Code is [ ${otpRes.devOtp} ]`
+        );
+        setRegOtpCode(otpRes.devOtp);
+      } else {
+        setSimulatedEmailNotice(`📬 A 6-digit verification code has been dispatched to ${cleanEmail}. Please enter it below.`);
+      }
+      return;
+    } catch (err: any) {
+      if (err.statusCode === 409) {
+        sound.playError();
+        setErrorMsg(err.message);
+        return;
+      }
+      console.warn('Central server OTP request notice, proceeding with direct registration:', err.message);
+    }
+
+    // Direct registration fallback if offline
+    try {
+      const { user: serverUser } = await apiService.auth.register(newUser);
+      sound.playSuccess();
+      onRegister(serverUser);
+      onClose();
+    } catch {
+      sound.playSuccess();
+      onRegister({ ...newUser, emailVerified: true, emailVerificationStatus: 'verified' });
+      onClose();
+    }
+  };
+
+  const handleVerifyRegOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const cleanEmail = regEmail.trim().toLowerCase();
+    const cleanOtp = regOtpCode.trim();
+
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      setErrorMsg('Please enter the 6-digit verification code.');
+      return;
+    }
+
+    try {
+      const res = await apiService.auth.verifyRegistrationOtp(cleanEmail, cleanOtp);
+      sound.playLevelUp();
+      onRegister(res.user);
+      onClose();
+    } catch (err: any) {
+      sound.playError();
+      setErrorMsg(err.message || 'Invalid or expired verification code.');
+    }
   };
 
   return (
@@ -629,6 +739,74 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
                 </form>
               )}
+            </div>
+          ) : regStep === 'otp' ? (
+            <div className="space-y-4">
+              <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-950 space-y-1">
+                <div className="font-extrabold flex items-center gap-1.5 text-emerald-900">
+                  <Key className="w-4 h-4 text-emerald-600" />
+                  <span>Verify Email Address (6-Digit OTP)</span>
+                </div>
+                <p className="text-[11px] text-emerald-800 leading-relaxed">
+                  We've dispatched a 6-digit verification code to <strong>{regEmail}</strong>. Enter the code below to verify your email and activate your account.
+                </p>
+              </div>
+
+              {simulatedEmailNotice && (
+                <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-xs text-indigo-950 space-y-2 animate-in fade-in">
+                  <div className="font-bold flex items-center gap-1.5 text-indigo-900">
+                    <Mail className="w-4 h-4 text-indigo-600" />
+                    <span>Email Verification Notice</span>
+                  </div>
+                  <div className="font-mono text-[11px] bg-white p-2.5 rounded-xl border border-indigo-100 text-indigo-800 break-all">
+                    {simulatedEmailNotice}
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleVerifyRegOtp} className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Enter 6-Digit Verification Code
+                  </label>
+                  <div className="relative">
+                    <Key className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      maxLength={6}
+                      required
+                      value={regOtpCode}
+                      onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="e.g. 592813"
+                      className="w-full pl-9 pr-3.5 py-3 rounded-xl border border-slate-300 text-lg font-mono tracking-widest text-center font-black focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Code expires in 10 minutes. Check your spam folder if not found.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setRegStep('form');
+                    }}
+                    className="px-4 py-2.5 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-100"
+                  >
+                    Edit Registration Details
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Verify &amp; Activate Account</span>
+                  </button>
+                </div>
+              </form>
             </div>
           ) : (
             <form onSubmit={handleRegisterSubmit} className="space-y-4">

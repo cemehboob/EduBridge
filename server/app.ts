@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { ServerStorage } from './storage';
 import { UserAccount } from '../src/types';
+import { EmailService } from './emailService';
 
 export const serverApp = express();
 
@@ -62,6 +63,29 @@ function createSessionToken(user: UserAccount): string {
     expiresAt: Date.now() + 7 * 24 * 3600 * 1000 // 7 days
   });
   return token;
+}
+
+// In-memory OTP Store for email verification and password reset
+interface OtpRecord {
+  id: string;
+  email: string;
+  otpHash: string;
+  rawOtp?: string;
+  purpose: 'REGISTRATION' | 'PASSWORD_RESET';
+  createdAt: number;
+  expiresAt: number;
+  attempts: number;
+  maxAttempts: number;
+  lastSentAt: number;
+  resendAvailableAt: number;
+  consumed: boolean;
+  registrationData?: Partial<UserAccount>;
+}
+
+const activeOtps = new Map<string, OtpRecord>();
+
+function hashOtp(otp: string): string {
+  return crypto.createHash('sha256').update(otp.trim()).digest('hex');
 }
 
 // Authentication Middleware
@@ -142,6 +166,8 @@ serverApp.post('/api/auth/register', async (req: Request, res: Response) => {
       dateOfBirth,
       role: role || 'student',
       status: 'active',
+      emailVerified: true,
+      emailVerificationStatus: 'verified',
       createdAt: new Date().toISOString().slice(0, 10),
       lastLoginAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
       preferences: {
@@ -242,6 +268,346 @@ serverApp.post('/api/auth/logout', (req: Request, res: Response) => {
   res.json({ success: true, message: 'Logged out successfully.' });
 });
 
+// ==================== OTP AUTHENTICATION & VERIFICATION ====================
+
+// Request Registration OTP
+serverApp.post('/api/auth/register/request-otp', async (req: Request, res: Response) => {
+  try {
+    const { name, username, email, password, dateOfBirth, role, preferences } = req.body;
+
+    if (!name || !email || !password || !dateOfBirth) {
+      res.status(400).json({ success: false, error: 'Name, email, password, and dateOfBirth are required.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      res.status(400).json({ success: false, error: 'Invalid email address format.' });
+      return;
+    }
+
+    if (password.length < 6) {
+      res.status(400).json({ success: false, error: 'Password must be at least 6 characters long.' });
+      return;
+    }
+
+    const existingUser = ServerStorage.getUserByIdentifier(cleanEmail);
+    if (existingUser) {
+      res.status(409).json({ success: false, error: `An account with email "${cleanEmail}" is already registered. Please sign in instead.` });
+      return;
+    }
+
+    const cleanName = name.trim();
+    const cleanUsername = (username || cleanName.toLowerCase().replace(/\s+/g, '.')).trim().toLowerCase();
+
+    // Rate-limiting: minimum 60 seconds between OTP requests per email
+    const otpKey = `reg:${cleanEmail}`;
+    const existingOtp = activeOtps.get(otpKey);
+    if (existingOtp && Date.now() - existingOtp.lastSentAt < 60000) {
+      const waitSecs = Math.ceil((60000 - (Date.now() - existingOtp.lastSentAt)) / 1000);
+      res.status(429).json({
+        success: false,
+        error: `Please wait ${waitSecs} seconds before requesting another verification code.`
+      });
+      return;
+    }
+
+    // Generate 6-digit cryptographic random OTP
+    const otp = Math.floor(100000 + crypto.randomInt(0, 900000)).toString();
+    const now = Date.now();
+
+    activeOtps.set(otpKey, {
+      id: `otp_${now}_${Math.random().toString(36).slice(2, 6)}`,
+      email: cleanEmail,
+      otpHash: hashOtp(otp),
+      purpose: 'REGISTRATION',
+      createdAt: now,
+      expiresAt: now + 10 * 60 * 1000, // 10 minutes
+      attempts: 0,
+      maxAttempts: 5,
+      lastSentAt: now,
+      resendAvailableAt: now + 60 * 1000,
+      consumed: false,
+      registrationData: {
+        name: cleanName,
+        username: cleanUsername,
+        email: cleanEmail,
+        password: password.trim(),
+        dateOfBirth,
+        role: role || 'student',
+        preferences
+      }
+    });
+
+    const emailSent = await EmailService.sendRegistrationOtp(cleanEmail, cleanName, otp);
+
+    res.json({
+      success: true,
+      message: `A 6-digit verification code has been dispatched to ${cleanEmail}. Please enter it to complete registration.`,
+      email: cleanEmail,
+      expiresInSeconds: 600,
+      deliveryStatus: emailSent ? 'dispatched' : 'simulated',
+      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to dispatch registration OTP.' });
+  }
+});
+
+// Verify Registration OTP & Complete Account Setup
+serverApp.post('/api/auth/register/verify-otp', async (req: Request, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      res.status(400).json({ success: false, error: 'Email and 6-digit verification code are required.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = String(otp).trim();
+    const otpKey = `reg:${cleanEmail}`;
+    const record = activeOtps.get(otpKey);
+
+    if (!record) {
+      res.status(400).json({
+        success: false,
+        error: 'No active verification code found for this email. Please request a new code.'
+      });
+      return;
+    }
+
+    if (Date.now() > record.expiresAt) {
+      activeOtps.delete(otpKey);
+      res.status(400).json({
+        success: false,
+        error: 'Verification code has expired. Please request a new code.'
+      });
+      return;
+    }
+
+    record.attempts += 1;
+    if (record.attempts > record.maxAttempts) {
+      activeOtps.delete(otpKey);
+      res.status(429).json({
+        success: false,
+        error: 'Too many incorrect attempts. For security, this verification code has been invalidated. Please request a new one.'
+      });
+      return;
+    }
+
+    if (hashOtp(cleanOtp) !== record.otpHash) {
+      const remaining = record.maxAttempts - record.attempts;
+      res.status(400).json({
+        success: false,
+        error: `Incorrect verification code. ${remaining} attempts remaining.`
+      });
+      return;
+    }
+
+    // OTP is valid! Invalidate immediately
+    activeOtps.delete(otpKey);
+
+    const regData = record.registrationData!;
+    const newUser: UserAccount = {
+      id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: regData.name!,
+      username: regData.username!,
+      email: regData.email!,
+      password: regData.password!,
+      dateOfBirth: regData.dateOfBirth!,
+      role: regData.role || 'student',
+      status: 'active',
+      emailVerified: true,
+      emailVerificationStatus: 'verified',
+      createdAt: new Date().toISOString().slice(0, 10),
+      lastLoginAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      preferences: {
+        preferredLanguage: 'Academic English (IELTS Band 8.0)',
+        dailyGoalXp: 100,
+        targetExam: 'IELTS Academic',
+        targetExamDate: '2026-11-20',
+        targetBand: '8.0 Band',
+        targetCareer: 'AI & Machine Learning Engineer',
+        theme: 'system',
+        soundEnabled: true,
+        emailNotifications: true,
+        fontScale: 'standard',
+        simplifiedInterface: false,
+        ...regData.preferences
+      },
+      profileStats: {
+        currentStreak: 1,
+        highestStreak: 1,
+        xp: 50,
+        level: 1,
+        league: 'Bronze',
+        hearts: 5,
+        maxHearts: 5,
+        todayXp: 50
+      }
+    };
+
+    const created = await ServerStorage.createUser(newUser);
+    const token = createSessionToken(created);
+
+    // Send welcome confirmation asynchronously
+    EmailService.sendRegistrationConfirmation(created.email, created.name).catch((e) =>
+      console.warn('Welcome email dispatch note:', e)
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Email successfully verified and account created.',
+      user: created,
+      token
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Verification failed.' });
+  }
+});
+
+// Request Password Reset OTP
+serverApp.post('/api/auth/password-reset/request-otp', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ success: false, error: 'Email address is required.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = ServerStorage.getUserByIdentifier(cleanEmail);
+    if (!user) {
+      res.status(404).json({ success: false, error: `No registered account found with email "${cleanEmail}".` });
+      return;
+    }
+
+    const otpKey = `reset:${cleanEmail}`;
+    const existingOtp = activeOtps.get(otpKey);
+    if (existingOtp && Date.now() - existingOtp.lastSentAt < 60000) {
+      const waitSecs = Math.ceil((60000 - (Date.now() - existingOtp.lastSentAt)) / 1000);
+      res.status(429).json({
+        success: false,
+        error: `Please wait ${waitSecs} seconds before requesting another password reset code.`
+      });
+      return;
+    }
+
+    const otp = Math.floor(100000 + crypto.randomInt(0, 900000)).toString();
+    const now = Date.now();
+
+    activeOtps.set(otpKey, {
+      id: `otp_${now}_${Math.random().toString(36).slice(2, 6)}`,
+      email: cleanEmail,
+      otpHash: hashOtp(otp),
+      purpose: 'PASSWORD_RESET',
+      createdAt: now,
+      expiresAt: now + 10 * 60 * 1000,
+      attempts: 0,
+      maxAttempts: 5,
+      lastSentAt: now,
+      resendAvailableAt: now + 60 * 1000,
+      consumed: false
+    });
+
+    const emailSent = await EmailService.sendPasswordResetOtp(cleanEmail, user.name, otp);
+
+    res.json({
+      success: true,
+      message: `A password reset code has been dispatched to ${cleanEmail}.`,
+      expiresInSeconds: 600,
+      deliveryStatus: emailSent ? 'dispatched' : 'simulated',
+      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to dispatch password reset code.' });
+  }
+});
+
+// Verify Password Reset OTP & Update Password
+serverApp.post('/api/auth/password-reset/verify-otp', async (req: Request, res: Response) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      res.status(400).json({ success: false, error: 'Email, verification code, and new password are required.' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ success: false, error: 'New password must be at least 6 characters long.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = String(otp).trim();
+    const otpKey = `reset:${cleanEmail}`;
+    const record = activeOtps.get(otpKey);
+
+    if (!record) {
+      res.status(400).json({
+        success: false,
+        error: 'No active password reset request found for this email. Please request a new code.'
+      });
+      return;
+    }
+
+    if (Date.now() > record.expiresAt) {
+      activeOtps.delete(otpKey);
+      res.status(400).json({
+        success: false,
+        error: 'Password reset code has expired. Please request a new code.'
+      });
+      return;
+    }
+
+    record.attempts += 1;
+    if (record.attempts > record.maxAttempts) {
+      activeOtps.delete(otpKey);
+      res.status(429).json({
+        success: false,
+        error: 'Too many incorrect attempts. For security, this reset code has been invalidated.'
+      });
+      return;
+    }
+
+    if (hashOtp(cleanOtp) !== record.otpHash) {
+      const remaining = record.maxAttempts - record.attempts;
+      res.status(400).json({
+        success: false,
+        error: `Incorrect reset code. ${remaining} attempts remaining.`
+      });
+      return;
+    }
+
+    // Invalidate immediately
+    activeOtps.delete(otpKey);
+
+    const user = ServerStorage.getUserByIdentifier(cleanEmail);
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User not found.' });
+      return;
+    }
+
+    await ServerStorage.updateUser(user.id, {
+      password: newPassword.trim(),
+      emailVerified: true,
+      emailVerificationStatus: 'verified'
+    });
+
+    EmailService.sendPasswordResetConfirmation(user.email, user.name).catch((e) =>
+      console.warn('Confirmation email dispatch note:', e)
+    );
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully. You can now log in with your new password.'
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Password reset failed.' });
+  }
+});
+
 // ==================== USER MANAGEMENT ====================
 serverApp.get('/api/users', authenticateToken, requireAdmin, (_req: AuthenticatedRequest, res: Response) => {
   const users = ServerStorage.getUsers();
@@ -297,8 +663,13 @@ serverApp.put('/api/users/:id', authenticateToken, async (req: AuthenticatedRequ
 serverApp.get('/api/activities', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const { userId, examType, module, category, status, search, limit, offset } = req.query;
 
-  // Regular users are locked to their own userId
-  const effectiveUserId = req.user?.role === 'admin' && typeof userId === 'string' ? userId : req.user?.id;
+  // Regular users are locked to their own userId. Admins can view all activities (userId omitted or 'all') or filter by specific userId.
+  const effectiveUserId =
+    req.user?.role === 'admin'
+      ? typeof userId === 'string' && userId.trim() && userId !== 'all'
+        ? userId.trim()
+        : undefined
+      : req.user?.id;
 
   const result = ServerStorage.getActivities({
     userId: effectiveUserId,
@@ -357,7 +728,12 @@ serverApp.get('/api/activities/:id/show-attempt', authenticateToken, (req: Authe
 // ==================== QUESTION ATTEMPTS ====================
 serverApp.get('/api/attempts/questions', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const { userId, testId, activityId } = req.query;
-  const effectiveUserId = req.user?.role === 'admin' && typeof userId === 'string' ? userId : req.user?.id;
+  const effectiveUserId =
+    req.user?.role === 'admin'
+      ? typeof userId === 'string' && userId.trim() && userId !== 'all'
+        ? userId.trim()
+        : undefined
+      : req.user?.id;
 
   const questions = ServerStorage.getQuestionAttempts({
     userId: effectiveUserId,
@@ -398,7 +774,12 @@ serverApp.post('/api/attempts/questions', authenticateToken, async (req: Authent
 // ==================== WRITTEN RESPONSES ====================
 serverApp.get('/api/attempts/written', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const { userId, activityId } = req.query;
-  const effectiveUserId = req.user?.role === 'admin' && typeof userId === 'string' ? userId : req.user?.id;
+  const effectiveUserId =
+    req.user?.role === 'admin'
+      ? typeof userId === 'string' && userId.trim() && userId !== 'all'
+        ? userId.trim()
+        : undefined
+      : req.user?.id;
 
   const responses = ServerStorage.getWrittenResponses({
     userId: effectiveUserId,
@@ -474,5 +855,116 @@ serverApp.get('/api/admin/users/:userId/full-history', authenticateToken, requir
   } catch (err: any) {
     res.status(404).json({ success: false, error: err.message });
   }
+});
+
+// ==================== ADMIN USER ACTIONS (RESET & VERIFY) ====================
+
+// Admin-Initiated Password Reset (securely dispatches reset OTP to user email without exposing OTP or password)
+serverApp.post('/api/admin/users/:id/initiate-reset', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = ServerStorage.getUserById(id);
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User not found.' });
+      return;
+    }
+
+    const cleanEmail = user.email.toLowerCase();
+    const otp = Math.floor(100000 + crypto.randomInt(0, 900000)).toString();
+    const otpKey = `reset:${cleanEmail}`;
+    const now = Date.now();
+
+    activeOtps.set(otpKey, {
+      id: `otp_${now}_${Math.random().toString(36).slice(2, 6)}`,
+      email: cleanEmail,
+      otpHash: hashOtp(otp),
+      purpose: 'PASSWORD_RESET',
+      createdAt: now,
+      expiresAt: now + 15 * 60 * 1000, // 15 mins for admin-initiated
+      attempts: 0,
+      maxAttempts: 5,
+      lastSentAt: now,
+      resendAvailableAt: now + 60 * 1000,
+      consumed: false
+    });
+
+    await EmailService.sendPasswordResetOtp(cleanEmail, user.name, otp);
+
+    res.json({
+      success: true,
+      message: `Password reset OTP has been securely dispatched to the user's registered email (${cleanEmail}). The user can complete password reset using this code.`
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to dispatch reset code.' });
+  }
+});
+
+// Admin Manual Email Verification
+serverApp.post('/api/admin/users/:id/verify-email', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updated = await ServerStorage.updateUser(id, {
+      emailVerified: true,
+      emailVerificationStatus: 'verified'
+    });
+    res.json({
+      success: true,
+      user: updated,
+      message: `Email for ${updated.name} has been marked as verified.`
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message || 'Verification update failed.' });
+  }
+});
+
+// ==================== SMTP INTEGRATION & EMAIL DIAGNOSTICS ====================
+
+// Get SMTP Configuration (safe view with masked credentials)
+serverApp.get('/api/admin/smtp', authenticateToken, requireAdmin, (_req: AuthenticatedRequest, res: Response) => {
+  res.json({
+    success: true,
+    config: EmailService.getConfig()
+  });
+});
+
+// Update SMTP Configuration
+serverApp.post('/api/admin/smtp', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const updated = await EmailService.saveConfig(req.body);
+    res.json({
+      success: true,
+      message: 'SMTP settings updated successfully.',
+      config: updated
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message || 'Failed to update SMTP settings.' });
+  }
+});
+
+// Send Test Email / Verify SMTP Connection
+serverApp.post('/api/admin/smtp/test', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { recipientEmail, ...smtpOverrides } = req.body;
+    const targetEmail = recipientEmail || req.user?.email || 'admin@edubridge.io';
+    const result = await EmailService.sendTestEmail(targetEmail, smtpOverrides);
+    res.json({
+      success: result.success,
+      message: result.info,
+      logs: EmailService.getLogs().slice(0, 5)
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err.message || 'SMTP test execution failed.'
+    });
+  }
+});
+
+// Get Email Delivery Diagnostics Logs
+serverApp.get('/api/admin/smtp/logs', authenticateToken, requireAdmin, (_req: AuthenticatedRequest, res: Response) => {
+  res.json({
+    success: true,
+    logs: EmailService.getLogs()
+  });
 });
 

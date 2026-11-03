@@ -148,7 +148,7 @@ function tryLoadImage(imagePath: string): Paragraph | null {
               width: 580,
               height: 326
             }
-          })
+          } as any)
         ],
         alignment: AlignmentType.CENTER,
         spacing: { before: 140, after: 140 }

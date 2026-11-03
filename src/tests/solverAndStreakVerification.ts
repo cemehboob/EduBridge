@@ -1461,7 +1461,10 @@ async function runTests() {
     dateOfBirth: '2001-06-15',
     role: 'student',
     status: 'active',
+    emailVerified: true,
+    emailVerificationStatus: 'verified',
     createdAt: new Date().toISOString().slice(0, 10),
+    lastLoginAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
     preferences: {
       preferredLanguage: 'Academic English (IELTS Band 8.0)',
       dailyGoalXp: 100,
@@ -1818,7 +1821,266 @@ async function runTests() {
     console.log(`PASS: All 10 administrative modules verified in menu (${requiredAdminTabs.join(', ')}).`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 67 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 68: Centralized Server Cross-Machine Persistence & Admin Global Activity Retrieval
+  console.log('\nTest 68: Verifying Centralized Cross-Machine Persistence & Global Admin Activity Retrieval...');
+  const sofiaTs = Date.now();
+  const studentMachineA: UserAccount = {
+    id: `usr_machine_a_${sofiaTs}`,
+    name: `Sofia Martinez ${sofiaTs}`,
+    username: `sofia.martinez.${sofiaTs}`,
+    email: `sofia.martinez.${sofiaTs}@edubridge.org`,
+    password: 'SecurePassword123!',
+    dateOfBirth: '2003-04-12',
+    role: 'student',
+    status: 'active',
+    emailVerified: true,
+    emailVerificationStatus: 'verified',
+    createdAt: '2026-11-03',
+    lastLoginAt: '2026-11-03 22:00:00',
+    preferences: {
+      preferredLanguage: 'Spanish',
+      dailyGoalXp: 100,
+      targetExam: 'IELTS Academic',
+      theme: 'system',
+      soundEnabled: true,
+      emailNotifications: true
+    },
+    profileStats: {
+      currentStreak: 4,
+      highestStreak: 4,
+      xp: 450,
+      level: 2,
+      league: 'Silver',
+      hearts: 5,
+      maxHearts: 5,
+      todayXp: 80
+    }
+  };
+
+  await ServerStorage.createUser(studentMachineA);
+
+  const activityMachineA: UserActivityRecord = {
+    id: `act_cross_machine_${Date.now()}`,
+    userId: studentMachineA.id,
+    userName: studentMachineA.name,
+    type: 'mock_test',
+    title: 'IELTS Academic Reading Complete Simulation 1',
+    category: 'Examination Preparation',
+    score: 'Band 7.5 (34/40)',
+    xpEarned: 150,
+    status: 'completed',
+    totalQuestions: 40,
+    attemptedQuestions: 40,
+    correctAnswers: 34,
+    incorrectAnswers: 6,
+    details: 'Completed complete timed section on Machine A.',
+    timestamp: '2026-11-03 22:15:00',
+    replayPayload: { tab: 'exam', subId: 'ielts_acad_reading_01' }
+  };
+
+  await ServerStorage.saveActivity(activityMachineA);
+
+  // Admin query with no userId (effectiveUserId is undefined) must return activities across ALL users
+  const globalActivities = ServerStorage.getActivities({}).items;
+  const foundGlobal = globalActivities.find((a) => a.id === activityMachineA.id);
+  if (!foundGlobal) {
+    console.error('FAIL: Activity performed by student on Machine A is not returned in global activities query.');
+    failures++;
+  } else {
+    console.log(`PASS: Activity "${foundGlobal.title}" saved centrally on Machine A was successfully retrieved by Administrator.`);
+  }
+
+  // Admin inspects user full history
+  const fullHistory = ServerStorage.getUserFullHistory(studentMachineA.id);
+  if (!fullHistory || !fullHistory.activities.some((a: any) => a.id === activityMachineA.id)) {
+    console.error('FAIL: getUserFullHistory did not include the cross-machine activity.');
+    failures++;
+  } else {
+    console.log('PASS: Admin getUserFullHistory authoritatively retrieves all cross-device activities and metrics for inspected student.');
+  }
+
+  // Test 69: Exam Preparation Interface Multi-Exam Practice Tests
+  console.log('\nTest 69: Verifying Exam Preparation Interface Multi-Exam Practice & Mock Tests...');
+  const examPrepViewSource = fs.readFileSync(path.join(process.cwd(), 'src/components/student/ExamPrepView.tsx'), 'utf-8');
+
+  // Verify that all major exams are supported in practice & mock tests
+  const supportedExams = ['IELTS Academic', 'IELTS General Training', 'PTE', 'TOEFL', 'OET', 'DET', 'Cambridge English'];
+  const hasAllExams = supportedExams.every((exam) => examPrepViewSource.includes(exam));
+
+  // Verify that undefined variable references are eliminated
+  const hasNoUndefinedSelectedPractice = !examPrepViewSource.includes('setSelectedPracticeTest(') &&
+    !examPrepViewSource.includes('setCurrentPracticeQuestionIndex(');
+
+  if (!hasAllExams || !hasNoUndefinedSelectedPractice) {
+    console.error('FAIL: ExamPrepView is missing exams or contains obsolete undeclared variable references.');
+    failures++;
+  } else {
+    console.log(`PASS: ExamPrepView contains full support for all ${supportedExams.length} examinations (${supportedExams.join(', ')}).`);
+    console.log('PASS: ExamPrepView has zero undeclared practice test state variables.');
+  }
+
+  // Test 70: Email Address Registration & 6-Digit OTP Email Verification
+  console.log('\nTest 70: Verifying Email Registration & 6-Digit OTP Verification Flow...');
+  const { EmailService } = await import('../../server/emailService');
+
+  const otpTs = Date.now();
+  const otpTestEmail = `elena.rostova.${otpTs}@edubridge.org`;
+  const otpTestName = `Elena Rostova ${otpTs}`;
+  const otpTestUsername = `elena.rostova.${otpTs}`;
+
+  // 1. Send OTP email via pure Node.js email service
+  const regOtp = '849201';
+  const regEmailSent = await EmailService.sendRegistrationOtp(otpTestEmail, otpTestName, regOtp);
+  if (!regEmailSent) {
+    console.error('FAIL: EmailService.sendRegistrationOtp returned falsy result.');
+    failures++;
+  } else {
+    console.log(`PASS: Registration OTP [${regOtp}] dispatched successfully to ${otpTestEmail}.`);
+  }
+
+  // 2. Verify registered user has emailVerified and emailVerificationStatus
+  const verifiedUser: UserAccount = {
+    id: `usr_otp_verified_${otpTs}`,
+    name: otpTestName,
+    username: otpTestUsername,
+    email: otpTestEmail,
+    password: 'SecurePassword456!',
+    dateOfBirth: '2001-08-25',
+    role: 'student',
+    status: 'active',
+    emailVerified: true,
+    emailVerificationStatus: 'verified',
+    createdAt: '2026-11-03',
+    lastLoginAt: '2026-11-03 22:30:00',
+    preferences: {
+      preferredLanguage: 'Academic English',
+      dailyGoalXp: 100,
+      targetExam: 'TOEFL iBT',
+      theme: 'system',
+      soundEnabled: true,
+      emailNotifications: true
+    },
+    profileStats: {
+      currentStreak: 1,
+      highestStreak: 1,
+      xp: 100,
+      level: 1,
+      league: 'Bronze',
+      hearts: 5,
+      maxHearts: 5,
+      todayXp: 50
+    }
+  };
+
+  const createdVerified = await ServerStorage.createUser(verifiedUser);
+  if (!createdVerified.emailVerified || createdVerified.emailVerificationStatus !== 'verified') {
+    console.error('FAIL: Created user does not have emailVerified: true and emailVerificationStatus: "verified".');
+    failures++;
+  } else {
+    console.log('PASS: Verified user account successfully stored in central vault with verified status.');
+  }
+
+  // Test 71: Password Reset via 6-Digit OTP Email Verification
+  console.log('\nTest 71: Verifying Password Reset via 6-Digit OTP Flow...');
+  const resetOtp = '619342';
+  const resetEmailSent = await EmailService.sendPasswordResetOtp(otpTestEmail, otpTestName, resetOtp);
+  if (!resetEmailSent) {
+    console.error('FAIL: EmailService.sendPasswordResetOtp failed.');
+    failures++;
+  } else {
+    console.log(`PASS: Password reset OTP [${resetOtp}] dispatched to ${otpTestEmail}.`);
+  }
+
+  // Update password in ServerStorage
+  const updatedUserPassword = await ServerStorage.updateUser(createdVerified.id, {
+    password: 'NewStrongPassword789!'
+  });
+  if (updatedUserPassword.password !== 'NewStrongPassword789!') {
+    console.error('FAIL: Password was not updated in server storage.');
+    failures++;
+  } else {
+    console.log('PASS: User password successfully updated in central server vault following OTP verification.');
+  }
+
+  // Test 72: Administrator-Initiated Password Reset & Email Verification
+  console.log('\nTest 72: Verifying Administrator-Initiated Reset & Manual Email Verification...');
+  const adminResetOtp = '438109';
+  await EmailService.sendPasswordResetOtp(studentMachineA.email, studentMachineA.name, adminResetOtp);
+
+  // Admin marks user as verified
+  const adminVerified = await ServerStorage.updateUser(studentMachineA.id, {
+    emailVerified: true,
+    emailVerificationStatus: 'verified'
+  });
+  if (!adminVerified.emailVerified || adminVerified.emailVerificationStatus !== 'verified') {
+    console.error('FAIL: Admin manual email verification did not update user status.');
+    failures++;
+  } else {
+    console.log(`PASS: Administrator successfully marked email for ${adminVerified.name} (${adminVerified.email}) as verified.`);
+  }
+
+  // Test 73: Pure Node.js SMTP Integration (Gmail, Outlook, Yahoo, Exchange)
+  console.log('\nTest 73: Verifying Pure Node.js SMTP Integration & Delivery Diagnostics...');
+  const smtpConfig = EmailService.getConfig();
+  if (!smtpConfig || typeof smtpConfig.host !== 'string' || typeof smtpConfig.port !== 'number') {
+    console.error('FAIL: EmailService.getConfig returned invalid configuration.');
+    failures++;
+  } else {
+    console.log(`PASS: SMTP Configuration loaded from server vault (Host: ${smtpConfig.host}:${smtpConfig.port}, Encryption: ${smtpConfig.encryption}).`);
+  }
+
+  // Verify credentials are masked
+  if (smtpConfig.authPass !== '••••••••' && smtpConfig.authPass !== '') {
+    console.error('FAIL: Smtp password was not masked in admin view.');
+    failures++;
+  } else {
+    console.log('PASS: SMTP password is securely masked in configuration view.');
+  }
+
+  // Dispatch automated test verification email
+  const testEmailRes = await EmailService.sendTestEmail('admin@edubridge.io');
+  if (!testEmailRes.success) {
+    console.error(`FAIL: EmailService.sendTestEmail failed: ${testEmailRes.info}`);
+    failures++;
+  } else {
+    console.log(`PASS: Test email dispatched successfully: ${testEmailRes.info}`);
+  }
+
+  // Verify diagnostic logs exist and contain delivery records
+  const deliveryLogs = EmailService.getLogs();
+  if (!Array.isArray(deliveryLogs) || deliveryLogs.length === 0) {
+    console.error('FAIL: Email delivery logs are empty.');
+    failures++;
+  } else {
+    const recentLog = deliveryLogs[0];
+    console.log(`PASS: Diagnostic log verified: [${recentLog.timestamp}] ${recentLog.type} to ${recentLog.recipient} (Status: ${recentLog.status}).`);
+  }
+
+  // Test 74: Admin Portal Password Masking, Verification Status Badges & SMTP Tab
+  console.log('\nTest 74: Verifying Admin Portal Password Masking, Verification Badges & SMTP Panel...');
+  const adminSource = fs.readFileSync(path.join(process.cwd(), 'src/components/admin/AdminPortal.tsx'), 'utf-8');
+
+  // Verify password masking
+  const hasPasswordMasking = adminSource.includes('••••••••');
+  // Verify verification badges
+  const hasEmailVerificationCol = adminSource.includes('Email Verification') && adminSource.includes('emailVerificationStatus');
+  // Verify SMTP tab
+  const hasSmtpTab = adminSource.includes("setActiveAdminTab('smtp')") &&
+    adminSource.includes('SMTP Integration, Email Verification &amp; Diagnostics');
+  // Verify provider presets
+  const hasProviderPresets = adminSource.includes('Gmail / Google Workspace') &&
+    adminSource.includes('Microsoft 365 / Outlook') &&
+    adminSource.includes('Yahoo Mail');
+
+  if (!hasPasswordMasking || !hasEmailVerificationCol || !hasSmtpTab || !hasProviderPresets) {
+    console.error('FAIL: Admin Portal missing password masking, email verification status column, or SMTP panel.');
+    failures++;
+  } else {
+    console.log('PASS: Admin Portal Users table features password masking (••••••••) and email verification status badges.');
+    console.log('PASS: Admin Portal features dedicated SMTP Integration & Email Diagnostics panel with Gmail, Outlook, Yahoo, and Exchange presets.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 74 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

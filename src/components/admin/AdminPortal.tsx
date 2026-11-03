@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert,
   Activity,
@@ -50,10 +50,13 @@ import {
   TestConductionRecord,
   UserActivityRecord,
   ExamSettingsConfig,
-  QuestionAttemptRecord
+  QuestionAttemptRecord,
+  SmtpConfigView,
+  EmailLogEntryView
 } from '../../types';
 import { sound } from '../../utils/audio';
 import { StorageService } from '../../services/storage';
+import { apiService } from '../../services/apiService';
 import { calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 import { ShowAttemptModal } from '../common/ShowAttemptModal';
 import { getActivityQuestionStats } from '../../utils/activityStats';
@@ -100,7 +103,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onRespondFeedback
 }) => {
   const [activeAdminTab, setActiveAdminTab] = useState<
-    'dashboard' | 'users' | 'cohorts' | 'activities' | 'feedback' | 'jobs' | 'models' | 'telemetry' | 'audit' | 'vocab'
+    'dashboard' | 'users' | 'cohorts' | 'activities' | 'feedback' | 'jobs' | 'models' | 'telemetry' | 'audit' | 'vocab' | 'smtp'
   >('dashboard');
 
   // Standardized Practice Test Question Settings State
@@ -280,12 +283,81 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [adminOtpNotice, setAdminOtpNotice] = useState<string | null>(null);
 
-  const handleAdminGenerateOtp = (u: UserAccount) => {
+  // SMTP Configuration, Delivery Diagnostics & Server Sync State
+  const [smtpConfig, setSmtpConfig] = useState<SmtpConfigView>({
+    host: 'smtp.gmail.com',
+    port: 465,
+    encryption: 'SSL',
+    authUser: '',
+    authPass: '••••••••',
+    fromEmail: 'noreply@edubridge.io',
+    fromName: 'EduBridge Security & Verification',
+    active: true
+  });
+  const [smtpSavedNotice, setSmtpSavedNotice] = useState<string | null>(null);
+  const [smtpTestRecipient, setSmtpTestRecipient] = useState('admin@edubridge.io');
+  const [smtpTesting, setSmtpTesting] = useState(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [emailLogs, setEmailLogs] = useState<EmailLogEntryView[]>([]);
+  const [isSyncingServer, setIsSyncingServer] = useState(false);
+
+  // Synchronize live platform activities across machines from central server
+  useEffect(() => {
+    let isMounted = true;
+    const syncActivities = async () => {
+      try {
+        const res = await apiService.activities.getAll();
+        if (isMounted && res && Array.isArray(res.items)) {
+          setAllActivities(res.items);
+          StorageService.saveUserActivities(res.items);
+        }
+      } catch (err: any) {
+        console.warn('Central server activities sync notice:', err.message);
+      }
+    };
+    syncActivities();
+    return () => { isMounted = false; };
+  }, [activeAdminTab]);
+
+  // Load SMTP configuration and delivery logs when SMTP tab is active
+  useEffect(() => {
+    if (activeAdminTab === 'smtp') {
+      apiService.smtp.getConfig().then((cfg) => {
+        if (cfg) setSmtpConfig(cfg);
+      }).catch((e) => console.warn('SMTP config load notice:', e.message));
+
+      apiService.smtp.getLogs().then((logs) => {
+        if (logs) setEmailLogs(logs);
+      }).catch((e) => console.warn('Email logs load notice:', e.message));
+    }
+  }, [activeAdminTab]);
+
+  const handleAdminGenerateOtp = async (u: UserAccount) => {
     sound.playClick();
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    StorageService.savePasswordResetOtp(u.email, otp);
-    setAdminOtpNotice(`📬 6-Digit Password Reset OTP dispatched for ${u.name} (${u.email}): [ ${otp} ] · Valid for 10 minutes`);
-    sound.playSuccess();
+    try {
+      const res = await apiService.users.initiatePasswordReset(u.id);
+      setAdminOtpNotice(`📬 ${res.message || `Password reset OTP dispatched to ${u.email}.`}`);
+      sound.playSuccess();
+    } catch {
+      // Offline fallback
+      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      StorageService.savePasswordResetOtp(u.email, otp);
+      setAdminOtpNotice(`📬 6-Digit Password Reset OTP dispatched for ${u.name} (${u.email}): [ ${otp} ] · Valid for 10 minutes`);
+      sound.playSuccess();
+    }
+  };
+
+  const handleAdminVerifyEmail = async (u: UserAccount) => {
+    sound.playClick();
+    try {
+      await apiService.users.verifyEmail(u.id);
+      onUpdateUser?.({ ...u, emailVerified: true, emailVerificationStatus: 'verified' });
+      setAdminOtpNotice(`✓ Email for ${u.name} (${u.email}) has been marked as verified.`);
+      sound.playSuccess();
+    } catch (err: any) {
+      sound.playError();
+      setAdminOtpNotice(`Failed to verify email: ${err.message}`);
+    }
   };
 
   // Feedback reply state
@@ -662,6 +734,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             >
               <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
               <span>Audit Logs</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { sound.playClick(); setActiveAdminTab('smtp'); }}
+              className={`flex-1 min-w-[84px] px-2 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap ${
+                activeAdminTab === 'smtp' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+              title="SMTP Integration, Verification & Delivery Diagnostics"
+            >
+              <Mail className="w-3.5 h-3.5 shrink-0" />
+              <span>SMTP &amp; Email</span>
             </button>
           </div>
         </div>
@@ -1576,6 +1660,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     <th className="p-3.5">User</th>
                     <th className="p-3.5">Date of Birth (DOB)</th>
                     <th className="p-3.5">Assigned Role</th>
+                    <th className="p-3.5">Email Verification</th>
                     <th className="p-3.5">Password</th>
                     <th className="p-3.5">Status</th>
                     <th className="p-3.5 text-right">Access Control</th>
@@ -1615,6 +1700,23 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           {u.role}
                         </span>
                       </td>
+                      <td className="p-3.5">
+                        {u.emailVerified || u.emailVerificationStatus === 'verified' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            <span>Verified</span>
+                          </span>
+                        ) : u.emailVerificationStatus === 'verification_expired' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                            <span>Expired</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            <span>Pending OTP</span>
+                          </span>
+                        )}
+                      </td>
                       <td className="p-3.5 font-mono text-slate-500 text-[11px]">
                         ••••••••
                       </td>
@@ -1629,6 +1731,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       </td>
                       <td className="p-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {(!u.emailVerified && u.emailVerificationStatus !== 'verified') && (
+                            <button
+                              onClick={() => handleAdminVerifyEmail(u)}
+                              className="px-2 py-1 rounded-lg font-bold text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 transition-all cursor-pointer flex items-center gap-1"
+                              title="Manually verify email address for user"
+                            >
+                              <ShieldCheck className="w-3 h-3 text-teal-700" />
+                              <span>Verify</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               sound.playClick();
@@ -2649,6 +2761,357 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* 10. SMTP Integration & Email Delivery Diagnostics */}
+      {activeAdminTab === 'smtp' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
+                  RFC 5321 Outbound Mail Cluster
+                </span>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                  SMTP Integration, Email Verification &amp; Diagnostics
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Secure outgoing email service powering OTP registration, password recovery, and administrator notifications across Gmail, Outlook, Yahoo, and Exchange.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                  smtpConfig.active
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-amber-50 text-amber-800 border border-amber-200'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${smtpConfig.active ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                  <span>{smtpConfig.active ? 'SMTP Outbound Active' : 'Simulated Delivery Mode'}</span>
+                </span>
+              </div>
+            </div>
+
+            {smtpSavedNotice && (
+              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-xs text-emerald-950 font-bold flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>{smtpSavedNotice}</span>
+                </div>
+                <button onClick={() => setSmtpSavedNotice(null)} className="text-emerald-700 hover:text-emerald-900">✕</button>
+              </div>
+            )}
+
+            {/* Quick Provider Presets */}
+            <div className="space-y-2 pt-1">
+              <label className="text-xs font-bold text-slate-700 block">
+                Quick Provider Presets (Auto-Configure Host &amp; Port)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { name: 'Gmail / Google Workspace', host: 'smtp.gmail.com', port: 465, encryption: 'SSL' as const },
+                  { name: 'Microsoft 365 / Outlook', host: 'smtp.office365.com', port: 587, encryption: 'STARTTLS' as const },
+                  { name: 'Yahoo Mail', host: 'smtp.mail.yahoo.com', port: 465, encryption: 'SSL' as const },
+                  { name: 'Exchange / Standard SMTP', host: 'mail.yourdomain.com', port: 587, encryption: 'STARTTLS' as const }
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setSmtpConfig((prev) => ({
+                        ...prev,
+                        host: preset.host,
+                        port: preset.port,
+                        encryption: preset.encryption
+                      }));
+                    }}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      smtpConfig.host === preset.host && smtpConfig.port === preset.port
+                        ? 'bg-indigo-50 border-indigo-600 text-indigo-900 ring-2 ring-indigo-500/20'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="font-extrabold text-[11px] leading-tight">{preset.name}</div>
+                    <div className="font-mono text-[10px] text-slate-500 mt-0.5">{preset.host}:{preset.port}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* SMTP Configuration Form */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                sound.playClick();
+                try {
+                  const res = await apiService.smtp.saveConfig(smtpConfig);
+                  if (res && res.config) setSmtpConfig(res.config);
+                  setSmtpSavedNotice('✓ SMTP configuration securely saved to server vault.');
+                  sound.playSuccess();
+                  setTimeout(() => setSmtpSavedNotice(null), 4000);
+                } catch (err: any) {
+                  sound.playError();
+                  setSmtpSavedNotice(`Error saving SMTP settings: ${err.message}`);
+                }
+              }}
+              className="space-y-4 pt-2 text-xs"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">SMTP Host / Server</label>
+                  <input
+                    type="text"
+                    required
+                    value={smtpConfig.host}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
+                    placeholder="e.g. smtp.gmail.com"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Port</label>
+                  <input
+                    type="number"
+                    required
+                    value={smtpConfig.port}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, port: parseInt(e.target.value, 10) || 587 })}
+                    placeholder="465 or 587"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Encryption Mode</label>
+                  <select
+                    value={smtpConfig.encryption}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, encryption: e.target.value as any })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-bold"
+                  >
+                    <option value="SSL">SSL / TLS (Port 465)</option>
+                    <option value="STARTTLS">STARTTLS (Port 587 / 25)</option>
+                    <option value="NONE">Unencrypted (Development Only)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">SMTP Username / Account</label>
+                  <input
+                    type="text"
+                    value={smtpConfig.authUser}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, authUser: e.target.value })}
+                    placeholder="e.g. support@yourdomain.com"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">SMTP Password / App Password</label>
+                  <input
+                    type="password"
+                    value={smtpConfig.authPass}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, authPass: e.target.value })}
+                    placeholder="Enter password or leave masked..."
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    🔒 Stored in server vault. Leave as •••••••• to keep existing credential unchanged.
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Sender Email Address (From)</label>
+                  <input
+                    type="email"
+                    required
+                    value={smtpConfig.fromEmail}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, fromEmail: e.target.value })}
+                    placeholder="e.g. noreply@edubridge.io"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Sender Display Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={smtpConfig.fromName}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, fromName: e.target.value })}
+                    placeholder="e.g. EduBridge Security & Verification"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smtpConfig.active}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, active: e.target.checked })}
+                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="font-bold text-slate-800">Enable Live SMTP Delivery</span>
+                </label>
+
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-xs transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Save Configuration to Server Vault</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Test SMTP Delivery Box */}
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 text-slate-900 font-black text-base border-b border-slate-100 pb-3">
+              <Send className="w-4 h-4 text-emerald-600" />
+              <span>Verify Connection &amp; Send Diagnostic Test Email</span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <input
+                type="email"
+                value={smtpTestRecipient}
+                onChange={(e) => setSmtpTestRecipient(e.target.value)}
+                placeholder="Enter recipient email address..."
+                className="flex-1 w-full p-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-indigo-500"
+              />
+
+              <button
+                type="button"
+                disabled={smtpTesting}
+                onClick={async () => {
+                  setSmtpTesting(true);
+                  setSmtpTestResult(null);
+                  sound.playClick();
+                  try {
+                    const res = await apiService.smtp.testConnection({
+                      recipientEmail: smtpTestRecipient,
+                      ...smtpConfig
+                    });
+                    setSmtpTestResult(res);
+                    if (res.success) {
+                      sound.playSuccess();
+                    } else {
+                      sound.playError();
+                    }
+                    const freshLogs = await apiService.smtp.getLogs();
+                    setEmailLogs(freshLogs);
+                  } catch (err: any) {
+                    sound.playError();
+                    setSmtpTestResult({ success: false, message: err.message });
+                  } finally {
+                    setSmtpTesting(false);
+                  }
+                }}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {smtpTesting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                <span>{smtpTesting ? 'Executing Handshake...' : 'Send Test Verification Email'}</span>
+              </button>
+            </div>
+
+            {smtpTestResult && (
+              <div className={`p-4 rounded-2xl border text-xs leading-relaxed ${
+                smtpTestResult.success
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-rose-50 border-rose-200 text-rose-900'
+              }`}>
+                <div className="font-bold flex items-center gap-2 mb-1">
+                  {smtpTestResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <ShieldAlert className="w-4 h-4 text-rose-600" />}
+                  <span>{smtpTestResult.success ? 'Diagnostic Test Passed' : 'Diagnostic Notice'}</span>
+                </div>
+                <p className="font-mono text-[11px] whitespace-pre-wrap">{smtpTestResult.message}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Email Delivery Audit Trail & Diagnostic Logs */}
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-slate-900 font-black text-base">
+                <Clock className="w-4 h-4 text-indigo-600" />
+                <span>Outbound Email Delivery Diagnostics &amp; Audit Trail ({emailLogs.length})</span>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  sound.playClick();
+                  const logs = await apiService.smtp.getLogs();
+                  setEmailLogs(logs);
+                  sound.playSuccess();
+                }}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refresh Logs</span>
+              </button>
+            </div>
+
+            <div className="border border-slate-200 rounded-2xl overflow-hidden">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                  <tr>
+                    <th className="p-3">Timestamp</th>
+                    <th className="p-3">Recipient</th>
+                    <th className="p-3">Purpose / Subject</th>
+                    <th className="p-3">Delivery Status</th>
+                    <th className="p-3">Diagnostic Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {emailLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-6 text-center text-slate-400 font-medium">
+                        No outgoing email logs recorded yet. Dispatch a test verification email above.
+                      </td>
+                    </tr>
+                  ) : (
+                    emailLogs.slice(0, 30).map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-3 font-mono text-slate-500 text-[11px] whitespace-nowrap">
+                          {log.timestamp}
+                        </td>
+                        <td className="p-3 font-mono font-bold text-slate-800">
+                          {log.recipient}
+                        </td>
+                        <td className="p-3 text-slate-700">
+                          <span className="font-semibold block">{log.subject}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{log.type}</span>
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            log.status === 'DELIVERED'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : log.status === 'SIMULATED'
+                              ? 'bg-indigo-100 text-indigo-800'
+                              : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {log.status}
+                          </span>
+                        </td>
+                        <td className="p-3 font-mono text-[11px] text-slate-500 max-w-xs truncate" title={log.responseInfo}>
+                          {log.responseInfo || '—'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
