@@ -26,3 +26,4 @@ serverApp.listen(PORT, HOST, () => {
   console.log(`[EduBridge Central Server] Listening on http://${HOST}:${PORT}`);
   console.log(`[EduBridge Central Server] Centralized user & activity vault active.`);
 });
+

@@ -523,3 +523,4 @@ export const ServerStorage = {
 
 // Initialize server storage upon loading
 ServerStorage.initialize();
+
