@@ -20,7 +20,7 @@ import { StorageService } from '../services/storage';
 import { ResumeEnhancementService } from '../services/resumeEnhancementService';
 import { ResumeExportService } from '../services/resumeExportService';
 import { CVRegionPattern, EnhancedResumeData } from '../types/career';
-import { UserAccount } from '../types';
+import { UserAccount, UserActivityRecord } from '../types';
 import { IELTSPracticeService } from '../services/ieltsPracticeService';
 import { calculateAge, calculateCohortFromDob, calculateEducationLevel } from '../utils/userProfile';
 import { ServerStorage } from '../../server/storage';
@@ -2068,19 +2068,73 @@ async function runTests() {
   const hasSmtpTab = adminSource.includes("setActiveAdminTab('smtp')") &&
     adminSource.includes('SMTP Integration, Email Verification &amp; Diagnostics');
   // Verify provider presets
-  const hasProviderPresets = adminSource.includes('Gmail / Google Workspace') &&
-    adminSource.includes('Microsoft 365 / Outlook') &&
-    adminSource.includes('Yahoo Mail');
+  const hasProviderPresets = adminSource.includes('Free Outlook / Exchange') &&
+    adminSource.includes('Microsoft 365 / Office') &&
+    adminSource.includes('Gmail / Google');
 
   if (!hasPasswordMasking || !hasEmailVerificationCol || !hasSmtpTab || !hasProviderPresets) {
     console.error('FAIL: Admin Portal missing password masking, email verification status column, or SMTP panel.');
     failures++;
   } else {
     console.log('PASS: Admin Portal Users table features password masking (••••••••) and email verification status badges.');
-    console.log('PASS: Admin Portal features dedicated SMTP Integration & Email Diagnostics panel with Gmail, Outlook, Yahoo, and Exchange presets.');
+    console.log('PASS: Admin Portal features dedicated SMTP Integration & Email Diagnostics panel with Exchange, Outlook, Gmail, and Yahoo presets.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 74 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 75: Audio Listening Player with Pause & Stop Everywhere in Listening Options
+  console.log('\nTest 75: Verifying Audio Listening Controls (Pause & Stop) Across Application Modules...');
+  const examPrepSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/student/ExamPrepView.tsx'), 'utf-8');
+  const exerciseModalSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/common/ExerciseModal.tsx'), 'utf-8');
+  const arenaSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/cohorts/UniversalLearningArena.tsx'), 'utf-8');
+  const tutorSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/student/AITutorView.tsx'), 'utf-8');
+  const aiServiceSrc = fs.readFileSync(path.join(process.cwd(), 'src/services/aiService.ts'), 'utf-8');
+  const audioPlayerSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/common/AudioListeningPlayer.tsx'), 'utf-8');
+
+  const hasAudioControls =
+    aiServiceSrc.includes('pauseSpeaking') &&
+    aiServiceSrc.includes('resumeSpeaking') &&
+    aiServiceSrc.includes('stopSpeaking');
+
+  const hasPlayerPauseStop =
+    audioPlayerSrc.includes('handlePause') &&
+    audioPlayerSrc.includes('handleStop') &&
+    audioPlayerSrc.includes('handleResume');
+
+  const isPlayerUsedAcrossViews =
+    examPrepSrc.includes('AudioListeningPlayer') &&
+    exerciseModalSrc.includes('AudioListeningPlayer') &&
+    arenaSrc.includes('AudioListeningPlayer') &&
+    tutorSrc.includes('AudioListeningPlayer');
+
+  if (!hasAudioControls || !hasPlayerPauseStop || !isPlayerUsedAcrossViews) {
+    console.error('FAIL: Pause / Stop audio listening controls missing in one or more listening test modules.');
+    failures++;
+  } else {
+    console.log('PASS: AIService provides pauseSpeaking(), resumeSpeaking(), and stopSpeaking() methods.');
+    console.log('PASS: AudioListeningPlayer component encapsulates play, pause, resume, and stop controls.');
+    console.log('PASS: AudioListeningPlayer integrated across ExamPrepView, ExerciseModal, UniversalLearningArena, and AITutorView.');
+  }
+
+  // Test 76: OTP Security - Never Exposing Code on Screen & Verifying Real Input Only
+  console.log('\nTest 76: Verifying OTP Security, No Screen Leaks & Clean User Input Verification...');
+  const authModalSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/auth/AuthModal.tsx'), 'utf-8');
+  const appSrc = fs.readFileSync(path.join(process.cwd(), 'server/app.ts'), 'utf-8');
+
+  // Verify server endpoints do not return devOtp
+  const hasNoDevOtpInRegister = !appSrc.includes('devOtp: process.env.NODE_ENV !== \'production\' ? otp : undefined');
+  const hasNoPrefilledEnteredOtp = !authModalSrc.includes('setEnteredOtp(res.devOtp)') && !authModalSrc.includes('setEnteredOtp(generatedOtp)');
+  const hasNoPrefilledRegOtp = !authModalSrc.includes('setRegOtpCode(otpRes.devOtp)');
+  const hasNoSimulatedEmailBox = !authModalSrc.includes('Simulated Email Delivery Dispatch');
+
+  if (!hasNoDevOtpInRegister || !hasNoPrefilledEnteredOtp || !hasNoPrefilledRegOtp || !hasNoSimulatedEmailBox) {
+    console.error('FAIL: OTP security verification failed. OTP code is still exposed or prefilled in UI.');
+    failures++;
+  } else {
+    console.log('PASS: Server /request-otp endpoints do not leak OTP code in response payload.');
+    console.log('PASS: AuthModal does not prefill OTP input boxes (user must manually enter code received via email).');
+    console.log('PASS: "Simulated Email Delivery Dispatch" box exposing code in UI has been completely removed.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 76 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

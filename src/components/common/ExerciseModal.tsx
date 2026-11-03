@@ -17,6 +17,7 @@ import { Lesson, ExerciseItem } from '../../types';
 import { AIService } from '../../services/aiService';
 import { sound } from '../../utils/audio';
 import { VoicePersonaSelector } from './VoicePersonaSelector';
+import { AudioListeningPlayer } from './AudioListeningPlayer';
 
 interface ExerciseModalProps {
   lesson: Lesson;
@@ -225,22 +226,12 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
 
                 {/* Optional audio playback or context sentence */}
                 {currentEx.audioText && (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-indigo-50/70 border border-indigo-100 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => handlePlayAudio(currentEx.audioText!)}
-                        disabled={isPlayingAudio}
-                        className="p-3 bg-indigo-600 text-white rounded-xl shadow-xs hover:bg-indigo-700 transition-transform active:scale-95 shrink-0"
-                      >
-                        <Volume2 className="w-5 h-5" />
-                      </button>
-                      <div>
-                        <p className="text-xs text-indigo-700 font-semibold uppercase tracking-wider">Piper TTS Pronunciation</p>
-                        <p className="text-sm font-medium text-slate-800">{currentEx.audioText}</p>
-                      </div>
-                    </div>
-                    <VoicePersonaSelector compact={true} />
-                  </div>
+                  <AudioListeningPlayer
+                    audioText={currentEx.audioText}
+                    title="Piper TTS Audio Pronunciation"
+                    subtitle={currentEx.audioText}
+                    showTranscriptInitially={true}
+                  />
                 )}
 
                 {/* Vocabulary Card Display */}

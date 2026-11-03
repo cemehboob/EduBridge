@@ -154,7 +154,10 @@ export const AIService = {
     text: string,
     voiceRate: number = 1.0,
     voicePitch: number = 1.0,
-    overridePersona?: VoicePersona
+    overridePersona?: VoicePersona,
+    onStart?: () => void,
+    onEnd?: () => void,
+    onError?: (err: any) => void
   ): boolean {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return false;
@@ -223,12 +226,48 @@ export const AIService = {
         utterance.voice = matchedVoice;
       }
 
+      if (onStart) utterance.onstart = onStart;
+      if (onEnd) utterance.onend = onEnd;
+      if (onError) utterance.onerror = onError;
+
       window.speechSynthesis.speak(utterance);
       return true;
     } catch (e) {
       console.warn('[EduBridge TTS] Speech synthesis error:', e);
       return false;
     }
+  },
+
+  pauseSpeaking(): void {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        window.speechSynthesis.pause();
+      }
+    }
+  },
+
+  resumeSpeaking(): void {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    }
+  },
+
+  stopSpeaking(): void {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  },
+
+  isSpeaking(): boolean {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false;
+    return window.speechSynthesis.speaking;
+  },
+
+  isPaused(): boolean {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false;
+    return window.speechSynthesis.paused;
   },
 
   /**
@@ -261,11 +300,5 @@ export const AIService = {
    */
   speakSeniorClear(text: string): boolean {
     return this.speakText(text, 0.82, 0.95);
-  },
-
-  stopSpeaking(): void {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
   }
 };

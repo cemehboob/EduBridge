@@ -155,15 +155,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       // 1. Dispatch OTP through centralized email service / server
-      const res = await apiService.auth.requestPasswordResetOtp(cleanEmail);
-      if (res.devOtp) {
-        setSimulatedEmailNotice(
-          `📬 Dispatched to ${cleanEmail}: Your 6-Digit EduBridge Password Reset OTP is [ ${res.devOtp} ] (Expires in 10 minutes)`
-        );
-        setEnteredOtp(res.devOtp);
-      } else {
-        setSimulatedEmailNotice(`📬 A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your inbox.`);
-      }
+      await apiService.auth.requestPasswordResetOtp(cleanEmail);
+      setSimulatedEmailNotice(
+        `A 6-digit verification passcode has been dispatched to ${cleanEmail}. Please check your email inbox (and spam folder) and enter the code below.`
+      );
+      setEnteredOtp('');
       setResendCooldown(60);
       sound.playSuccess();
       setForgotStep('otp');
@@ -189,9 +185,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     StorageService.savePasswordResetOtp(cleanEmail, generatedOtp);
 
     setSimulatedEmailNotice(
-      `📬 Dispatched to ${cleanEmail}: Your 6-Digit EduBridge Password Reset OTP is [ ${generatedOtp} ] (Expires in 10 minutes)`
+      `A 6-digit verification passcode has been dispatched to ${cleanEmail}. Please check your email inbox and enter the code below.`
     );
-    setEnteredOtp(generatedOtp);
+    setEnteredOtp('');
     setResendCooldown(60);
     sound.playSuccess();
     setForgotStep('otp');
@@ -371,18 +367,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     // Request Registration OTP from server
     try {
-      const otpRes = await apiService.auth.requestRegistrationOtp(newUser);
+      await apiService.auth.requestRegistrationOtp(newUser);
       sound.playSuccess();
       setRegStep('otp');
       setResendCooldown(60);
-      if (otpRes.devOtp) {
-        setSimulatedEmailNotice(
-          `📬 Dispatched to ${cleanEmail}: Your 6-Digit EduBridge Registration Verification Code is [ ${otpRes.devOtp} ]`
-        );
-        setRegOtpCode(otpRes.devOtp);
-      } else {
-        setSimulatedEmailNotice(`📬 A 6-digit verification code has been dispatched to ${cleanEmail}. Please enter it below.`);
-      }
+      setSimulatedEmailNotice(
+        `A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your email inbox and enter the code below.`
+      );
+      setRegOtpCode('');
       return;
     } catch (err: any) {
       if (err.statusCode === 409) {
@@ -581,14 +573,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               {simulatedEmailNotice && (
-                <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-xs text-indigo-950 space-y-2 animate-in fade-in">
-                  <div className="font-bold flex items-center gap-1.5 text-indigo-900">
-                    <Mail className="w-4 h-4 text-indigo-600" />
-                    <span>Simulated Email Delivery Dispatch</span>
+                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-950 space-y-1.5 animate-in fade-in">
+                  <div className="font-bold flex items-center gap-1.5 text-emerald-900">
+                    <Mail className="w-4 h-4 text-emerald-600" />
+                    <span>Verification Code Dispatched to Email</span>
                   </div>
-                  <div className="font-mono text-[11px] bg-white p-2.5 rounded-xl border border-indigo-100 text-indigo-800 break-all">
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
                     {simulatedEmailNotice}
-                  </div>
+                  </p>
                 </div>
               )}
 
@@ -753,14 +745,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               {simulatedEmailNotice && (
-                <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-xs text-indigo-950 space-y-2 animate-in fade-in">
-                  <div className="font-bold flex items-center gap-1.5 text-indigo-900">
-                    <Mail className="w-4 h-4 text-indigo-600" />
-                    <span>Email Verification Notice</span>
+                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-950 space-y-1.5 animate-in fade-in">
+                  <div className="font-bold flex items-center gap-1.5 text-emerald-900">
+                    <Mail className="w-4 h-4 text-emerald-600" />
+                    <span>Verification Code Dispatched to Email</span>
                   </div>
-                  <div className="font-mono text-[11px] bg-white p-2.5 rounded-xl border border-indigo-100 text-indigo-800 break-all">
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
                     {simulatedEmailNotice}
-                  </div>
+                  </p>
                 </div>
               )}
 

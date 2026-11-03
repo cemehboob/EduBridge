@@ -344,11 +344,10 @@ serverApp.post('/api/auth/register/request-otp', async (req: Request, res: Respo
 
     res.json({
       success: true,
-      message: `A 6-digit verification code has been dispatched to ${cleanEmail}. Please enter it to complete registration.`,
+      message: `A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your inbox and enter the code to complete registration.`,
       email: cleanEmail,
       expiresInSeconds: 600,
-      deliveryStatus: emailSent ? 'dispatched' : 'simulated',
-      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+      deliveryStatus: emailSent ? 'dispatched' : 'simulated'
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to dispatch registration OTP.' });
@@ -515,10 +514,9 @@ serverApp.post('/api/auth/password-reset/request-otp', async (req: Request, res:
 
     res.json({
       success: true,
-      message: `A password reset code has been dispatched to ${cleanEmail}.`,
+      message: `A password reset code has been dispatched to ${cleanEmail}. Please check your email inbox and enter the 6-digit code.`,
       expiresInSeconds: 600,
-      deliveryStatus: emailSent ? 'dispatched' : 'simulated',
-      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+      deliveryStatus: emailSent ? 'dispatched' : 'simulated'
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to dispatch password reset code.' });

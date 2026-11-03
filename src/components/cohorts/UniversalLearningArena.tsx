@@ -66,6 +66,7 @@ import {
 import { AIService } from '../../services/aiService';
 import { sound } from '../../utils/audio';
 import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
+import { AudioListeningPlayer } from '../common/AudioListeningPlayer';
 
 interface UniversalLearningArenaProps {
   initialCohort?: AgeCohortId;
@@ -344,13 +345,11 @@ export const UniversalLearningArena: React.FC<UniversalLearningArenaProps> = ({
         {/* Universal Voice button and persona selector tailored for this cohort */}
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
           <VoicePersonaSelector compact={true} />
-          <button
-            onClick={() => speakTextWithCohort(`${currentCohort.name}. ${currentCohort.description}`)}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
-          >
-            <Volume2 className="w-4 h-4 text-indigo-600" />
-            <span>Read Cohort Voice Guide</span>
-          </button>
+          <AudioListeningPlayer
+            audioText={`${currentCohort.name}. ${currentCohort.description}`}
+            title={`${currentCohort.name} Voice Guide`}
+            compact={true}
+          />
         </div>
       </div>
 
@@ -537,13 +536,11 @@ export const UniversalLearningArena: React.FC<UniversalLearningArenaProps> = ({
                         <span className="text-xs font-bold uppercase text-amber-600">Picture Story Time</span>
                         <h3 className="text-xl font-black text-slate-900">{currentStory.title}</h3>
                       </div>
-                      <button
-                        onClick={() => speakTextWithCohort(currentPageData.text)}
-                        className="px-3.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-xs font-bold flex items-center gap-2 hover:bg-amber-100"
-                      >
-                        <Volume2 className="w-4 h-4 text-amber-600" />
-                        <span>Read Aloud</span>
-                      </button>
+                      <AudioListeningPlayer
+                        audioText={currentPageData.text}
+                        title={`Story: ${currentStory.title}`}
+                        compact={true}
+                      />
                     </div>
 
                     {/* Story Scene Illustration */}
@@ -719,13 +716,11 @@ export const UniversalLearningArena: React.FC<UniversalLearningArenaProps> = ({
                         <h3 className="text-xl font-black text-slate-900">{quest.title}</h3>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => speakTextWithCohort(quest.readingPassage)}
-                          className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold flex items-center gap-1.5"
-                        >
-                          <Volume2 className="w-4 h-4 text-blue-600" />
-                          <span>Narrate Quest</span>
-                        </button>
+                        <AudioListeningPlayer
+                          audioText={quest.readingPassage}
+                          title={`Quest: ${quest.title}`}
+                          compact={true}
+                        />
                         <select
                           value={activeQuestIndex}
                           onChange={(e) => {
@@ -1368,13 +1363,11 @@ export const UniversalLearningArena: React.FC<UniversalLearningArenaProps> = ({
                     <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-200 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black uppercase text-indigo-900">Band 9 Model Response &amp; Prosody</span>
-                        <button
-                          onClick={() => speakTextWithCohort(card.sampleBand9Response)}
-                          className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5"
-                        >
-                          <Volume2 className="w-3.5 h-3.5" />
-                          <span>Listen Model Response</span>
-                        </button>
+                        <AudioListeningPlayer
+                          audioText={card.sampleBand9Response}
+                          title="Band 9 Model Audio"
+                          compact={true}
+                        />
                       </div>
                       <p className="text-xs text-slate-700 leading-relaxed font-serif italic">
                         "{card.sampleBand9Response}"
@@ -1469,13 +1462,11 @@ export const UniversalLearningArena: React.FC<UniversalLearningArenaProps> = ({
                           <span className="text-[10px] font-black uppercase text-emerald-700 tracking-wider">
                             ✓ Executive Diplomatic Calibrated Solution
                           </span>
-                          <button
-                            onClick={() => speakTextWithCohort(scenario.diplomaticRewrite)}
-                            className="text-xs text-emerald-700 font-bold hover:underline flex items-center gap-1"
-                          >
-                            <Volume2 className="w-3.5 h-3.5" />
-                            <span>Listen</span>
-                          </button>
+                          <AudioListeningPlayer
+                            audioText={scenario.diplomaticRewrite}
+                            title="Diplomatic Rewrite Audio"
+                            compact={true}
+                          />
                         </div>
                         <p className="text-xs text-emerald-950 leading-relaxed whitespace-pre-wrap font-sans">
                           {scenario.diplomaticRewrite}
@@ -1589,13 +1580,11 @@ export const UniversalLearningArena: React.FC<UniversalLearningArenaProps> = ({
                     <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-700 uppercase">Model Script for Practice:</span>
-                        <button
-                          onClick={() => speakTextWithCohort(pitch.modelScript)}
-                          className="text-xs text-emerald-700 font-bold hover:underline flex items-center gap-1"
-                        >
-                          <Volume2 className="w-3.5 h-3.5" />
-                          <span>Listen Model Cadence</span>
-                        </button>
+                        <AudioListeningPlayer
+                          audioText={pitch.modelScript}
+                          title="Model Pitch Audio"
+                          compact={true}
+                        />
                       </div>
                       <p className="text-xs text-slate-800 leading-relaxed font-sans italic">
                         "{pitch.modelScript}"

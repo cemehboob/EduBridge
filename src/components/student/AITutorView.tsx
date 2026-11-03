@@ -20,6 +20,7 @@ import { OllamaModelKey, TutorMode, ChatMessage, OllamaModelInfo } from '../../t
 import { AIService } from '../../services/aiService';
 import { sound } from '../../utils/audio';
 import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
+import { AudioListeningPlayer } from '../common/AudioListeningPlayer';
 
 interface AITutorViewProps {
   models: OllamaModelInfo[];
@@ -235,13 +236,7 @@ export const AITutorView: React.FC<AITutorViewProps> = ({
                       <span className="font-semibold text-indigo-600">
                         Bridge AI ({msg.modelUsed || selectedModel})
                       </span>
-                      <button
-                        onClick={() => handleSpeak(msg.id, msg.content)}
-                        className="flex items-center gap-1 text-slate-500 hover:text-indigo-600 font-medium"
-                      >
-                        <Volume2 className="w-3.5 h-3.5" />
-                        <span>{activeSpeakingMsgId === msg.id ? 'Pause Voice' : 'Piper Audio'}</span>
-                      </button>
+                      <AudioListeningPlayer audioText={msg.content} compact={true} />
                     </div>
                   )}
 

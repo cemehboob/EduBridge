@@ -2809,12 +2809,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <label className="text-xs font-bold text-slate-700 block">
                 Quick Provider Presets (Auto-Configure Host &amp; Port)
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {[
-                  { name: 'Gmail / Google Workspace', host: 'smtp.gmail.com', port: 465, encryption: 'SSL' as const },
-                  { name: 'Microsoft 365 / Outlook', host: 'smtp.office365.com', port: 587, encryption: 'STARTTLS' as const },
+                  { name: 'Free Outlook / Exchange', host: 'smtp-mail.outlook.com', port: 587, encryption: 'STARTTLS' as const },
+                  { name: 'Microsoft 365 / Office', host: 'smtp.office365.com', port: 587, encryption: 'STARTTLS' as const },
+                  { name: 'Gmail / Google', host: 'smtp.gmail.com', port: 587, encryption: 'STARTTLS' as const },
                   { name: 'Yahoo Mail', host: 'smtp.mail.yahoo.com', port: 465, encryption: 'SSL' as const },
-                  { name: 'Exchange / Standard SMTP', host: 'mail.yourdomain.com', port: 587, encryption: 'STARTTLS' as const }
+                  { name: 'Corporate Exchange Relay', host: 'mail.yourdomain.com', port: 25, encryption: 'None' as const }
                 ].map((preset) => (
                   <button
                     key={preset.name}

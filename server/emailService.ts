@@ -349,10 +349,14 @@ export class EmailService {
     const config = this.readConfig();
     const providerStr = `${config.host}:${config.port} (${config.encryption})`;
 
-    // Check if real SMTP credentials are provided
-    const hasCredentials = Boolean(config.host && config.auth.user && config.auth.pass && config.fromEmail);
+    // Check if live SMTP dispatch can be attempted (supports authenticated servers and unauthenticated Exchange relays)
+    const canAttemptSmtp = Boolean(
+      config.host &&
+      config.fromEmail &&
+      (config.auth.user ? Boolean(config.auth.pass) : true)
+    );
 
-    if (hasCredentials && !process.env.EDUBRIDGE_FORCE_SIMULATE_SMTP) {
+    if (canAttemptSmtp && !process.env.EDUBRIDGE_FORCE_SIMULATE_SMTP) {
       try {
         const res = await this.executeSmtpSend(config, options);
         this.appendLog({

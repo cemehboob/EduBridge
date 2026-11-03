@@ -45,6 +45,7 @@ import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
 import { tfngExercises, band9EssayTemplates, cueCardItems, ageCohorts } from '../../data/ageCohortsData';
 import { sound } from '../../utils/audio';
 import { calculateCohortFromDob } from '../../utils/userProfile';
+import { AudioListeningPlayer } from '../common/AudioListeningPlayer';
 
 interface ExamPrepViewProps {
   mockTests: MockTest[];
@@ -1804,27 +1805,12 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
                               )}
 
                               {activePracticeItem.audioTranscript && (
-                                <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
-                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    <div>
-                                      <p className="text-xs font-bold text-slate-800">Audio Listening Simulation (Piper Engine)</p>
-                                      <p className="text-xs text-slate-500 italic">Click play to listen to audio passage</p>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <VoicePersonaSelector compact={true} />
-                                      <button
-                                        onClick={() => handlePlayAudio(activePracticeItem.audioTranscript!)}
-                                        className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                      >
-                                        <Volume2 className="w-4 h-4" />
-                                        <span>Listen</span>
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 font-mono leading-relaxed max-h-60 overflow-y-auto">
-                                    {activePracticeItem.audioTranscript}
-                                  </div>
-                                </div>
+                                <AudioListeningPlayer
+                                  audioText={activePracticeItem.audioTranscript}
+                                  title="Audio Listening Simulation (Piper Voice Engine)"
+                                  subtitle="Click to start listening. Use Pause or Stop at any time during reading."
+                                  showTranscriptInitially={true}
+                                />
                               )}
                             </div>
                           )}
@@ -2236,19 +2222,12 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
                           )}
 
                           {q.audioTranscript && (
-                            <div className="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-4">
-                              <div>
-                                <p className="text-xs font-bold text-slate-700">Audio Lecture Simulation (Piper Voice Engine)</p>
-                                <p className="text-xs text-slate-500 italic">Click play to listen to academic speaker</p>
-                              </div>
-                              <button
-                                onClick={() => handlePlayAudio(q.audioTranscript!)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700"
-                              >
-                                <Volume2 className="w-4 h-4" />
-                                <span>Listen</span>
-                              </button>
-                            </div>
+                            <AudioListeningPlayer
+                              audioText={q.audioTranscript}
+                              title="Audio Lecture Simulation (Piper Voice Engine)"
+                              subtitle="Click to start listening. Use Pause or Stop at any time during reading."
+                              showTranscriptInitially={false}
+                            />
                           )}
 
                           <p className="text-base font-bold text-slate-900">{q.questionText}</p>
@@ -2690,13 +2669,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
                 <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black uppercase text-indigo-900">Band 9 Model Response &amp; Prosody</span>
-                    <button
-                      onClick={() => AIService.speakAdaptive(card.sampleBand9Response, 'academy')}
-                      className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5"
-                    >
-                      <Volume2 className="w-3.5 h-3.5" />
-                      <span>Listen Model Response</span>
-                    </button>
+                    <AudioListeningPlayer audioText={card.sampleBand9Response} compact={true} />
                   </div>
                   <p className="text-xs text-slate-700 leading-relaxed font-serif italic">
                     "{card.sampleBand9Response}"

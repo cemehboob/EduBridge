@@ -1,5 +1,49 @@
 [
   {
+    "id": "mail_1793739130939_wtyk",
+    "timestamp": "2026-11-03 20:52:10",
+    "recipient": "admin@edubridge.io",
+    "type": "TEST_EMAIL",
+    "subject": "EduBridge SMTP Integration Test - 11:52:10 PM",
+    "provider": "smtp.gmail.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp.gmail.com:587 (getaddrinfo ENOTFOUND smtp.gmail.com)",
+    "durationMs": 1
+  },
+  {
+    "id": "mail_1793739130934_jc8s",
+    "timestamp": "2026-11-03 20:52:10",
+    "recipient": "sofia.martinez.1793739130921@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 438109",
+    "provider": "smtp.gmail.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp.gmail.com:587 (getaddrinfo ENOTFOUND smtp.gmail.com)",
+    "durationMs": 1
+  },
+  {
+    "id": "mail_1793739130933_zzap",
+    "timestamp": "2026-11-03 20:52:10",
+    "recipient": "elena.rostova.1793739130926@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 619342",
+    "provider": "smtp.gmail.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp.gmail.com:587 (getaddrinfo ENOTFOUND smtp.gmail.com)",
+    "durationMs": 1
+  },
+  {
+    "id": "mail_1793739130932_11px",
+    "timestamp": "2026-11-03 20:52:10",
+    "recipient": "elena.rostova.1793739130926@edubridge.org",
+    "type": "REGISTRATION_OTP",
+    "subject": "Your EduBridge Verification Code: 849201",
+    "provider": "smtp.gmail.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp.gmail.com:587 (getaddrinfo ENOTFOUND smtp.gmail.com)",
+    "durationMs": 6
+  },
+  {
     "id": "mail_1793736874299_nr7y",
     "timestamp": "2026-11-03 20:14:34",
     "recipient": "admin@edubridge.io",
