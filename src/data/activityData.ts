@@ -14,7 +14,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '8.5 Band',
     xpEarned: 50,
     status: 'completed',
-    details: 'Completed 40 academic reading questions across 3 passages on Environmental Sustainability and Quantum Computing with 38/40 correct.',
+    totalQuestions: 40,
+    attemptedQuestions: 40,
+    correctAnswers: 38,
+    incorrectAnswers: 2,
+    details: 'Completed 40 academic reading questions across 3 passages on Environmental Sustainability and Quantum Computing with 38/40 correct. Total Questions: 40 · Answers: 40 · Correct: 38 · Wrong: 2.',
     replayPayload: {
       tab: 'exam',
       subId: 'test_ielts_acad_01'
@@ -32,7 +36,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '100%',
     xpEarned: 25,
     status: 'completed',
-    details: 'Step-by-step factorization: 2(x² - 4) = 0 ➔ 2(x - 2)(x + 2) = 0 ➔ Roots: x = 2, x = -2.',
+    totalQuestions: 1,
+    attemptedQuestions: 1,
+    correctAnswers: 1,
+    incorrectAnswers: 0,
+    details: 'Step-by-step factorization: 2(x² - 4) = 0 ➔ 2(x - 2)(x + 2) = 0 ➔ Roots: x = 2, x = -2. Total Questions: 1 · Answers: 1 · Correct: 1 · Wrong: 0.',
     replayPayload: {
       tab: 'solver',
       query: '2x^2 - 8 = 0'
@@ -50,7 +58,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '96%',
     xpEarned: 35,
     status: 'completed',
-    details: 'Mastered discourse markers, contrastive transitions, and academic register for Task 2 argument essays.',
+    totalQuestions: 1,
+    attemptedQuestions: 1,
+    correctAnswers: 1,
+    incorrectAnswers: 0,
+    details: 'Mastered discourse markers, contrastive transitions, and academic register for Task 2 argument essays. Total Questions: 1 · Answers: 1 · Correct: 1 · Wrong: 0.',
     replayPayload: {
       tab: 'language',
       subId: 'u1_l1'
@@ -68,7 +80,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '10/10 Correct',
     xpEarned: 40,
     status: 'completed',
-    details: 'Tested on nuanced academic vocabulary including "ubiquitous", "pragmatic", "paradigm", and "corroborate".',
+    totalQuestions: 10,
+    attemptedQuestions: 10,
+    correctAnswers: 10,
+    incorrectAnswers: 0,
+    details: 'Tested on nuanced academic vocabulary including "ubiquitous", "pragmatic", "paradigm", and "corroborate". Total Questions: 10 · Answers: 10 · Correct: 10 · Wrong: 0.',
     replayPayload: {
       tab: 'vocab_quiz',
       subId: 'academy'
@@ -86,7 +102,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '100%',
     xpEarned: 25,
     status: 'completed',
-    details: 'Calculated net force on a 1500 kg electric vehicle accelerating at 3.2 m/s² ➔ F = 4,800 N.',
+    totalQuestions: 1,
+    attemptedQuestions: 1,
+    correctAnswers: 1,
+    incorrectAnswers: 0,
+    details: 'Calculated net force on a 1500 kg electric vehicle accelerating at 3.2 m/s² ➔ F = 4,800 N. Total Questions: 1 · Answers: 1 · Correct: 1 · Wrong: 0.',
     replayPayload: {
       tab: 'solver',
       query: 'F = m * a where m = 1500kg and a = 3.2m/s^2'
@@ -104,7 +124,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: 'Completed',
     xpEarned: 20,
     status: 'completed',
-    details: 'Reviewed 25 spaced repetition cards covering GRE/IELTS vocabulary and calculus derivative rules.',
+    totalQuestions: 25,
+    attemptedQuestions: 25,
+    correctAnswers: 23,
+    incorrectAnswers: 2,
+    details: 'Reviewed 25 spaced repetition cards covering GRE/IELTS vocabulary and calculus derivative rules. Total Questions: 25 · Answers: 25 · Correct: 23 · Wrong: 2.',
     replayPayload: {
       tab: 'planner'
     }
@@ -121,7 +145,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: 'Score: 82%',
     xpEarned: 30,
     status: 'reviewed',
-    details: 'Applied quantified metric enhancements and tailored resume for UK/EU Engineering format.',
+    totalQuestions: 1,
+    attemptedQuestions: 1,
+    correctAnswers: 1,
+    incorrectAnswers: 0,
+    details: 'Applied quantified metric enhancements and tailored resume for UK/EU Engineering format. Total Questions: 1 · Answers: 1 · Correct: 1 · Wrong: 0.',
     replayPayload: {
       tab: 'career'
     }
@@ -140,7 +168,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '🌟 100% Star Reader',
     xpEarned: 25,
     status: 'completed',
-    details: 'Matched animal sounds with initial phonemes: Lion /l/, Elephant /e/, and Tiger /t/.',
+    totalQuestions: 5,
+    attemptedQuestions: 5,
+    correctAnswers: 5,
+    incorrectAnswers: 0,
+    details: 'Matched animal sounds with initial phonemes: Lion /l/, Elephant /e/, and Tiger /t/. Total Questions: 5 · Answers: 5 · Correct: 5 · Wrong: 0.',
     replayPayload: {
       tab: 'cohorts',
       subId: 'science'
@@ -158,7 +190,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '🚀 5 Rockets Launched',
     xpEarned: 25,
     status: 'completed',
-    details: 'Solved single-digit addition challenges (4 + 3 = 7, 5 + 5 = 10) to fuel the moon rocket.',
+    totalQuestions: 5,
+    attemptedQuestions: 5,
+    correctAnswers: 5,
+    incorrectAnswers: 0,
+    details: 'Solved single-digit addition challenges (4 + 3 = 7, 5 + 5 = 10) to fuel the moon rocket. Total Questions: 5 · Answers: 5 · Correct: 5 · Wrong: 0.',
     replayPayload: {
       tab: 'cohorts',
       subId: 'science'
@@ -176,7 +212,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '🌟 3 Golden Stars',
     xpEarned: 20,
     status: 'completed',
-    details: 'Completed bedtime story reading, teeth brushing sticker, and 10 minutes of phonics practice.',
+    totalQuestions: 3,
+    attemptedQuestions: 3,
+    correctAnswers: 3,
+    incorrectAnswers: 0,
+    details: 'Completed bedtime story reading, teeth brushing sticker, and 10 minutes of phonics practice. Total Questions: 3 · Answers: 3 · Correct: 3 · Wrong: 0.',
     replayPayload: {
       tab: 'cohorts',
       subId: 'schedule'
@@ -196,7 +236,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '95% Voltage Accuracy',
     xpEarned: 35,
     status: 'completed',
-    details: 'Connected a series circuit with 9V battery, switch, and LED resistor without short-circuiting.',
+    totalQuestions: 6,
+    attemptedQuestions: 6,
+    correctAnswers: 6,
+    incorrectAnswers: 0,
+    details: 'Connected a series circuit with 9V battery, switch, and LED resistor without short-circuiting. Total Questions: 6 · Answers: 6 · Correct: 6 · Wrong: 0.',
     replayPayload: {
       tab: 'cohorts',
       subId: 'science'
@@ -214,7 +258,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '100% Balanced',
     xpEarned: 25,
     status: 'completed',
-    details: 'Balanced hydrogen and oxygen moles demonstrating the Law of Conservation of Mass.',
+    totalQuestions: 1,
+    attemptedQuestions: 1,
+    correctAnswers: 1,
+    incorrectAnswers: 0,
+    details: 'Balanced hydrogen and oxygen moles demonstrating the Law of Conservation of Mass. Total Questions: 1 · Answers: 1 · Correct: 1 · Wrong: 0.',
     replayPayload: {
       tab: 'solver',
       query: 'balance H2 + O2 -> H2O'
@@ -232,7 +280,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '100%',
     xpEarned: 30,
     status: 'completed',
-    details: 'Mastered definitions and context usage for "atmosphere", "photosynthesis", "velocity", and "gravity".',
+    totalQuestions: 8,
+    attemptedQuestions: 8,
+    correctAnswers: 8,
+    incorrectAnswers: 0,
+    details: 'Mastered definitions and context usage for "atmosphere", "photosynthesis", "velocity", and "gravity". Total Questions: 8 · Answers: 8 · Correct: 8 · Wrong: 0.',
     replayPayload: {
       tab: 'vocab_quiz',
       subId: 'junior'
@@ -252,7 +304,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: 'Published',
     xpEarned: 40,
     status: 'completed',
-    details: 'Configured syllabus milestones, lesson plans, and experimental learning objectives for High School Physics.',
+    totalQuestions: 1,
+    attemptedQuestions: 1,
+    correctAnswers: 1,
+    incorrectAnswers: 0,
+    details: 'Configured syllabus milestones, lesson plans, and experimental learning objectives for High School Physics. Total Questions: 1 · Answers: 1 · Correct: 1 · Wrong: 0.',
     replayPayload: {
       tab: 'curriculum',
       subId: 'physics_u4'
@@ -270,7 +326,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: '10 Items Added',
     xpEarned: 50,
     status: 'completed',
-    details: 'Authored calibrated items for thermodynamics, wave optics, and fluid mechanics with detailed answer rationales.',
+    totalQuestions: 10,
+    attemptedQuestions: 10,
+    correctAnswers: 10,
+    incorrectAnswers: 0,
+    details: 'Authored calibrated items for thermodynamics, wave optics, and fluid mechanics with detailed answer rationales. Total Questions: 10 · Answers: 10 · Correct: 10 · Wrong: 0.',
     replayPayload: {
       tab: 'questions'
     }
@@ -289,7 +349,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: 'Reviewed',
     xpEarned: 20,
     status: 'completed',
-    details: 'Inspected weekly study duration (14.5 hours), subject mastery radar, and screen time balance metrics.',
+    totalQuestions: 1,
+    attemptedQuestions: 1,
+    correctAnswers: 1,
+    incorrectAnswers: 0,
+    details: 'Inspected weekly study duration (14.5 hours), subject mastery radar, and screen time balance metrics. Total Questions: 1 · Answers: 1 · Correct: 1 · Wrong: 0.',
     replayPayload: {
       tab: 'growth'
     }
@@ -308,7 +372,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: 'Active Setting',
     xpEarned: 50,
     status: 'completed',
-    details: 'Configured global practice test question counts to 10 questions per test and enabled automated option shuffling for MCQs.',
+    totalQuestions: 10,
+    attemptedQuestions: 10,
+    correctAnswers: 10,
+    incorrectAnswers: 0,
+    details: 'Configured global practice test question counts to 10 questions per test and enabled automated option shuffling for MCQs. Total Questions: 10 · Answers: 10 · Correct: 10 · Wrong: 0.',
     replayPayload: {
       tab: 'dashboard',
       subId: 'test_settings'
@@ -326,7 +394,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: 'Verified Latency: 240ms',
     xpEarned: 40,
     status: 'completed',
-    details: 'Optimized inference temperature parameters (0.2 for Math/Science, 0.7 for Writing Feedback) and confirmed 99.9% uptime.',
+    totalQuestions: 2,
+    attemptedQuestions: 2,
+    correctAnswers: 2,
+    incorrectAnswers: 0,
+    details: 'Optimized inference temperature parameters (0.2 for Math/Science, 0.7 for Writing Feedback) and confirmed 99.9% uptime. Total Questions: 2 · Answers: 2 · Correct: 2 · Wrong: 0.',
     replayPayload: {
       tab: 'models'
     }
@@ -343,7 +415,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: 'Processed 150 Users',
     xpEarned: 35,
     status: 'completed',
-    details: 'Executed scheduled cron task for spaced repetition intervals and streak retention verification across active cohorts.',
+    totalQuestions: 150,
+    attemptedQuestions: 150,
+    correctAnswers: 148,
+    incorrectAnswers: 2,
+    details: 'Executed scheduled cron task for spaced repetition intervals and streak retention verification across active cohorts. Total Questions: 150 · Answers: 150 · Correct: 148 · Wrong: 2.',
     replayPayload: {
       tab: 'jobs'
     }
@@ -360,7 +436,11 @@ export const initialActivities: UserActivityRecord[] = [
     score: 'Zero Vulnerabilities',
     xpEarned: 30,
     status: 'completed',
-    details: 'Inspected 14 administrative audit entries, validated IP whitelists, and verified password salt hashes.',
+    totalQuestions: 14,
+    attemptedQuestions: 14,
+    correctAnswers: 14,
+    incorrectAnswers: 0,
+    details: 'Inspected 14 administrative audit entries, validated IP whitelists, and verified password salt hashes. Total Questions: 14 · Answers: 14 · Correct: 14 · Wrong: 0.',
     replayPayload: {
       tab: 'audit'
     }

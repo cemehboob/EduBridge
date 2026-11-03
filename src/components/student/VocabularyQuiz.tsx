@@ -215,6 +215,7 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
 
       // Record quiz activity to user timeline
       StorageService.recordUserActivity({
+        id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         userId: profile?.id || 'usr_student_01',
         userName: profile?.name || 'Alex Rivera',
         type: 'vocab_quiz',
@@ -222,8 +223,12 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
         category: 'Vocabulary Track',
         score: `${correct}/${total} (${accuracy}%)`,
         xpEarned,
+        totalQuestions: total,
+        attemptedQuestions: total,
+        correctAnswers: correct,
+        incorrectAnswers: total - correct,
         status: 'completed',
-        details: `Tested on vocabulary definitions and lexical accuracy: ${correct}/${total} correct (${accuracy}%).`,
+        details: `Tested on vocabulary definitions and lexical accuracy: ${correct}/${total} correct (${accuracy}%). Total Questions: ${total} · Answers: ${total} · Correct: ${correct} · Wrong: ${total - correct}.`,
         replayPayload: {
           tab: 'vocab_quiz',
           subId: selectedCohort

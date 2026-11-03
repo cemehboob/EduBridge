@@ -68,6 +68,7 @@ export const AcademicView: React.FC<AcademicViewProps> = ({ topics, onConsultAI 
       });
 
       StorageService.recordUserActivity({
+        id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         userId: 'usr_student_01',
         userName: 'Alex Rivera',
         type: 'stem_game',
@@ -75,8 +76,12 @@ export const AcademicView: React.FC<AcademicViewProps> = ({ topics, onConsultAI 
         category: `${activeTopic.subject} Mastery`,
         score: isCorrect ? '100% (Correct)' : 'Needs Review',
         xpEarned: isCorrect ? 25 : 10,
+        totalQuestions: 1,
+        attemptedQuestions: 1,
+        correctAnswers: isCorrect ? 1 : 0,
+        incorrectAnswers: isCorrect ? 0 : 1,
         status: 'completed',
-        details: `Practiced ${activeTopic.subCategory} problem: "${activeTopic.practiceProblem.question}". ${isCorrect ? 'Answered correctly!' : 'Reviewed complete step-by-step derivation.'}`,
+        details: `Practiced ${activeTopic.subCategory} problem: "${activeTopic.practiceProblem.question}". ${isCorrect ? 'Answered correctly!' : 'Reviewed complete step-by-step derivation.'} Total Questions: 1 · Answers: 1 · Correct: ${isCorrect ? 1 : 0} · Wrong: ${isCorrect ? 0 : 1}.`,
         replayPayload: {
           tab: 'academic',
           subId: activeTopic.id

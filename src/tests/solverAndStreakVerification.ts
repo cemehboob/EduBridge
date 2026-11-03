@@ -24,6 +24,7 @@ import { UserAccount } from '../types';
 import { IELTSPracticeService } from '../services/ieltsPracticeService';
 import { calculateAge, calculateCohortFromDob, calculateEducationLevel } from '../utils/userProfile';
 import { ServerStorage } from '../../server/storage';
+import { getActivityQuestionStats } from '../utils/activityStats';
 
 async function runTests() {
   console.log('=== STARTING EDU BRIDGE VERIFICATION SUITE ===\n');
@@ -1714,7 +1715,74 @@ async function runTests() {
     console.log(`PASS: Successfully reconstructed attempt for "${alexAttemptDetail.activity.title}": Score "${alexAttemptDetail.summary.scoreText}", Accuracy "${alexAttemptDetail.summary.accuracyText}", Evaluation "${alexAttemptDetail.summary.evaluationBadge}".`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 65 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 66: Activity Details Question Metrics (Total Questions, Answers, Correct, and Wrong)
+  console.log('\nTest 66: Verifying Activity Details Show Total Questions, Answers, Correct & Wrong Answers...');
+
+  // 1. Check existing activities from storage
+  const sampleActivities = StorageService.getUserActivities('usr_student_01');
+  const examActivity = sampleActivities.find((a) => a.id === 'act_alex_01') || sampleActivities[0];
+  const derivedStats = getActivityQuestionStats(examActivity);
+
+  if (
+    derivedStats.total <= 0 ||
+    derivedStats.attempted < 0 ||
+    derivedStats.correct < 0 ||
+    derivedStats.wrong < 0 ||
+    (derivedStats.correct + derivedStats.wrong !== derivedStats.total)
+  ) {
+    console.error(`FAIL: Derived question metrics are invalid: ${JSON.stringify(derivedStats)}`);
+    failures++;
+  } else {
+    console.log(`PASS: Activity "${examActivity.title}" details contain: Total Questions = ${derivedStats.total}, Answers = ${derivedStats.attempted}, Correct = ${derivedStats.correct}, Wrong = ${derivedStats.wrong}.`);
+  }
+
+  // 2. Record new activity with explicit question metrics
+  const newActivityWithStats = {
+    id: `act_test_metrics_${Date.now()}`,
+    userId: createdOnServer.id,
+    userName: createdOnServer.name,
+    type: 'mock_test' as const,
+    title: 'Verification Practice Test with Metrics',
+    category: 'IELTS Academic',
+    score: '9/10 (90%)',
+    xpEarned: 90,
+    status: 'completed' as const,
+    totalQuestions: 10,
+    attemptedQuestions: 10,
+    correctAnswers: 9,
+    incorrectAnswers: 1,
+    details: 'Completed timed section. Total Questions: 10 · Answers: 10 · Correct: 9 · Wrong: 1.',
+    timestamp: '2026-11-03 21:15:00',
+    replayPayload: { tab: 'exam', subId: 'test_sample_01' }
+  };
+
+  StorageService.recordUserActivity(newActivityWithStats);
+  await ServerStorage.saveActivity(newActivityWithStats);
+  const reRetrieved = StorageService.getUserActivities(createdOnServer.id).find((a) => a.id === newActivityWithStats.id);
+  if (!reRetrieved) {
+    console.error('FAIL: Newly recorded activity was not saved.');
+    failures++;
+  } else {
+    const stats = getActivityQuestionStats(reRetrieved);
+    if (stats.total !== 10 || stats.attempted !== 10 || stats.correct !== 9 || stats.wrong !== 1) {
+      console.error(`FAIL: Expected Total: 10, Answers: 10, Correct: 9, Wrong: 1, got ${JSON.stringify(stats)}`);
+      failures++;
+    } else {
+      console.log(`PASS: Newly recorded activity safely persisted and returned: Total Questions: ${stats.total}, Answers: ${stats.attempted}, Correct: ${stats.correct}, Wrong: ${stats.wrong}.`);
+    }
+  }
+
+  // 3. Verify ServerStorage also holds the question metrics
+  const serverActivities = ServerStorage.getActivities({ userId: createdOnServer.id }).items;
+  const serverActivity = serverActivities.find((a) => a.id === newActivityWithStats.id);
+  if (!serverActivity || serverActivity.totalQuestions !== 10 || serverActivity.correctAnswers !== 9) {
+    console.error('FAIL: ServerStorage did not persist question metrics correctly.');
+    failures++;
+  } else {
+    console.log('PASS: Central Server Vault correctly persisted totalQuestions, attemptedQuestions, correctAnswers, and incorrectAnswers.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 66 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

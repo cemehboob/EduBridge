@@ -31,6 +31,9 @@ import { UserActivityRecord, UserProfile, UserAccount, QuestionAttemptRecord } f
 import { sound } from '../../utils/audio';
 import { StorageService } from '../../services/storage';
 import { ShowAttemptModal } from '../common/ShowAttemptModal';
+import { getActivityQuestionStats } from '../../utils/activityStats';
+
+export { getActivityQuestionStats };
 
 interface ActivityBoardViewProps {
   profile: UserProfile;
@@ -1200,6 +1203,29 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
                           <div className="line-clamp-2 leading-relaxed text-[11px] font-medium max-w-xl">
                             {act.details}
                           </div>
+                          {(() => {
+                            const qStats = getActivityQuestionStats(act);
+                            return (
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1.5 pt-1 border-t border-slate-100">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200/80 text-[10px] font-bold" title="Total number of questions">
+                                  <span>Total:</span>
+                                  <span className="font-extrabold">{qStats.total} Qs</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold" title="Total submitted answers">
+                                  <span>Answers:</span>
+                                  <span className="font-extrabold">{qStats.attempted}</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold" title="Correct answers">
+                                  <span>Correct:</span>
+                                  <span className="font-extrabold text-emerald-800">{qStats.correct}</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold" title="Wrong / incorrect answers">
+                                  <span>Wrong:</span>
+                                  <span className="font-extrabold text-rose-800">{qStats.wrong}</span>
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </td>
 
                         {/* Result / Score */}
@@ -1291,6 +1317,30 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
                       <p className="text-[11px] text-slate-500 line-clamp-1 max-w-2xl">
                         {act.details}
                       </p>
+
+                      {(() => {
+                        const qStats = getActivityQuestionStats(act);
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 py-0.5">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200/80 text-[10px] font-bold" title="Total number of questions">
+                              <span>Total:</span>
+                              <span className="font-extrabold">{qStats.total} Qs</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold" title="Total submitted answers">
+                              <span>Answers:</span>
+                              <span className="font-extrabold">{qStats.attempted}</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold" title="Correct answers">
+                              <span>Correct:</span>
+                              <span className="font-extrabold text-emerald-800">{qStats.correct}</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold" title="Wrong / incorrect answers">
+                              <span>Wrong:</span>
+                              <span className="font-extrabold text-rose-800">{qStats.wrong}</span>
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       <div className="flex flex-wrap items-center gap-2.5 text-[10px] text-slate-400 pt-0.5">
                         <span className="flex items-center gap-1 font-mono text-slate-600 font-semibold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">

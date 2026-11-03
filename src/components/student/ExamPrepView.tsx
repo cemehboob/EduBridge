@@ -607,9 +607,10 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
       ? `${testItem.title} (1 Task)`
       : `${testItem.title} (${total} Questions)`;
 
+    const wrongCount = total - correctCount;
     const detailsDisplay = isWriting
-      ? `Completed IELTS Writing Practice on "${testItem.title}". Submitted essay of ${wordCount} words evaluated at ${bandScore}.`
-      : `Completed ${total}-question practice test on "${testItem.title}" under subject "${testItem.subject || testItem.module}". Scored ${correctCount}/${total} (${percentage}%).`;
+      ? `Completed IELTS Writing Practice on "${testItem.title}". Submitted essay of ${wordCount} words evaluated at ${bandScore}. Total Questions: 1 · Answers: 1 · Correct: 1 · Wrong: 0.`
+      : `Completed ${total}-question practice test on "${testItem.title}" under subject "${testItem.subject || testItem.module}". Scored ${correctCount}/${total} (${percentage}%). Total Questions: ${total} · Answers: ${total} · Correct: ${correctCount} · Wrong: ${wrongCount}.`;
 
     setPracticeTestSubmitted(true);
     setPracticeTestScore({ correct: isWriting ? 1 : correctCount, total, percentage });
@@ -649,6 +650,10 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
       score: scoreDisplay,
       xpEarned: 50,
       status: 'completed' as const,
+      totalQuestions: total,
+      attemptedQuestions: isWriting ? 1 : total,
+      correctAnswers: isWriting ? 1 : correctCount,
+      incorrectAnswers: isWriting ? 0 : wrongCount,
       details: detailsDisplay,
       replayPayload: {
         tab: 'exam',
@@ -755,6 +760,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
 
     // Record activity in user timeline
     const practiceActivity = {
+      id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       userId: currentUser?.id || profile?.id || 'usr_student_01',
       userName: currentUser?.name || profile?.name || 'Alex Rivera',
       type: 'mock_test' as const,
@@ -762,8 +768,12 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
       category: `${testItem.category} · ${testItem.module}`,
       score: isCorrectResult ? '100% (Correct)' : 'Needs Review',
       xpEarned: isCorrectResult ? 25 : 10,
+      totalQuestions: 1,
+      attemptedQuestions: 1,
+      correctAnswers: isCorrectResult ? 1 : 0,
+      incorrectAnswers: isCorrectResult ? 0 : 1,
       status: 'completed' as const,
-      details: `Practiced ${testItem.module} question: ${testItem.prompt.slice(0, 70)}...`,
+      details: `Practiced ${testItem.module} question: ${testItem.prompt.slice(0, 70)}... Total Questions: 1 · Answers: 1 · Correct: ${isCorrectResult ? 1 : 0} · Wrong: ${isCorrectResult ? 0 : 1}.`,
       replayPayload: {
         tab: 'exam',
         subId: testItem.id
@@ -904,8 +914,35 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
       details: `Full timed mock examination submitted with AI multi-metric evaluation. Predicted score: ${predictedScore}.`
     });
 
+    // Calculate mock exam questions statistics
+    const totalQCount = currentTest.questions.length;
+    let answeredCount = 0;
+    let correctQCount = 0;
+    let wrongQCount = 0;
+
+    currentTest.questions.forEach((q) => {
+      let userAns = userAnswers[q.id] || '';
+      if (q.section === 'Writing') {
+        userAns = essayText;
+      } else if (q.section === 'Speaking') {
+        userAns = 'Recorded oral response via microphone';
+      }
+      if (userAns.trim()) {
+        answeredCount++;
+      }
+      const isCorrect = q.correctAnswer
+        ? userAns.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()
+        : true;
+      if (isCorrect) {
+        correctQCount++;
+      } else {
+        wrongQCount++;
+      }
+    });
+
     // Record mock exam activity to user timeline
     const mockExamActivity = {
+      id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       userId: currentUser?.id || profile?.id || 'usr_student_01',
       userName: currentUser?.name || profile?.name || 'Alex Rivera',
       type: 'mock_test' as const,
@@ -913,8 +950,12 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
       category: selectedExam,
       score: predictedScore,
       xpEarned: 100,
+      totalQuestions: totalQCount,
+      attemptedQuestions: answeredCount,
+      correctAnswers: correctQCount,
+      incorrectAnswers: wrongQCount,
       status: 'completed' as const,
-      details: `Full timed mock examination evaluated with AI multi-metric breakdown. Predicted score: ${predictedScore}.`,
+      details: `Full timed mock examination evaluated with AI multi-metric breakdown. Predicted score: ${predictedScore}. Total Questions: ${totalQCount} · Answers: ${answeredCount} · Correct: ${correctQCount} · Wrong: ${wrongQCount}.`,
       replayPayload: {
         tab: 'exam',
         subId: currentTest.id

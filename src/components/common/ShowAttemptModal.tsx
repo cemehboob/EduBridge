@@ -13,7 +13,8 @@ import {
   TrendingUp,
   BrainCircuit,
   MessageSquare,
-  AlertCircle
+  AlertCircle,
+  Target
 } from 'lucide-react';
 import { UserActivityRecord, QuestionAttemptRecord, WrittenResponseRecord, AttemptDetailResponse } from '../../types';
 import { StorageService } from '../../services/storage';
@@ -69,6 +70,31 @@ export const ShowAttemptModal: React.FC<ShowAttemptModalProps> = ({ isOpen, onCl
 
   const selectedQuestion: QuestionAttemptRecord | undefined =
     filteredQuestions[selectedQuestionIndex] || filteredQuestions[0];
+
+  // Derive Question & Answer Metrics for Attempt
+  const totalQuestionsCount = activity.totalQuestions !== undefined
+    ? activity.totalQuestions
+    : questions.length > 0
+    ? questions.length
+    : (activity.details?.match(/Total Questions:\s*(\d+)/i)?.[1] ? parseInt(activity.details.match(/Total Questions:\s*(\d+)/i)![1], 10) : 1);
+
+  const answeredCount = activity.attemptedQuestions !== undefined
+    ? activity.attemptedQuestions
+    : questions.length > 0
+    ? questions.filter((q) => q.userAnswer && q.userAnswer !== 'No response recorded').length
+    : (activity.details?.match(/Answers:\s*(\d+)/i)?.[1] ? parseInt(activity.details.match(/Answers:\s*(\d+)/i)![1], 10) : 1);
+
+  const correctCount = activity.correctAnswers !== undefined
+    ? activity.correctAnswers
+    : questions.length > 0
+    ? questions.filter((q) => q.isCorrect).length
+    : (activity.details?.match(/Correct:\s*(\d+)/i)?.[1] ? parseInt(activity.details.match(/Correct:\s*(\d+)/i)![1], 10) : (activity.status === 'completed' && !activity.score?.includes('Needs Review') ? 1 : 0));
+
+  const wrongCount = activity.incorrectAnswers !== undefined
+    ? activity.incorrectAnswers
+    : questions.length > 0
+    ? questions.filter((q) => !q.isCorrect).length
+    : (activity.details?.match(/Wrong:\s*(\d+)/i)?.[1] ? parseInt(activity.details.match(/Wrong:\s*(\d+)/i)![1], 10) : Math.max(0, totalQuestionsCount - correctCount));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/75 backdrop-blur-xs animate-in fade-in duration-200">
@@ -213,6 +239,47 @@ export const ShowAttemptModal: React.FC<ShowAttemptModalProps> = ({ isOpen, onCl
                     </div>
                   </div>
 
+                  {/* Detailed Question & Answer Evaluation Metrics */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 text-white shadow-md space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-emerald-400" />
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">
+                          Questions &amp; Answers Evaluation Metrics
+                        </h4>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400">
+                        Authoritative Activity Record
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="p-3 rounded-xl bg-slate-800/90 border border-slate-700/80">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Total Questions</div>
+                        <div className="text-2xl font-black text-blue-400 mt-0.5">{totalQuestionsCount}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5 font-medium">Assigned test items</div>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-slate-800/90 border border-slate-700/80">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Answers Submitted</div>
+                        <div className="text-2xl font-black text-slate-100 mt-0.5">{answeredCount}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5 font-medium">Submitted by candidate</div>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30">
+                        <div className="text-[10px] font-bold text-emerald-400 uppercase">Correct Answers</div>
+                        <div className="text-2xl font-black text-emerald-400 mt-0.5">{correctCount}</div>
+                        <div className="text-[10px] text-emerald-300/80 mt-0.5 font-medium">Verified accurate</div>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/30">
+                        <div className="text-[10px] font-bold text-rose-400 uppercase">Wrong Answers</div>
+                        <div className="text-2xl font-black text-rose-400 mt-0.5">{wrongCount}</div>
+                        <div className="text-[10px] text-rose-300/80 mt-0.5 font-medium">Incorrect responses</div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Activity Details Card */}
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
                     <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -222,6 +289,24 @@ export const ShowAttemptModal: React.FC<ShowAttemptModalProps> = ({ isOpen, onCl
                     <p className="text-xs text-slate-600 leading-relaxed">
                       {activity.details}
                     </p>
+                    <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
+                        <span>Total Questions:</span>
+                        <span className="font-extrabold">{totalQuestionsCount}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold">
+                        <span>Answers:</span>
+                        <span className="font-extrabold">{answeredCount}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                        <span>Correct:</span>
+                        <span className="font-extrabold">{correctCount}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">
+                        <span>Wrong:</span>
+                        <span className="font-extrabold">{wrongCount}</span>
+                      </span>
+                    </div>
                   </div>
 
                   {/* Summary of Questions if available */}
