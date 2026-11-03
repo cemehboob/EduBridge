@@ -31,7 +31,8 @@ import { sound } from './utils/audio';
 import { userAccountToProfile, calculateCohortFromDob, calculateEducationLevel } from './utils/userProfile';
 
 import { Header } from './components/Header';
-import { StudentView } from './components/student/StudentView';
+import { StudentView, StudentTab } from './components/student/StudentView';
+import { AIService } from './services/aiService';
 import { ParentPortal } from './components/parent/ParentPortal';
 import { TeacherPortal } from './components/teacher/TeacherPortal';
 import { AdminPortal } from './components/admin/AdminPortal';
@@ -115,6 +116,39 @@ export default function App() {
 
   // Interactive Exercise runner state
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
+
+  // Active Student Tab & Global Home Navigation
+  const [studentTab, setStudentTab] = useState<StudentTab>('dashboard');
+  const [homeResetKey, setHomeResetKey] = useState<number>(0);
+
+  // Stop any active test/practice/quiz/speech and route directly to homepage
+  const handleNavigateHome = () => {
+    sound.playClick();
+
+    // 1. Immediately stop any active audio / speech recitation
+    AIService.stopSpeaking();
+
+    // 2. Stop/abort any running interactive lesson or exercise modal
+    setActiveLesson(null);
+
+    // 3. Dismiss all overlays/modals
+    setIsSyncModalOpen(false);
+    setIsAuthModalOpen(false);
+    setIsProfileModalOpen(false);
+    setIsFeedbackModalOpen(false);
+    setIsGuideModalOpen(false);
+    setIsResourceVaultOpen(false);
+    setCelebrationModal(null);
+
+    // 4. Reset role to 'student' (the primary learner portal) and route to 'dashboard'
+    if (!isUserAdmin || activeRole === 'student') {
+      setActiveRole('student');
+    }
+    setStudentTab('dashboard');
+
+    // 5. Trigger full reset signal to abort any ongoing test/mock/quiz sessions
+    setHomeResetKey((prev) => prev + 1);
+  };
 
   // Sync / Offline Modal
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
@@ -866,13 +900,17 @@ export default function App() {
             subtitle: 'Your daily learning habit is unbroken. Keep crushing your goals!'
           });
         }}
+        onNavigateHome={handleNavigateHome}
       />
 
       {/* Main Content View by Role (Strict RBAC Guarded) */}
       <div className="flex-1 py-4 sm:py-6">
         {effectiveRole === 'student' && (
           <StudentView
-            key={currentUser?.id || 'guest'}
+            key={`${currentUser?.id || 'guest'}_${homeResetKey}`}
+            activeTab={studentTab}
+            onTabChange={setStudentTab}
+            resetTrigger={homeResetKey}
             profile={profile}
             currentUser={currentUser}
             activities={activities}

@@ -47,6 +47,7 @@ interface HeaderProps {
   feedbackTicketCount?: number;
   isKidMode?: boolean;
   onToggleKidMode?: () => void;
+  onNavigateHome?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -69,7 +70,8 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   feedbackTicketCount = 0,
   isKidMode = false,
-  onToggleKidMode
+  onToggleKidMode,
+  onNavigateHome
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -101,21 +103,33 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="w-full px-3 sm:px-4 lg:px-6">
         <div className="flex items-center justify-between h-16 gap-2">
           
-          {/* Logo & Tagline */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 via-blue-600 to-teal-500 flex items-center justify-center text-white font-black text-xl shadow-md">
+          {/* Logo & Tagline - Linked to Homepage (stops any ongoing test/practice/quiz) */}
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              onNavigateHome?.();
+            }}
+            className="flex items-center gap-3 text-left group focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-2xl p-1 -m-1 transition-all cursor-pointer select-none"
+            title="Return to EduBridge Homepage (stops any ongoing test/practice/quiz)"
+            aria-label="EduBridge Homepage"
+            data-testid="header-home-button"
+          >
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 via-blue-600 to-teal-500 flex items-center justify-center text-white font-black text-xl shadow-md group-hover:scale-105 group-hover:shadow-lg transition-all">
               EB
             </div>
             <div className="hidden sm:block">
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-slate-900 tracking-tight text-lg">EduBridge</span>
+                <span className="font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors tracking-tight text-lg">
+                  EduBridge
+                </span>
                 <span className="text-xs font-semibold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
                   Self-Hosted Core
                 </span>
               </div>
               <p className="text-xs text-slate-500 hidden md:block">Bridging Learning, Skills and Future Success</p>
             </div>
-          </div>
+          </button>
 
           {/* Role Navigation Bar */}
           <nav aria-label="Portal Navigation" className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200">

@@ -63,9 +63,10 @@ import { QuestionSolverView } from '../solver/QuestionSolverView';
 import { ActivityBoardView } from './ActivityBoardView';
 import { BadgeService } from '../../services/badgeService';
 import { StorageService } from '../../services/storage';
+import { AIService } from '../../services/aiService';
 import { sound } from '../../utils/audio';
 
-type StudentTab = 'dashboard' | 'language' | 'cohorts' | 'solver' | 'exam' | 'vocab_quiz' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges';
+export type StudentTab = 'dashboard' | 'language' | 'cohorts' | 'solver' | 'exam' | 'vocab_quiz' | 'academic' | 'tutor' | 'planner' | 'career' | 'leaderboard' | 'badges';
 
 interface StudentViewProps {
   profile: UserProfile;
@@ -95,6 +96,9 @@ interface StudentViewProps {
   onMarkLessonCompleted?: (lesson: Lesson, score?: number) => void;
   onRecordActivity?: (activity: Omit<UserActivityRecord, 'id' | 'timestamp'> & { timestamp?: string }) => void;
   onUpdateMockTests?: (tests: MockTest[]) => void;
+  activeTab?: StudentTab;
+  onTabChange?: (tab: StudentTab) => void;
+  resetTrigger?: number;
 }
 
 export const StudentView: React.FC<StudentViewProps> = ({
@@ -124,7 +128,10 @@ export const StudentView: React.FC<StudentViewProps> = ({
   onToggleSimplifiedInterface,
   onMarkLessonCompleted,
   onRecordActivity,
-  onUpdateMockTests
+  onUpdateMockTests,
+  activeTab: propActiveTab,
+  onTabChange,
+  resetTrigger
 }) => {
   const isKidMode = profile.simplifiedInterface !== undefined
     ? profile.simplifiedInterface
@@ -135,7 +142,20 @@ export const StudentView: React.FC<StudentViewProps> = ({
   // First screen after login is always the comprehensive Activity Board & History Dashboard
   const defaultTab: StudentTab = 'dashboard';
   
-  const [activeTab, setActiveTab] = useState<StudentTab>(defaultTab);
+  const [internalTab, setInternalTab] = useState<StudentTab>(defaultTab);
+  const activeTab = propActiveTab !== undefined ? propActiveTab : internalTab;
+  const setActiveTab = (tab: StudentTab) => {
+    setInternalTab(tab);
+    onTabChange?.(tab);
+  };
+
+  useEffect(() => {
+    if (resetTrigger !== undefined && resetTrigger > 0) {
+      setInternalTab('dashboard');
+      onTabChange?.('dashboard');
+      AIService.stopSpeaking();
+    }
+  }, [resetTrigger]);
   const [tutorInitialPrompt, setTutorInitialPrompt] = useState<string | undefined>(undefined);
   const [solverInitialQuery, setSolverInitialQuery] = useState<string | undefined>(undefined);
   const [isBadgeGridExpanded, setIsBadgeGridExpanded] = useState(false);

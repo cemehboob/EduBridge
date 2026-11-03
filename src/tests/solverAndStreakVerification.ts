@@ -2134,7 +2134,43 @@ async function runTests() {
     console.log('PASS: "Simulated Email Delivery Dispatch" box exposing code in UI has been completely removed.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 76 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 77: EB Icon & EduBridge Brand Linked to Homepage & Stops Ongoing Tests/Quizzes
+  console.log('\nTest 77: Verifying EB Icon & EduBridge Brand Logo Links to Homepage & Stops Ongoing Tests/Quizzes...');
+  const headerSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/Header.tsx'), 'utf-8');
+  const mainAppSrc = fs.readFileSync(path.join(process.cwd(), 'src/App.tsx'), 'utf-8');
+  const studentViewSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/student/StudentView.tsx'), 'utf-8');
+
+  // Verify Header has clickable brand button containing EB and EduBridge
+  const hasHeaderHomeButton =
+    headerSrc.includes('data-testid="header-home-button"') &&
+    headerSrc.includes('onNavigateHome') &&
+    headerSrc.includes('EB') &&
+    headerSrc.includes('EduBridge');
+
+  // Verify App.tsx handleNavigateHome halts tests, quizzes, audio, and routes to dashboard
+  const hasNavigateHomeLogic =
+    mainAppSrc.includes('handleNavigateHome') &&
+    mainAppSrc.includes('AIService.stopSpeaking()') &&
+    mainAppSrc.includes('setActiveLesson(null)') &&
+    mainAppSrc.includes("setStudentTab('dashboard')") &&
+    mainAppSrc.includes('onNavigateHome={handleNavigateHome}');
+
+  // Verify StudentView supports activeTab, onTabChange, and resetTrigger to teardown tests
+  const hasStudentViewResetSupport =
+    studentViewSrc.includes('resetTrigger') &&
+    studentViewSrc.includes("setInternalTab('dashboard')") &&
+    studentViewSrc.includes('AIService.stopSpeaking()');
+
+  if (!hasHeaderHomeButton || !hasNavigateHomeLogic || !hasStudentViewResetSupport) {
+    console.error('FAIL: EB icon or EduBridge brand is not linked to homepage or fails to stop ongoing tests/practice/quiz sessions.');
+    failures++;
+  } else {
+    console.log('PASS: Header EB icon and EduBridge text are wrapped in interactive clickable brand button linked to onNavigateHome.');
+    console.log('PASS: handleNavigateHome() halts ongoing speech (AIService.stopSpeaking()), aborts active lesson/exercises (setActiveLesson(null)), dismisses modal overlays, and routes to student dashboard.');
+    console.log('PASS: StudentView synchronizes with resetTrigger to unmount/stop active tests and restore Activity Board & History home dashboard.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 77 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 
