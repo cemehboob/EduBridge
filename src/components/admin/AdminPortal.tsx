@@ -55,6 +55,7 @@ import {
 import { sound } from '../../utils/audio';
 import { StorageService } from '../../services/storage';
 import { calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
+import { ShowAttemptModal } from '../common/ShowAttemptModal';
 
 interface AdminPortalProps {
   models: OllamaModelInfo[];
@@ -104,6 +105,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // Standardized Practice Test Question Settings State
   const [examSettings, setExamSettings] = useState<ExamSettingsConfig>(() => StorageService.getExamSettings());
   const [examSettingsSavedNotice, setExamSettingsSavedNotice] = useState<string | null>(null);
+  const [selectedAttemptForModal, setSelectedAttemptForModal] = useState<UserActivityRecord | null>(null);
 
   // Age Groups & Educational Content Governance Configuration State
   const [cohortRules, setCohortRules] = useState([
@@ -1171,6 +1173,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                                 <th className="py-2.5 px-3">Result / Score</th>
                                 <th className="py-2.5 px-3">Timestamp</th>
                                 <th className="py-2.5 px-3">Status</th>
+                                <th className="py-2.5 px-3 text-right">Attempt Review</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -1184,6 +1187,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                                       {act.status}
                                     </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right">
+                                    <button
+                                      onClick={() => {
+                                        sound.playClick();
+                                        setSelectedAttemptForModal(act);
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                                      title="Inspect user's complete original attempt, submitted answers, and rubric"
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                      <span>Show Attempt</span>
+                                    </button>
                                   </td>
                                 </tr>
                               ))}
@@ -1350,6 +1366,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       <th className="py-3 px-3.5">Result / Score</th>
                       <th className="py-3 px-3.5">Timestamp</th>
                       <th className="py-3 px-3.5">Details</th>
+                      <th className="py-3 px-3.5 text-right">Attempt Review</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1376,6 +1393,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           <td className="py-3 px-3.5 font-mono text-slate-500 text-[11px] whitespace-nowrap">{act.timestamp}</td>
                           <td className="py-3 px-3.5 text-slate-500 text-[11px] max-w-xs truncate" title={act.details}>
                             {act.details}
+                          </td>
+                          <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                            <button
+                              onClick={() => {
+                                sound.playClick();
+                                setSelectedAttemptForModal(act);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                              title="Inspect full original attempt, submitted answers, and rubric"
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>Show Attempt</span>
+                            </button>
                           </td>
                         </tr>
                       );
@@ -2898,6 +2928,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </div>
         </div>
       )}
+
+      {/* Administrator Full Attempt Inspection Modal */}
+      <ShowAttemptModal
+        isOpen={!!selectedAttemptForModal}
+        onClose={() => setSelectedAttemptForModal(null)}
+        activity={selectedAttemptForModal}
+      />
 
     </div>
   );

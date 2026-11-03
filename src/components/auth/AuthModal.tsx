@@ -21,6 +21,7 @@ import {
 import { UserAccount, UserRole, FontScale } from '../../types';
 import { sound } from '../../utils/audio';
 import { StorageService } from '../../services/storage';
+import { apiService } from '../../services/apiService';
 import { calculateAge, calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 
 interface AuthModalProps {
@@ -80,27 +81,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    const cleanId = loginIdentifier.trim().toLowerCase();
+    const cleanId = loginIdentifier.trim();
     if (!cleanId || !loginPassword.trim()) {
       setErrorMsg('Please enter both your username/email and password.');
       return;
     }
 
+    try {
+      // 1. Authenticate against central authoritative server (enables cross-device login)
+      const { user: serverUser } = await apiService.auth.login(cleanId, loginPassword);
+      sound.playSuccess();
+      onLogin(serverUser);
+      onClose();
+      return;
+    } catch (serverErr: any) {
+      if (serverErr.statusCode === 401 || serverErr.statusCode === 403 || serverErr.statusCode === 404) {
+        sound.playError();
+        setErrorMsg(serverErr.message || 'Authentication failed. Please verify your credentials.');
+        return;
+      }
+      console.warn('Central server authentication notice, verifying locally:', serverErr.message);
+    }
+
+    const cleanLower = cleanId.toLowerCase();
     const user = users.find(
       (u) =>
-        (u.username && u.username.toLowerCase() === cleanId) ||
-        u.email.toLowerCase() === cleanId ||
-        u.name.toLowerCase() === cleanId
+        (u.username && u.username.toLowerCase() === cleanLower) ||
+        u.email.toLowerCase() === cleanLower ||
+        u.name.toLowerCase() === cleanLower
     );
 
     if (!user) {
       sound.playError();
-      setErrorMsg(`No account found for "${loginIdentifier.trim()}". Please verify your username or email.`);
+      setErrorMsg(`No account found for "${cleanId}". Please verify your username or email.`);
       return;
     }
 
@@ -286,9 +304,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     };
 
-    sound.playSuccess();
-    onRegister(newUser);
-    onClose();
+    // Synchronize registration with central server (enables cross-device login)
+    apiService.auth.register(newUser)
+      .then(({ user: serverUser }) => {
+        sound.playSuccess();
+        onRegister(serverUser);
+        onClose();
+      })
+      .catch((err) => {
+        console.warn('Central server registration notice, proceeding with local registration:', err.message);
+        sound.playSuccess();
+        onRegister(newUser);
+        onClose();
+      });
   };
 
   return (

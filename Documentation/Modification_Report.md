@@ -1,6 +1,6 @@
 # EduBridge Modification Report
-**Document Version:** 1.4.0  
-**Date:** November 2, 2026  
+**Document Version:** 1.5.0  
+**Date:** November 3, 2026  
 **Author:** Antigravity Engineering & QA Team  
 **Scope:** Record of Architectural, Functional, Security, and Documentation Enhancements
 
@@ -36,6 +36,11 @@ All modifications were implemented with strict adherence to backwards compatibil
 | **Admin-Gated Test Synthesizers** | RBAC & Assessment Architecture | Restricted "Add 10-Question Subject Test (AI)" and "Add 10-Question Mix & Match (AI)" exclusively to the Admin role (`currentUser?.role === 'admin' || profile?.role === 'admin'`). | Non-admin roles (Students, Parents, Teachers) do not see manual on-demand test synthesizer toolbars. Automated background schedulers handle catalog expansion. |
 | **Filtered Mix & Match Catalog** | Academic Coherence | Filtered out all practice tests containing "Mix & Match" or "Cross-Disciplinary" for non-admin roles in `ExamPrepView.tsx`. | Learners only encounter cohesive, single-subject practice tests aligned with standard educational curricula. |
 | **Strict Subject-Related Questions & Answers** | Pedagogical Integrity | Rewrote `generateAIPracticeTest` blueprints in `ieltsPracticeService.ts` so that every question prompt, correct answer, distractor, and explanation is strictly and dynamically anchored to `${subject}` and `${topic}`. | Completely eliminates generic or irrelevant distractors, ensuring rigorous subject-matter fidelity across all generated tests. |
+| **Centralized Server Storage Vault** | Enterprise Architecture | Established structured JSON file-based server persistence in `data/server_vault/` (`users.json`, `activities.json`, `question_attempts.json`, `written_responses.json`, `incomplete_attempts.json`) with in-process write mutexes and atomic file operations. | User accounts, activities, test attempts, submitted answers, and written essays are maintained on the authoritative central server rather than isolated in client browsers. |
+| **Cross-Device Authentication & Sessions** | Security & Centralization | Created Express backend API in `server/app.ts` with token-based sessions (`Authorization: Bearer <token>`). Integrated into Vite dev server via middleware plugin and standalone `server/index.ts`. | Users registered on Device A can instantly log in on Device B. Clearing browser cache does not result in data loss, as the server restores complete history upon login. |
+| **Complete Written Response History** | Assessment Preservation | Implemented `WrittenResponseRecord` capturing full essay text, word count, character count, duration, and multi-metric AI rubric evaluations (Task Achievement, Coherence, Lexical, Grammar). | All written tasks, essays, paragraphs, and letters are permanently preserved on the server without overwriting or truncating candidate submissions. |
+| **"Show My Attempt" Interactive Modal** | User Experience & Transparency | Developed `ShowAttemptModal.tsx` and wired **"👁️ Show My Attempt"** across `ActivityBoardView.tsx` and **"👁️ Show Attempt"** in `AdminPortal.tsx`. | Candidates and administrators can review the exact original questions, options, user choices, correct answers, explanations, and full essay evaluations for any session. |
+| **Autosave & Incomplete Attempt Recovery** | Data Loss Prevention | Implemented `IncompleteAttemptRecord` autosaving in `ExamPrepView.tsx` with a recovery banner. | Active practice tests, mock exams, and essay drafts are continuously autosaved to the server, allowing candidates to resume unfinished attempts across browser closures or different devices. |
 
 ---
 
@@ -129,13 +134,42 @@ All modifications were implemented with strict adherence to backwards compatibil
   - Rewrote all 10 question blueprints in `generateAIPracticeTest` so that every prompt, correct answer, incorrect distractor, and pedagogical explanation explicitly incorporates `${subject}` and `${topic}`.
   - Distractors now incorporate domain-specific failure modes, uncalibrated parameters, and erroneous methodologies specific to the subject (e.g., thermodynamic entropy in Silicon Photonics, baseline drift in Environmental Science).
 
+### 3.12. Centralized Server Storage Vault & Cross-Device Express API
+- **Files Created / Modified:** `server/storage.ts`, `server/app.ts`, `server/index.ts`, `src/services/apiService.ts`, `src/services/storage.ts`, `vite.config.ts`, `package.json`
+- **Issue:** Application previously relied on browser-specific local storage, causing accounts and learning histories to remain isolated on individual client machines and lost upon browser cache clearance.
+- **Solution:**
+  - Implemented structured JSON server-side persistence in `data/server_vault/` (`users.json`, `activities.json`, `question_attempts.json`, `written_responses.json`, `incomplete_attempts.json`).
+  - Added safe concurrency via in-process write mutexes and atomic `.tmp` file writes with synchronous renaming.
+  - Built an Express backend application exposing `/api/auth/*`, `/api/users/*`, `/api/activities/*`, `/api/attempts/*`, and `/api/admin/*`.
+  - Integrated the API server into the Vite dev server via middleware plugin and standalone `server/index.ts` production runner.
+  - Created `apiService.ts` to manage Bearer token sessions and REST calls.
+  - Connected `StorageService.syncUserFromServer()` so logging in from any browser or device immediately synchronizes complete learning history.
+
+### 3.13. "Show My Attempt" Interactive Attempt Review
+- **Files Created / Modified:** `src/components/common/ShowAttemptModal.tsx`, `src/components/student/ActivityBoardView.tsx`, `src/components/admin/AdminPortal.tsx`, `src/services/storage.ts`
+- **Issue:** Users and administrators previously could only view high-level aggregate score badges without being able to inspect original questions, submitted answers, correct solutions, or full written essays.
+- **Solution:**
+  - Built `ShowAttemptModal.tsx` featuring three dedicated inspection tabs: Overview Summary (KPI cards, percentage, duration), Questions & Submitted Answers (question-by-question review with green/red status, options, explanations), and Written Essay & AI Rubric (full essay, word count, 4-criterion AI rubric, targeted suggestions).
+  - Added **"👁️ Show My Attempt"** action buttons across Table and Card views in `ActivityBoardView.tsx`.
+  - Added **"👁️ Show Attempt"** action buttons on the User Activities table and the Enterprise Activity Audit Ledger in `AdminPortal.tsx`.
+  - Enforced server-side authorization: regular users can only review their own attempts, while administrators can inspect any user's attempt without impersonating.
+
+### 3.14. Autosave & Cross-Device Incomplete Attempt Recovery
+- **Files Modified:** `src/types/index.ts`, `src/services/storage.ts`, `src/components/student/ExamPrepView.tsx`, `server/storage.ts`, `server/app.ts`
+- **Issue:** In-progress tests and essay drafts were lost if the candidate accidentally closed their browser, navigated away, or switched devices.
+- **Solution:**
+  - Defined `IncompleteAttemptRecord` tracking `testId`, `currentQuestionIndex`, `userAnswers`, `essayText`, and `elapsedSeconds`.
+  - Implemented continuous debounced autosaving to the central server in `ExamPrepView.tsx`.
+  - Added an unfinished attempt recovery banner on `ExamPrepView.tsx` allowing candidates to resume where they left off or discard the draft.
+  - Automatically clears incomplete attempts from the server vault upon final submission.
+
 ---
 
 ## 4. Verification and Validation
 
 All modified files were thoroughly validated through:
-1. **TypeScript Build Verification:** Executed `npm run build` with zero TypeScript compiler errors (1,723 modules transformed in 240ms).
-2. **Automated Test Execution:** Executed `src/tests/solverAndStreakVerification.ts` with all 56 automated unit and integration tests passing cleanly (including Test 55 for Bank Rotation and Test 56 for Subject-Level / Mix & Match Admin Isolation and Subject Q&A fidelity).
+1. **TypeScript Build Verification:** Executed `npm run build` with zero TypeScript compiler errors (1,725 modules transformed in 198ms).
+2. **Automated Test Execution:** Executed `src/tests/solverAndStreakVerification.ts` with all 65 automated unit and integration tests passing cleanly (including Tests 57 through 65 validating Cross-Device Registration, Cross-Device Learning History, Written Response Persistence, Cache Removal Restoration, Administrator Full Inspection, Unauthorized Access Rejection, Concurrent Updates, Autosave Recovery, and Show Attempt Reconstruction).
 3. **Headless Browser Screenshot Audit:** Captured 37 real-time browser screenshots confirming visual fidelity, alignment, and interactive behavior across Admin, Student, Parent, and Teacher roles.
 4. **Deliverable Generation:**
    - Compiled `Documentation/EduBridge_Interface_Documentation.docx` (7.29 MB) containing all 37 screenshots and object evaluation tables.

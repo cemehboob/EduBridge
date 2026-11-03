@@ -547,6 +547,9 @@ export default function App() {
     setCurrentUser(updatedUser);
     StorageService.setActiveUser(updatedUser.id);
 
+    // Synchronize complete learning history from server (supports cross-device & cache clear restoration)
+    StorageService.syncUserFromServer(updatedUser.id).catch(() => {});
+
     // Derive complete, isolated UserProfile for the new user
     const newProfile = userAccountToProfile(updatedUser);
     setProfile(newProfile);

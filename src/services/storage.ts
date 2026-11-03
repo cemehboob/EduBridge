@@ -30,9 +30,13 @@ import {
   UserActivityRecord,
   PasswordResetRecord,
   ExamSettingsConfig,
-  QuestionAttemptRecord
+  QuestionAttemptRecord,
+  WrittenResponseRecord,
+  IncompleteAttemptRecord,
+  AttemptDetailResponse
 } from '../types';
 import { initialActivities, initialQuestionAttempts } from '../data/activityData';
+import { apiService } from './apiService';
 import { ieltsAcademicUnits } from '../data/ieltsUnitsData';
 import { DEFAULT_COLOR_SCHEME } from '../utils/themeManager';
 import {
@@ -88,6 +92,8 @@ const KEYS = {
   COLOR_SCHEME: 'edubridge_color_scheme_v1',
   ACTIVITIES: 'edubridge_user_activities_v1',
   QUESTION_ATTEMPTS: 'edubridge_question_attempts_v1',
+  WRITTEN_RESPONSES: 'edubridge_written_responses_v1',
+  INCOMPLETE_ATTEMPTS: 'edubridge_incomplete_attempts_v1',
   PASSWORD_RESETS: 'edubridge_password_resets_v1',
   EXAM_SETTINGS: 'edubridge_exam_settings_v1',
   ATTEMPTED_TEST_IDS: 'edubridge_attempted_test_ids_v1',
@@ -578,6 +584,12 @@ export const StorageService = {
     };
     const updated = [newRecord, ...existing];
     StorageService.saveUserActivities(updated);
+
+    // Asynchronously synchronize with centralized server storage
+    apiService.activities.save(newRecord).catch((e) => {
+      console.warn('[EduBridge Storage] Background server sync for activity notice:', e.message);
+    });
+
     return newRecord;
   },
 
@@ -603,6 +615,12 @@ export const StorageService = {
     };
     const updated = [newRecord, ...existing];
     StorageService.saveQuestionAttempts(updated);
+
+    // Asynchronously synchronize with centralized server
+    apiService.attempts.saveQuestions(newRecord).catch((e) => {
+      console.warn('[EduBridge Storage] Background server sync for question attempt notice:', e.message);
+    });
+
     return newRecord;
   },
 
@@ -618,7 +636,184 @@ export const StorageService = {
     }));
     const updated = [...newRecords, ...existing];
     StorageService.saveQuestionAttempts(updated);
+
+    // Asynchronously synchronize batch with centralized server
+    apiService.attempts.saveQuestions(newRecords).catch((e) => {
+      console.warn('[EduBridge Storage] Background server sync for batch question attempts notice:', e.message);
+    });
+
     return newRecords;
+  },
+
+  // Written Responses (Essays, Paragraphs, Letters)
+  getWrittenResponses: (userId?: string): WrittenResponseRecord[] => {
+    const all = safeGet<WrittenResponseRecord[]>(KEYS.WRITTEN_RESPONSES, []);
+    if (!userId) return all;
+    return all.filter((w) => w.userId === userId);
+  },
+
+  saveWrittenResponses: (responses: WrittenResponseRecord[]): void => {
+    safeSet(KEYS.WRITTEN_RESPONSES, responses);
+  },
+
+  recordWrittenResponse: (response: WrittenResponseRecord): WrittenResponseRecord => {
+    const existing = StorageService.getWrittenResponses();
+    const newRecord: WrittenResponseRecord = {
+      ...response,
+      id: response.id || `wres_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: response.timestamp || new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+    const updated = [newRecord, ...existing];
+    StorageService.saveWrittenResponses(updated);
+
+    // Synchronize with server
+    apiService.attempts.saveWritten(newRecord).catch((e) => {
+      console.warn('[EduBridge Storage] Background server sync for written response notice:', e.message);
+    });
+
+    return newRecord;
+  },
+
+  // Autosave & Cross-Device Incomplete Attempt Recovery
+  getIncompleteAttempt: (userId: string, testId?: string): IncompleteAttemptRecord | null => {
+    const list = safeGet<IncompleteAttemptRecord[]>(KEYS.INCOMPLETE_ATTEMPTS, []);
+    if (testId) {
+      return list.find((item) => item.userId === userId && item.testId === testId) || null;
+    }
+    const userAttempts = list.filter((item) => item.userId === userId);
+    userAttempts.sort((a, b) => new Date(b.lastSavedAt).getTime() - new Date(a.lastSavedAt).getTime());
+    return userAttempts[0] || null;
+  },
+
+  saveIncompleteAttempt: (attempt: IncompleteAttemptRecord): IncompleteAttemptRecord => {
+    const list = safeGet<IncompleteAttemptRecord[]>(KEYS.INCOMPLETE_ATTEMPTS, []);
+    const index = list.findIndex((item) => item.userId === attempt.userId && item.testId === attempt.testId);
+    const updatedAttempt: IncompleteAttemptRecord = {
+      ...attempt,
+      lastSavedAt: new Date().toISOString()
+    };
+    if (index >= 0) {
+      list[index] = updatedAttempt;
+    } else {
+      list.unshift(updatedAttempt);
+    }
+    safeSet(KEYS.INCOMPLETE_ATTEMPTS, list);
+
+    // Synchronize autosave with server
+    apiService.attempts.saveAutosave(updatedAttempt).catch(() => {});
+
+    return updatedAttempt;
+  },
+
+  clearIncompleteAttempt: (userId: string, testId: string): void => {
+    const list = safeGet<IncompleteAttemptRecord[]>(KEYS.INCOMPLETE_ATTEMPTS, []);
+    const filtered = list.filter((item) => !(item.userId === userId && item.testId === testId));
+    safeSet(KEYS.INCOMPLETE_ATTEMPTS, filtered);
+
+    // Clear on server
+    apiService.attempts.clearAutosave(userId, testId).catch(() => {});
+  },
+
+  // Reconstruct "Show Attempt" Detail
+  getAttemptDetail: async (activityId: string): Promise<AttemptDetailResponse> => {
+    try {
+      // 1. Attempt to fetch authoritative record from server
+      const serverDetail = await apiService.activities.getAttemptDetail(activityId);
+      if (serverDetail && serverDetail.activity) {
+        return serverDetail;
+      }
+    } catch (e: any) {
+      console.warn('[EduBridge Storage] Server attempt detail lookup notice:', e.message);
+    }
+
+    // 2. Fallback to local storage reconstruction
+    const allActivities = StorageService.getUserActivities();
+    const activity = allActivities.find((a) => a.id === activityId);
+    if (!activity) {
+      throw new Error(`Activity ${activityId} not found`);
+    }
+
+    const testId = activity.replayPayload?.subId || activity.id;
+    const allQuestions = StorageService.getQuestionAttempts(activity.userId);
+    let matchedQuestions = allQuestions.filter((q) => q.testId === testId);
+    if (matchedQuestions.length === 0) {
+      matchedQuestions = allQuestions.filter(
+        (q) => q.testTitle.toLowerCase().includes(activity.title.toLowerCase().slice(0, 15))
+      );
+    }
+
+    const allWritten = StorageService.getWrittenResponses(activity.userId);
+    const matchedWritten = allWritten.find(
+      (w) => w.activityId === activity.id || (testId && w.taskTitle.toLowerCase().includes(activity.title.toLowerCase().slice(0, 15)))
+    );
+
+    const totalQ = matchedQuestions.length || 1;
+    const correctQ = matchedQuestions.filter((q) => q.isCorrect).length;
+    const percentage = matchedQuestions.length > 0 ? Math.round((correctQ / totalQ) * 100) : 100;
+    const scoreText = typeof activity.score === 'string' ? activity.score : `${activity.score || percentage}%`;
+
+    return {
+      activity,
+      questions: matchedQuestions,
+      writtenResponse: matchedWritten,
+      summary: {
+        scoreText,
+        percentage,
+        timeSpent: activity.durationSec ? `${Math.round(activity.durationSec / 60)} mins` : 'Timed Session',
+        accuracyText: `${correctQ} / ${totalQ} Correct`,
+        evaluationBadge: percentage >= 80 ? 'Mastery Achieved' : percentage >= 60 ? 'Proficient' : 'Needs Practice'
+      }
+    };
+  },
+
+  // Centralized Server Synchronization (Restores local cache from server upon login or cache clear)
+  syncUserFromServer: async (userId: string): Promise<void> => {
+    try {
+      if (typeof window === 'undefined') {
+        const modulePath = '../../server/storage';
+        const { ServerStorage } = await import(/* @vite-ignore */ modulePath);
+        const acts = ServerStorage.getActivities({ userId }).items;
+        const qAtts = ServerStorage.getQuestionAttempts({ userId });
+        const wRes = ServerStorage.getWrittenResponses({ userId });
+
+        const currentActivities = StorageService.getUserActivities().filter((a) => a.userId !== userId);
+        StorageService.saveUserActivities([...acts, ...currentActivities]);
+
+        const currentQuestions = StorageService.getQuestionAttempts().filter((q) => q.userId !== userId);
+        StorageService.saveQuestionAttempts([...qAtts, ...currentQuestions]);
+
+        const currentWritten = StorageService.getWrittenResponses().filter((w) => w.userId !== userId);
+        StorageService.saveWrittenResponses([...wRes, ...currentWritten]);
+        return;
+      }
+
+      const [activitiesRes, questionsRes, writtenRes] = await Promise.allSettled([
+        apiService.activities.getAll({ userId }),
+        apiService.attempts.getQuestions({ userId }),
+        apiService.attempts.getWritten({ userId })
+      ]);
+
+      if (activitiesRes.status === 'fulfilled' && activitiesRes.value?.items) {
+        const serverActivities = activitiesRes.value.items;
+        const currentActivities = StorageService.getUserActivities().filter((a) => a.userId !== userId);
+        StorageService.saveUserActivities([...serverActivities, ...currentActivities]);
+      }
+
+      if (questionsRes.status === 'fulfilled' && questionsRes.value) {
+        const serverQuestions = questionsRes.value;
+        const currentQuestions = StorageService.getQuestionAttempts().filter((q) => q.userId !== userId);
+        StorageService.saveQuestionAttempts([...serverQuestions, ...currentQuestions]);
+      }
+
+      if (writtenRes.status === 'fulfilled' && writtenRes.value) {
+        const serverWritten = writtenRes.value;
+        const currentWritten = StorageService.getWrittenResponses().filter((w) => w.userId !== userId);
+        StorageService.saveWrittenResponses([...serverWritten, ...currentWritten]);
+      }
+      console.log(`[EduBridge Storage] Successfully synchronized user ${userId} learning history from central server.`);
+    } catch (e: any) {
+      console.warn(`[EduBridge Storage] Note on server sync for user ${userId}:`, e.message);
+    }
   },
 
   // Password Reset 6-Digit OTP Management

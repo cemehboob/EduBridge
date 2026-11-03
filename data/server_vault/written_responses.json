@@ -1,0 +1,129 @@
+[
+  {
+    "id": "wres_test_1793731897422",
+    "userId": "usr_cross_1793731897421",
+    "userName": "Elena Rostova 1793731897421",
+    "activityId": "act_machineA_1793731897422",
+    "attemptId": "att_essay_1793731897422",
+    "questionId": "q_ielts_w2_machA",
+    "taskTitle": "IELTS Academic Writing Task 2: Artificial Intelligence in Pedagogy",
+    "taskPrompt": "Discuss the impact of artificial intelligence on educational paradigms and give your opinion.",
+    "instructions": "Write at least 250 words with cohesive argumentation and academic register.",
+    "writtenText": "In the contemporary era of pervasive digital connectivity, the integration of computational algorithms into educational pedagogy has fundamentally altered traditional instructional paradigms. While pedagogical traditionalists maintain that artificial intelligence undermines organic cognitive inquiry, contemporary empirical evidence suggests that adaptive learning architectures augment human potential.\n\nOn one hand, unconstrained automation without rigorous oversight risks fostering cognitive passivity. If students rely exclusively on generative outputs without interrogating evidentiary validity, critical reasoning capacities will inevitably diminish. Therefore, institutional frameworks must enforce rigorous verification protocols.\n\nNevertheless, algorithmic tutoring provides personalized scaffolding tailored to each learner's developmental trajectory. In disciplines such as computational linguistics and quantum mechanics, AI agents decompose intricate proofs into digestible concepts, democratizing high-level scholarship for diverse cohorts.\n\nIn conclusion, rather than viewing technology as a replacement for intellectual rigor, institutions should leverage adaptive synthesis to cultivate resilient, critically minded scholars.",
+    "wordCount": 172,
+    "characterCount": 1244,
+    "writingDurationSec": 1500,
+    "evaluation": {
+      "taskAchievement": "Band 8.0: Clear position maintained throughout with well-supported arguments.",
+      "coherenceCohesion": "Band 8.5: Seamless transitions and logical paragraph progression.",
+      "lexicalResource": "Band 8.5: High-level academic terminology (\"pervasive digital connectivity\", \"adaptive scaffolding\").",
+      "grammaticalAccuracy": "Band 8.5: Wide variety of complex sentence structures.",
+      "bandScore": "8.0 Band"
+    },
+    "score": "8.0 Band",
+    "feedback": "High-density lexical control with persuasive counter-argumentation.",
+    "corrections": [
+      "Ensure conclusion maintains balance without introducing novel assertions."
+    ],
+    "vocabularyRecommendations": [
+      "epistemic foundations",
+      "cognitive scaffolding"
+    ],
+    "timestamp": "2026-11-03 21:05:00"
+  },
+  {
+    "id": "wres_test_1793731844899",
+    "userId": "usr_cross_1793731844898",
+    "userName": "Elena Rostova 1793731844898",
+    "activityId": "act_machineA_1793731844899",
+    "attemptId": "att_essay_1793731844899",
+    "questionId": "q_ielts_w2_machA",
+    "taskTitle": "IELTS Academic Writing Task 2: Artificial Intelligence in Pedagogy",
+    "taskPrompt": "Discuss the impact of artificial intelligence on educational paradigms and give your opinion.",
+    "instructions": "Write at least 250 words with cohesive argumentation and academic register.",
+    "writtenText": "In the contemporary era of pervasive digital connectivity, the integration of computational algorithms into educational pedagogy has fundamentally altered traditional instructional paradigms. While pedagogical traditionalists maintain that artificial intelligence undermines organic cognitive inquiry, contemporary empirical evidence suggests that adaptive learning architectures augment human potential.\n\nOn one hand, unconstrained automation without rigorous oversight risks fostering cognitive passivity. If students rely exclusively on generative outputs without interrogating evidentiary validity, critical reasoning capacities will inevitably diminish. Therefore, institutional frameworks must enforce rigorous verification protocols.\n\nNevertheless, algorithmic tutoring provides personalized scaffolding tailored to each learner's developmental trajectory. In disciplines such as computational linguistics and quantum mechanics, AI agents decompose intricate proofs into digestible concepts, democratizing high-level scholarship for diverse cohorts.\n\nIn conclusion, rather than viewing technology as a replacement for intellectual rigor, institutions should leverage adaptive synthesis to cultivate resilient, critically minded scholars.",
+    "wordCount": 172,
+    "characterCount": 1244,
+    "writingDurationSec": 1500,
+    "evaluation": {
+      "taskAchievement": "Band 8.0: Clear position maintained throughout with well-supported arguments.",
+      "coherenceCohesion": "Band 8.5: Seamless transitions and logical paragraph progression.",
+      "lexicalResource": "Band 8.5: High-level academic terminology (\"pervasive digital connectivity\", \"adaptive scaffolding\").",
+      "grammaticalAccuracy": "Band 8.5: Wide variety of complex sentence structures.",
+      "bandScore": "8.0 Band"
+    },
+    "score": "8.0 Band",
+    "feedback": "High-density lexical control with persuasive counter-argumentation.",
+    "corrections": [
+      "Ensure conclusion maintains balance without introducing novel assertions."
+    ],
+    "vocabularyRecommendations": [
+      "epistemic foundations",
+      "cognitive scaffolding"
+    ],
+    "timestamp": "2026-11-03 21:05:00"
+  },
+  {
+    "id": "wres_test_1793731792602",
+    "userId": "usr_cross_1793731792601",
+    "userName": "Elena Rostova",
+    "activityId": "act_machineA_1793731792602",
+    "attemptId": "att_essay_1793731792602",
+    "questionId": "q_ielts_w2_machA",
+    "taskTitle": "IELTS Academic Writing Task 2: Artificial Intelligence in Pedagogy",
+    "taskPrompt": "Discuss the impact of artificial intelligence on educational paradigms and give your opinion.",
+    "instructions": "Write at least 250 words with cohesive argumentation and academic register.",
+    "writtenText": "In the contemporary era of pervasive digital connectivity, the integration of computational algorithms into educational pedagogy has fundamentally altered traditional instructional paradigms. While pedagogical traditionalists maintain that artificial intelligence undermines organic cognitive inquiry, contemporary empirical evidence suggests that adaptive learning architectures augment human potential.\n\nOn one hand, unconstrained automation without rigorous oversight risks fostering cognitive passivity. If students rely exclusively on generative outputs without interrogating evidentiary validity, critical reasoning capacities will inevitably diminish. Therefore, institutional frameworks must enforce rigorous verification protocols.\n\nNevertheless, algorithmic tutoring provides personalized scaffolding tailored to each learner's developmental trajectory. In disciplines such as computational linguistics and quantum mechanics, AI agents decompose intricate proofs into digestible concepts, democratizing high-level scholarship for diverse cohorts.\n\nIn conclusion, rather than viewing technology as a replacement for intellectual rigor, institutions should leverage adaptive synthesis to cultivate resilient, critically minded scholars.",
+    "wordCount": 172,
+    "characterCount": 1244,
+    "writingDurationSec": 1500,
+    "evaluation": {
+      "taskAchievement": "Band 8.0: Clear position maintained throughout with well-supported arguments.",
+      "coherenceCohesion": "Band 8.5: Seamless transitions and logical paragraph progression.",
+      "lexicalResource": "Band 8.5: High-level academic terminology (\"pervasive digital connectivity\", \"adaptive scaffolding\").",
+      "grammaticalAccuracy": "Band 8.5: Wide variety of complex sentence structures.",
+      "bandScore": "8.0 Band"
+    },
+    "score": "8.0 Band",
+    "feedback": "High-density lexical control with persuasive counter-argumentation.",
+    "corrections": [
+      "Ensure conclusion maintains balance without introducing novel assertions."
+    ],
+    "vocabularyRecommendations": [
+      "epistemic foundations",
+      "cognitive scaffolding"
+    ],
+    "timestamp": "2026-11-03 21:05:00"
+  },
+  {
+    "id": "wres_alex_01",
+    "userId": "usr_student_01",
+    "userName": "Alex Rivera",
+    "activityId": "act_alex_03",
+    "attemptId": "att_alex_w1",
+    "questionId": "q_ielts_w2_01",
+    "taskTitle": "IELTS Academic Writing Task 2: Advanced Cohesion",
+    "taskPrompt": "Some people believe that technological advances in artificial intelligence will eliminate human jobs and reduce individual agency. Others contend that AI democratizes creative production and empowers professionals. Discuss both views and give your opinion.",
+    "instructions": "Write at least 250 words. Present a well-developed argument with relevant supporting examples and academic register.",
+    "writtenText": "Throughout contemporary industrial history, transformative technological disruptions have perpetually ignited intense debates regarding societal equilibrium and human agency. While skeptics assert that synthetic intelligence will inevitably eradicate skilled occupations, proponents counter that emerging computational tools democratize creative problem-solving. This essay will examine both perspectives before establishing that generative systems augment rather than supplant human intellect.\n\nOn the one hand, valid concerns exist regarding labor displacement. Automated diagnostic algorithms and quantitative trading architectures operate at computational velocities unattainable by human practitioners. If organizations implement automation primarily for operational cost reduction without investing in workforce re-skilling, localized economic dislocation will undoubtedly manifest.\n\nNevertheless, historical precedent illustrates that mechanical instruments liberate human capital from routine tasks to focus on higher-order synthesis. In medicine, machine learning models analyze complex radiographic imagery, thereby granting clinicians greater temporal bandwidth to formulate compassionate therapeutic strategies. Similarly, in software engineering, automated code assistants relieve engineers of repetitive boilerplate syntax, empowering them to architect resilient systemic infrastructures.\n\nIn conclusion, while technological disruption presents genuine labor challenges requiring proactive governance, generative intelligence fundamentally serves as an amplifier of human capacity rather than its replacement.",
+    "wordCount": 262,
+    "characterCount": 1782,
+    "writingDurationSec": 1680,
+    "evaluation": {
+      "taskAchievement": "Band 8.5: Fully addresses all parts of the prompt with well-developed ideas and substantiated examples.",
+      "coherenceCohesion": "Band 8.5: Cohesive devices are used naturally; logical paragraph progression is maintained throughout.",
+      "lexicalResource": "Band 8.5: Sophisticated lexical items used with high precision (\"computational velocities\", \"temporal bandwidth\", \"localized economic dislocation\").",
+      "grammaticalAccuracy": "Band 8.5: Wide range of complex sentence structures with accurate punctuation and consistent academic register.",
+      "bandScore": "8.5 Band"
+    },
+    "score": "8.5 Band",
+    "feedback": "Exemplary essay demonstrating formal academic vocabulary, nuanced thesis defense, and cohesive counter-argumentation.",
+    "corrections": [
+      "Minor: Ensure consistent British/American orthography across all paragraphs."
+    ],
+    "vocabularyRecommendations": [
+      "Consider using \"paradigm shift\" or \"epistemic framework\" for further lexical sophistication."
+    ],
+    "timestamp": "2026-11-01 15:30:00"
+  }
+]

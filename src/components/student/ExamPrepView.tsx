@@ -35,7 +35,8 @@ import {
   UserAccount,
   UserActivityRecord,
   AgeCohortId,
-  QuestionAttemptRecord
+  QuestionAttemptRecord,
+  IncompleteAttemptRecord
 } from '../../types';
 import { IELTSPracticeService } from '../../services/ieltsPracticeService';
 import { AIService } from '../../services/aiService';
@@ -183,6 +184,45 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
   const [isRecordingSpeaking, setIsRecordingSpeaking] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [examResult, setExamResult] = useState<ExamAttempt | null>(null);
+  const [activeIncompleteAttempt, setActiveIncompleteAttempt] = useState<IncompleteAttemptRecord | null>(null);
+
+  // Cross-Device Incomplete Attempt Recovery on Mount
+  useEffect(() => {
+    const uid = currentUser?.id || profile?.id;
+    if (!uid) return;
+    const inc = StorageService.getIncompleteAttempt(uid);
+    if (inc) {
+      setActiveIncompleteAttempt(inc);
+    }
+  }, [currentUser?.id, profile?.id]);
+
+  // Autosave Incomplete Attempt to Central Server
+  useEffect(() => {
+    const uid = currentUser?.id || profile?.id;
+    if (!uid) return;
+    const testId = activeTest?.id || selectedPracticeTest?.id;
+    if (!testId) return;
+
+    if (!essayText.trim() && Object.keys(userAnswers).length === 0) return;
+
+    const timer = setTimeout(() => {
+      StorageService.saveIncompleteAttempt({
+        id: `inc_${uid}_${testId}`,
+        userId: uid,
+        testId,
+        testTitle: activeTest?.title || selectedPracticeTest?.title || 'Active Test',
+        examType: selectedExam,
+        module: selectedPracticeModule || 'Full Exam',
+        currentQuestionIndex: currentPracticeQuestionIndex,
+        userAnswers,
+        essayText,
+        elapsedSeconds: 0,
+        lastSavedAt: new Date().toISOString()
+      });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [userAnswers, essayText, activeTest, selectedPracticeTest, currentPracticeQuestionIndex]);
 
   // Early Childhood Assessment Challenges (Ages 5–8)
   const earlyLearningChallenges = [
@@ -916,6 +956,47 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     });
     StorageService.recordBatchQuestionAttempts(mockQuestionAttempts);
 
+    // Record Complete Written Response to Centralized Server
+    const currentUserId = currentUser?.id || profile?.id || 'usr_student_01';
+    const currentUserName = currentUser?.name || profile?.name || 'Alex Rivera';
+    if (essayText.trim()) {
+      const writingQ = currentTest.questions.find((q) => q.section === 'Writing');
+      StorageService.recordWrittenResponse({
+        id: `wres_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        userId: currentUserId,
+        userName: currentUserName,
+        activityId: mockExamActivity.id,
+        attemptId: simulatedAttempt.id,
+        questionId: writingQ?.id || `q_writing_${currentTest.id}`,
+        taskTitle: writingQ?.questionText || `${currentTest.title} Writing Task`,
+        taskPrompt: writingQ?.questionText || `Official Writing Assessment for ${currentTest.title}`,
+        instructions: writingQ?.instruction || 'Write a minimum of 250 words following official academic exam rubric.',
+        writtenText: essayText,
+        wordCount,
+        characterCount: essayText.length,
+        writingDurationSec: 1800,
+        evaluation: {
+          taskAchievement: simulatedAttempt.feedback.taskAchievement,
+          coherenceCohesion: simulatedAttempt.feedback.fluency,
+          lexicalResource: simulatedAttempt.feedback.lexicalResource,
+          grammaticalAccuracy: simulatedAttempt.feedback.grammar,
+          bandScore: predictedScore
+        },
+        score: predictedScore,
+        feedback: `Evaluated at ${predictedScore}. Strengths: ${simulatedAttempt.feedback.strengths.join('; ')}`,
+        corrections: simulatedAttempt.feedback.weaknesses,
+        vocabularyRecommendations: [
+          'Utilize formal discourse markers (e.g., "Notwithstanding", "Consequently", "In essence")',
+          'Strengthen topic sentences with clear thematic anchors'
+        ],
+        timestamp: mockTimestamp
+      });
+    }
+
+    // Clear Incomplete Attempt from Central Server upon successful submission
+    StorageService.clearIncompleteAttempt(currentUserId, currentTest.id);
+    setActiveIncompleteAttempt(null);
+
     // Move attempted mock exam to end of test bank so user selects a new test next time
     const updatedMockTests = StorageService.moveMockTestToEnd(currentTest.id);
     if (onUpdateMockTests) {
@@ -929,6 +1010,74 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
 
   return (
     <div className="w-full space-y-6 pb-12">
+
+      {/* Incomplete Attempt Autosave Recovery Banner (Cross-Device) */}
+      {activeIncompleteAttempt && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white p-4 sm:p-5 rounded-3xl shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/30">
+              <Clock className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-black text-xs uppercase tracking-wider bg-white/20 text-white px-2 py-0.5 rounded-full">
+                  Unfinished Activity Saved on Server
+                </span>
+                <span className="text-xs text-amber-100 font-semibold">
+                  Saved: {new Date(activeIncompleteAttempt.lastSavedAt).toLocaleTimeString()}
+                </span>
+              </div>
+              <p className="text-sm font-bold text-white mt-1">
+                You have an unfinished attempt in progress: <span className="underline">{activeIncompleteAttempt.testTitle}</span>
+              </p>
+              <p className="text-xs text-amber-100 mt-0.5">
+                Your responses and essay drafts are preserved across devices. Would you like to resume where you left off?
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
+            <button
+              onClick={() => {
+                sound.playSuccess();
+                if (activeIncompleteAttempt.userAnswers) {
+                  setUserAnswers(activeIncompleteAttempt.userAnswers);
+                }
+                if (activeIncompleteAttempt.essayText) {
+                  setEssayText(activeIncompleteAttempt.essayText);
+                }
+                const matchingMock = mockTests.find((t) => t.id === activeIncompleteAttempt.testId);
+                if (matchingMock) {
+                  setActiveTest(matchingMock);
+                  setIsRunning(true);
+                }
+                const matchingPractice = practiceTests.find((t) => t.id === activeIncompleteAttempt.testId);
+                if (matchingPractice) {
+                  setSelectedPracticeTest(matchingPractice);
+                  setCurrentPracticeQuestionIndex(activeIncompleteAttempt.currentQuestionIndex || 0);
+                }
+                setActiveIncompleteAttempt(null);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-white hover:bg-amber-50 text-slate-900 font-black text-xs shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Resume Attempt</span>
+            </button>
+
+            <button
+              onClick={() => {
+                sound.playClick();
+                const uid = currentUser?.id || profile?.id || 'usr_student_01';
+                StorageService.clearIncompleteAttempt(uid, activeIncompleteAttempt.testId);
+                setActiveIncompleteAttempt(null);
+              }}
+              className="px-3.5 py-2.5 rounded-xl bg-black/25 hover:bg-black/35 text-white font-bold text-xs transition-colors cursor-pointer"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Personalized Learner Profile & Age Adaptation Banner */}
       <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-emerald-50 rounded-3xl p-6 border border-indigo-100/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">

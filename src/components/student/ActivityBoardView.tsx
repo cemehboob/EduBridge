@@ -24,11 +24,13 @@ import {
   Layers,
   HelpCircle,
   XCircle,
-  X
+  X,
+  Eye
 } from 'lucide-react';
 import { UserActivityRecord, UserProfile, UserAccount, QuestionAttemptRecord } from '../../types';
 import { sound } from '../../utils/audio';
 import { StorageService } from '../../services/storage';
+import { ShowAttemptModal } from '../common/ShowAttemptModal';
 
 interface ActivityBoardViewProps {
   profile: UserProfile;
@@ -57,6 +59,7 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
     value: string;
   } | null>(null);
   const [isTableHighlighted, setIsTableHighlighted] = useState<boolean>(false);
+  const [selectedAttemptForModal, setSelectedAttemptForModal] = useState<UserActivityRecord | null>(null);
   const activityTableRef = useRef<HTMLDivElement>(null);
 
   const handleGraphBarClick = (dateStr: string, dayLabel: string) => {
@@ -1229,19 +1232,32 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
                           </span>
                         </td>
 
-                        {/* Action: Perform Again */}
+                        {/* Actions: Show My Attempt & Perform Again */}
                         <td className="py-2.5 px-4 text-right align-middle whitespace-nowrap">
-                          <button
-                            onClick={() => {
-                              sound.playClick();
-                              onReplayActivity(act);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 font-bold text-[11px] transition-all cursor-pointer shadow-2xs group/btn"
-                            title={`Perform activity again: ${act.title}`}
-                          >
-                            <RotateCcw className="w-3 h-3 group-hover/btn:-rotate-90 transition-transform duration-300" />
-                            <span>Perform Again</span>
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                sound.playClick();
+                                setSelectedAttemptForModal(act);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-emerald-600 font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                              title={`Show complete historical attempt for ${act.title}`}
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>Show My Attempt</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                sound.playClick();
+                                onReplayActivity(act);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 font-bold text-[11px] transition-all cursor-pointer shadow-2xs group/btn"
+                              title={`Perform activity again: ${act.title}`}
+                            >
+                              <RotateCcw className="w-3 h-3 group-hover/btn:-rotate-90 transition-transform duration-300" />
+                              <span>Perform Again</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1306,8 +1322,19 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Right Action: Perform Again */}
+                  {/* Right Actions: Show My Attempt & Perform Again */}
                   <div className="shrink-0 flex items-center gap-2 self-end md:self-center">
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setSelectedAttemptForModal(act);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-emerald-600 font-bold text-xs transition-all shadow-2xs cursor-pointer"
+                      title={`Show complete historical attempt for ${act.title}`}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Show My Attempt</span>
+                    </button>
                     <button
                       onClick={() => {
                         sound.playClick();
@@ -1345,6 +1372,13 @@ export const ActivityBoardView: React.FC<ActivityBoardViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Complete Reconstructed Attempt Detail Modal */}
+      <ShowAttemptModal
+        isOpen={!!selectedAttemptForModal}
+        onClose={() => setSelectedAttemptForModal(null)}
+        activity={selectedAttemptForModal}
+      />
     </div>
   );
 };

@@ -533,6 +533,21 @@ export interface UserActivityRecord {
   xpEarned?: number;
   status: 'completed' | 'in_progress' | 'reviewed';
   details: string;
+  examType?: string; // e.g. "IELTS Academic", "PTE Academic", "TOEFL", "General English"
+  module?: string; // e.g. "Reading", "Writing", "Listening", "Speaking"
+  attemptNumber?: number;
+  startedAt?: string;
+  completedAt?: string;
+  totalQuestions?: number;
+  attemptedQuestions?: number;
+  correctAnswers?: number;
+  incorrectAnswers?: number;
+  skippedQuestions?: number;
+  durationSec?: number;
+  maxScore?: number | string;
+  percentage?: number;
+  evaluation?: string;
+  feedback?: string;
   replayPayload: {
     tab: string;
     subId?: string;
@@ -555,9 +570,75 @@ export interface QuestionAttemptRecord {
   correctAnswer?: string;
   isCorrect: boolean;
   score?: string | number;
+  maxScore?: string | number;
   timeSpentSec?: number;
+  isSkipped?: boolean;
   explanation?: string;
+  aiFeedback?: string;
+  instructions?: string;
   timestamp: string; // "YYYY-MM-DD HH:mm:ss"
+}
+
+export interface WrittenResponseRecord {
+  id: string;
+  userId: string;
+  userName: string;
+  activityId: string;
+  attemptId: string;
+  questionId: string;
+  taskTitle: string;
+  taskPrompt: string;
+  instructions?: string;
+  sourcePassage?: string;
+  writtenText: string;
+  wordCount: number;
+  characterCount: number;
+  writingDurationSec?: number;
+  evaluation?: {
+    taskAchievement?: string;
+    coherenceCohesion?: string;
+    lexicalResource?: string;
+    grammaticalAccuracy?: string;
+    bandScore?: string | number;
+  };
+  score?: string | number;
+  feedback?: string;
+  corrections?: string[];
+  vocabularyRecommendations?: string[];
+  revisions?: {
+    version: number;
+    timestamp: string;
+    text: string;
+    wordCount: number;
+  }[];
+  timestamp: string;
+}
+
+export interface IncompleteAttemptRecord {
+  id: string;
+  userId: string;
+  testId: string;
+  testTitle: string;
+  examType: string;
+  module: string;
+  currentQuestionIndex: number;
+  userAnswers: Record<string, string>;
+  essayText?: string;
+  elapsedSeconds: number;
+  lastSavedAt: string;
+}
+
+export interface AttemptDetailResponse {
+  activity: UserActivityRecord;
+  questions: QuestionAttemptRecord[];
+  writtenResponse?: WrittenResponseRecord;
+  summary: {
+    scoreText: string;
+    percentage: number;
+    timeSpent: string;
+    accuracyText: string;
+    evaluationBadge: string;
+  };
 }
 
 export interface PasswordResetRecord {
