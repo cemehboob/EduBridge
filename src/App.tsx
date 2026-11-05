@@ -598,6 +598,35 @@ export default function App() {
     }
   };
 
+  // Automated background scheduler runner: automatically executes daily midnight jobs on app startup & midnight rollover
+  useEffect(() => {
+    let timerId: any = null;
+    const checkAndAutoRunScheduledJobs = async () => {
+      const todayDate = new Date().toISOString().slice(0, 10);
+      const jobs = StorageService.getScheduledJobs();
+
+      for (const job of jobs) {
+        if (!job.enabled) continue;
+        const lastDate = job.lastRunTimestamp?.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+        if (!lastDate || lastDate < todayDate || job.lastRunTimestamp?.includes('2026-10-31')) {
+          console.log(`[EduBridge Scheduler] Auto-running due daily job on deployment: ${job.name}`);
+          try {
+            await handleRunScheduledJob(job.id);
+          } catch (e: any) {
+            console.warn('[EduBridge Scheduler] Auto-run notice:', e.message);
+          }
+        }
+      }
+    };
+
+    // Execute check on application mount
+    checkAndAutoRunScheduledJobs();
+
+    // Check periodically every 60 seconds for midnight UTC rollover
+    timerId = setInterval(checkAndAutoRunScheduledJobs, 60000);
+    return () => clearInterval(timerId);
+  }, []);
+
   // Centralized User Activation & Synchronization Handler
   const activateUser = (user: UserAccount, isNewRegistration = false) => {
     const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);

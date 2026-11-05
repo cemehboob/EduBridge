@@ -193,6 +193,7 @@ export interface MockTest {
   difficulty: 'Foundation' | 'Standard' | 'Advanced';
   totalDurationMin: number;
   targetBandRequirement: string;
+  subject?: string;
   sections: ExamSection[];
   dateAdded?: string;
   timestamp?: string;
@@ -208,6 +209,7 @@ export interface MockTest {
     options?: string[];
     correctAnswer?: string;
     modelAnswer?: string;
+    subject?: string;
   }[];
 }
 

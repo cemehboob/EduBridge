@@ -3,7 +3,17 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install --legacy-peer-deps",
+  "crons": [
+    {
+      "path": "/api/cron/scheduled-jobs",
+      "schedule": "0 0 * * *"
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/api/cron/(.*)",
+      "destination": "/api/cron/scheduled-jobs"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

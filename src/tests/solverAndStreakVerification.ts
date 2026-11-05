@@ -2234,7 +2234,58 @@ async function runTests() {
     console.log('PASS: OfflineSyncModal exposes central server connection diagnostic ping and multi-machine IP address binding.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 78 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 79: Standardized Tests Have At Least 10 Subject-Grounded Questions & Auto Vercel Scheduler
+  console.log('\nTest 79: Verifying Tests Have >=10 Subject-Grounded Questions Across PTE/TOEFL/OET/DET/Cambridge/IELTS & Auto-Scheduler...');
+  const { multiExamMockTests } = await import('../data/multiExamMockTestsData');
+  const vercelJsonSrc = fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf-8');
+
+  // 1. Verify all 14 multiExamMockTests have >= 10 questions and valid subject
+  const invalidMockTests = multiExamMockTests.filter(t => !t.questions || t.questions.length < 10 || !t.subject);
+  const invalidMockQuestions = multiExamMockTests.some(t => t.questions.some(q => !q.subject || q.subject !== t.subject));
+
+  // 2. Verify nightly generated batch mock tests have >= 10 questions
+  const generatedMockBatch = generateFivePracticeTestsBatch(1, '2026-11-06 00:00:00');
+  const invalidGenMockTests = generatedMockBatch.filter(t => !t.questions || t.questions.length < 10 || !t.subject);
+
+  // 3. Verify nightly generated batch practice tests have >= 10 questions
+  const generatedPtBatch = generatePracticeTestsBatch(1, '2026-11-06 00:00:00');
+  const invalidGenPtTests = generatedPtBatch.filter(pt => !pt.questions || pt.questions.length < 10 || !pt.subject);
+
+  // 4. Verify Vercel Cron and auto-scheduler runner
+  const hasVercelCronConfig = vercelJsonSrc.includes('api/cron/scheduled-jobs') && vercelJsonSrc.includes('0 0 * * *');
+  const hasServerCronEndpoint = appSrc.includes('/api/cron/scheduled-jobs');
+  const hasClientAutoRunner = mainAppSrc.includes('checkAndAutoRunScheduledJobs') && mainAppSrc.includes('setInterval');
+
+  if (
+    invalidMockTests.length > 0 ||
+    invalidMockQuestions ||
+    invalidGenMockTests.length > 0 ||
+    invalidGenPtTests.length > 0 ||
+    !hasVercelCronConfig ||
+    !hasServerCronEndpoint ||
+    !hasClientAutoRunner
+  ) {
+    console.error('FAIL: Test 79 verification failed.');
+    console.error({
+      invalidMockTestsCount: invalidMockTests.length,
+      invalidMockQuestions,
+      invalidGenMockTestsCount: invalidGenMockTests.length,
+      invalidGenPtTestsCount: invalidGenPtTests.length,
+      hasVercelCronConfig,
+      hasServerCronEndpoint,
+      hasClientAutoRunner
+    });
+    failures++;
+  } else {
+    console.log(`PASS: All ${multiExamMockTests.length} multi-exam mock tests contain AT LEAST 10 authentic questions strictly grounded in their declared subject.`);
+    console.log(`PASS: Nightly generated mock tests batch (${generatedMockBatch.length} tests across PTE, TOEFL, OET, DET, Cambridge, IELTS) all contain >=10 subject-related questions.`);
+    console.log(`PASS: Nightly generated practice tests batch (${generatedPtBatch.length} tests) all contain >=10 subject-related questions.`);
+    console.log('PASS: vercel.json declares automatic cron job for "/api/cron/scheduled-jobs" scheduled at "0 0 * * *".');
+    console.log('PASS: server/app.ts provides /api/cron/scheduled-jobs endpoint and background daemon timer.');
+    console.log('PASS: App.tsx features checkAndAutoRunScheduledJobs auto-runner executing due daily jobs on load and midnight rollover.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 79 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

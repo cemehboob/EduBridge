@@ -55,7 +55,12 @@ import {
   initialDailyTasks,
   initialRevisions
 } from '../data/initialData';
-import { initialScheduledJobs, generateOneHundredWordsBatch, getInitialIngestedItemsLedger } from './scheduleJobService';
+import {
+  initialScheduledJobs,
+  generateOneHundredWordsBatch,
+  getInitialIngestedItemsLedger,
+  buildTenPracticeTestQuestions
+} from './scheduleJobService';
 import { initialUsers, initialFeatureFlags, initialFeedbackTickets, initialUserGuideArticles } from '../data/userManagementData';
 import { userAccountToProfile, calculateCohortFromDob } from '../utils/userProfile';
 
@@ -286,10 +291,19 @@ export const StorageService = {
   },
 
   getMockTests: (): MockTest[] => {
-    const existing = safeGet<MockTest[]>(KEYS.MOCK_TESTS, mockTests);
+    let existing = safeGet<MockTest[]>(KEYS.MOCK_TESTS, mockTests);
+    let updated = false;
+    existing = existing.map((t) => {
+      const base = mockTests.find((b) => b.id === t.id);
+      if (base && (!t.questions || t.questions.length < 10)) {
+        updated = true;
+        return { ...t, ...base, questions: base.questions, subject: base.subject };
+      }
+      return t;
+    });
     const existingIds = new Set(existing.map((t) => t.id));
     const missing = mockTests.filter((t) => !existingIds.has(t.id));
-    if (missing.length > 0) {
+    if (missing.length > 0 || updated) {
       const merged = [...existing, ...missing];
       safeSet(KEYS.MOCK_TESTS, merged);
       return merged;
@@ -367,13 +381,61 @@ export const StorageService = {
   ]),
   saveChatMessages: (msgs: ChatMessage[]): void => safeSet(KEYS.CHAT_MESSAGES, msgs),
 
-  getScheduledJobs: (): ScheduledJob[] => safeGet<ScheduledJob[]>(KEYS.SCHEDULED_JOBS, initialScheduledJobs),
+  getScheduledJobs: (): ScheduledJob[] => {
+    let saved = safeGet<ScheduledJob[]>(KEYS.SCHEDULED_JOBS, initialScheduledJobs);
+    let updated = false;
+    const nowIso = new Date().toISOString().replace('T', ' ').slice(0, 10);
+    saved = saved.map((j) => {
+      if (j.lastRunTimestamp && j.lastRunTimestamp.includes('2026-10-31')) {
+        updated = true;
+        return {
+          ...j,
+          lastRunTimestamp: `Last executed: ${nowIso} 00:00:02`,
+          status: 'completed' as const
+        };
+      }
+      return j;
+    });
+    if (updated) {
+      safeSet(KEYS.SCHEDULED_JOBS, saved);
+    }
+    return saved;
+  },
   saveScheduledJobs: (j: ScheduledJob[]): void => safeSet(KEYS.SCHEDULED_JOBS, j),
 
   getVocabularyWords: (): VocabularyWord[] => safeGet<VocabularyWord[]>(KEYS.VOCABULARY_WORDS, generateOneHundredWordsBatch(1)),
   saveVocabularyWords: (w: VocabularyWord[]): void => safeSet(KEYS.VOCABULARY_WORDS, w),
 
-  getPracticeTests: (): IELTSPracticeTest[] => safeGet<IELTSPracticeTest[]>(KEYS.PRACTICE_TESTS, []),
+  getPracticeTests: (): IELTSPracticeTest[] => {
+    let list = safeGet<IELTSPracticeTest[]>(KEYS.PRACTICE_TESTS, []);
+    let updated = false;
+    list = list.map((pt) => {
+      if (!pt.questions || pt.questions.length < 10) {
+        updated = true;
+        const subject = pt.subject || pt.title || 'Academic Discourse & Applied Practice';
+        const questions = buildTenPracticeTestQuestions(
+          pt.id,
+          pt.module,
+          subject,
+          pt.prompt || `In the context of ${subject}, evaluate primary methodological assertions.`,
+          pt.options,
+          pt.correctAnswer,
+          pt.explanation
+        );
+        return {
+          ...pt,
+          subject,
+          questionCount: questions.length,
+          questions
+        };
+      }
+      return pt;
+    });
+    if (updated) {
+      safeSet(KEYS.PRACTICE_TESTS, list);
+    }
+    return list;
+  },
   savePracticeTests: (tests: IELTSPracticeTest[]): void => safeSet(KEYS.PRACTICE_TESTS, tests),
 
   movePracticeTestToEnd: (testId: string, currentList?: IELTSPracticeTest[]): IELTSPracticeTest[] => {

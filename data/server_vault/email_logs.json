@@ -1,5 +1,93 @@
 [
   {
+    "id": "mail_1793916813650_ecsk",
+    "timestamp": "2026-11-05 22:13:33",
+    "recipient": "admin@edubridge.io",
+    "type": "TEST_EMAIL",
+    "subject": "EduBridge SMTP Integration Test - 1:13:33 AM",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp-mail.outlook.com:587 (getaddrinfo ENOTFOUND smtp-mail.outlook.com)",
+    "durationMs": 1
+  },
+  {
+    "id": "mail_1793916813647_5d4v",
+    "timestamp": "2026-11-05 22:13:33",
+    "recipient": "sofia.martinez.1793916813638@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 438109",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp-mail.outlook.com:587 (getaddrinfo ENOTFOUND smtp-mail.outlook.com)",
+    "durationMs": 1
+  },
+  {
+    "id": "mail_1793916813646_e730",
+    "timestamp": "2026-11-05 22:13:33",
+    "recipient": "elena.rostova.1793916813640@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 619342",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp-mail.outlook.com:587 (getaddrinfo ENOTFOUND smtp-mail.outlook.com)",
+    "durationMs": 0
+  },
+  {
+    "id": "mail_1793916813645_89ul",
+    "timestamp": "2026-11-05 22:13:33",
+    "recipient": "elena.rostova.1793916813640@edubridge.org",
+    "type": "REGISTRATION_OTP",
+    "subject": "Your EduBridge Verification Code: 849201",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp-mail.outlook.com:587 (getaddrinfo ENOTFOUND smtp-mail.outlook.com)",
+    "durationMs": 5
+  },
+  {
+    "id": "mail_1793916594869_owew",
+    "timestamp": "2026-11-05 22:09:54",
+    "recipient": "admin@edubridge.io",
+    "type": "TEST_EMAIL",
+    "subject": "EduBridge SMTP Integration Test - 1:09:54 AM",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp-mail.outlook.com:587 (getaddrinfo ENOTFOUND smtp-mail.outlook.com)",
+    "durationMs": 1
+  },
+  {
+    "id": "mail_1793916594864_rvlj",
+    "timestamp": "2026-11-05 22:09:54",
+    "recipient": "sofia.martinez.1793916594855@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 438109",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp-mail.outlook.com:587 (getaddrinfo ENOTFOUND smtp-mail.outlook.com)",
+    "durationMs": 1
+  },
+  {
+    "id": "mail_1793916594863_k49g",
+    "timestamp": "2026-11-05 22:09:54",
+    "recipient": "elena.rostova.1793916594857@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 619342",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp-mail.outlook.com:587 (getaddrinfo ENOTFOUND smtp-mail.outlook.com)",
+    "durationMs": 0
+  },
+  {
+    "id": "mail_1793916594862_dt03",
+    "timestamp": "2026-11-05 22:09:54",
+    "recipient": "elena.rostova.1793916594857@edubridge.org",
+    "type": "REGISTRATION_OTP",
+    "subject": "Your EduBridge Verification Code: 849201",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "Failed connecting to smtp-mail.outlook.com:587 (getaddrinfo ENOTFOUND smtp-mail.outlook.com)",
+    "durationMs": 5
+  },
+  {
     "id": "mail_1793911853171_wn1l",
     "timestamp": "2026-11-05 20:50:53",
     "recipient": "admin@edubridge.io",
