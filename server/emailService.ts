@@ -51,16 +51,16 @@ if (!fs.existsSync(VAULT_DIR)) {
   fs.mkdirSync(VAULT_DIR, { recursive: true });
 }
 
-// Default SMTP Configuration
+// Default SMTP Configuration (Free Microsoft Outlook / Exchange or environment-driven)
 const DEFAULT_SMTP_CONFIG: SmtpConfig = {
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  host: process.env.SMTP_HOST || 'smtp-mail.outlook.com',
   port: parseInt(process.env.SMTP_PORT || '587', 10),
   secure: false,
   auth: {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || ''
   },
-  fromEmail: process.env.SMTP_FROM_EMAIL || 'edubridge.noreply@gmail.com',
+  fromEmail: process.env.SMTP_FROM_EMAIL || 'edubridge.portal@outlook.com',
   fromName: process.env.SMTP_FROM_NAME || 'EduBridge Learning & Exam Portal',
   encryption: 'STARTTLS',
   timeoutSec: 10,

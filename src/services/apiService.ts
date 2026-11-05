@@ -10,13 +10,36 @@ import {
 } from '../types';
 
 const TOKEN_KEY = 'edubridge_auth_token_v1';
+const SERVER_URL_KEY = 'edubridge_central_server_url';
 
-// Base API URL: In browser, uses current origin + /api. In Node or SSR, defaults to http://127.0.0.1:3000/api
-const getBaseUrl = (): string => {
-  if (typeof window !== 'undefined' && window.location) {
-    return `${window.location.origin}/api`;
+export const getCentralServerUrl = (): string => {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(SERVER_URL_KEY);
+      if (stored && stored.trim()) {
+        return stored.trim().replace(/\/+$/, '');
+      }
+    } catch {}
   }
-  return 'http://127.0.0.1:3000/api';
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    return window.location.origin;
+  }
+  return 'http://127.0.0.1:3000';
+};
+
+export const setCentralServerUrl = (url: string | null): void => {
+  try {
+    if (url && url.trim()) {
+      localStorage.setItem(SERVER_URL_KEY, url.trim().replace(/\/+$/, ''));
+    } else {
+      localStorage.removeItem(SERVER_URL_KEY);
+    }
+  } catch {}
+};
+
+// Base API URL: uses central server URL + /api
+const getBaseUrl = (): string => {
+  return `${getCentralServerUrl()}/api`;
 };
 
 class ApiService {
@@ -71,6 +94,16 @@ class ApiService {
       headers['Authorization'] = `Bearer ${currentToken}`;
     }
 
+    // Include trusted active user identification header
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const activeUserId = localStorage.getItem('edubridge_active_user_id');
+        if (activeUserId) {
+          headers['x-user-id'] = activeUserId;
+        }
+      }
+    } catch {}
+
     const response = await fetch(url, {
       ...options,
       headers
@@ -86,8 +119,46 @@ class ApiService {
     return data as T;
   }
 
+  // --- Health & Connection Diagnostics ---
+  public health = {
+    check: async (customUrl?: string): Promise<{ healthy: boolean; stats: any; latencyMs: number; error?: string }> => {
+      const startTime = Date.now();
+      const targetBase = customUrl ? customUrl.trim().replace(/\/+$/, '') : getCentralServerUrl();
+      try {
+        const response = await fetch(`${targetBase}/api/health`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' }
+        });
+        const latencyMs = Date.now() - startTime;
+        if (!response.ok) {
+          return { healthy: false, stats: null, latencyMs, error: `HTTP ${response.status}` };
+        }
+        const data = await response.json();
+        return { healthy: true, stats: data, latencyMs };
+      } catch (err: any) {
+        return { healthy: false, stats: null, latencyMs: Date.now() - startTime, error: err.message };
+      }
+    }
+  };
+
   // --- Auth APIs ---
   public auth = {
+    ensureSession: async (user: UserAccount): Promise<string | null> => {
+      try {
+        const res = await this.request<{ success: boolean; token: string }>('/auth/session-sync', {
+          method: 'POST',
+          body: JSON.stringify({ userId: user.id, email: user.email })
+        });
+        if (res && res.token) {
+          this.setToken(res.token);
+          return res.token;
+        }
+      } catch (err: any) {
+        console.warn('[ApiService] Background session sync notice:', err.message);
+      }
+      return this.getToken();
+    },
+
     register: async (userData: Partial<UserAccount>): Promise<{ user: UserAccount; token: string }> => {
       const res = await this.request<{ success: boolean; user: UserAccount; token: string }>('/auth/register', {
         method: 'POST',
@@ -258,6 +329,14 @@ class ApiService {
       return res.activity;
     },
 
+    saveBatch: async (activities: UserActivityRecord[]): Promise<UserActivityRecord[]> => {
+      const res = await this.request<{ success: boolean; activities: UserActivityRecord[] }>('/activities/batch', {
+        method: 'POST',
+        body: JSON.stringify({ activities })
+      });
+      return res.activities || [];
+    },
+
     getAttemptDetail: async (activityId: string): Promise<AttemptDetailResponse> => {
       const res = await this.request<{ success: boolean; data: AttemptDetailResponse }>(
         `/activities/${activityId}/show-attempt`
@@ -367,13 +446,6 @@ class ApiService {
     getLogs: async (): Promise<EmailLogEntryView[]> => {
       const res = await this.request<{ success: boolean; logs: EmailLogEntryView[] }>('/admin/smtp/logs');
       return res.logs;
-    }
-  };
-
-  // --- Health API ---
-  public health = {
-    check: async () => {
-      return this.request<{ success: boolean; status: string; totalUsers: number; totalActivities: number }>('/health');
     }
   };
 }

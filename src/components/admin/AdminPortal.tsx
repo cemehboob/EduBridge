@@ -51,6 +51,7 @@ import {
   UserActivityRecord,
   ExamSettingsConfig,
   QuestionAttemptRecord,
+  WrittenResponseRecord,
   SmtpConfigView,
   EmailLogEntryView
 } from '../../types';
@@ -300,24 +301,72 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [emailLogs, setEmailLogs] = useState<EmailLogEntryView[]>([]);
   const [isSyncingServer, setIsSyncingServer] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string>('Just now');
+  const [inspectedHistory, setInspectedHistory] = useState<{
+    activities: UserActivityRecord[];
+    questionAttempts: QuestionAttemptRecord[];
+    writtenResponses: WrittenResponseRecord[];
+    metrics: any;
+  } | null>(null);
+  const [loadingInspectedHistory, setLoadingInspectedHistory] = useState(false);
 
-  // Synchronize live platform activities across machines from central server
+  // Synchronize live platform activities across machines from central server (periodic + tab-active)
+  const syncActivities = async () => {
+    try {
+      setIsSyncingServer(true);
+      const res = await apiService.activities.getAll();
+      if (res && Array.isArray(res.items)) {
+        setAllActivities(res.items);
+        StorageService.saveUserActivities(res.items);
+        setLastSyncTime(new Date().toLocaleTimeString());
+      }
+    } catch (err: any) {
+      console.warn('Central server activities sync notice:', err.message);
+    } finally {
+      setIsSyncingServer(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
-    const syncActivities = async () => {
-      try {
-        const res = await apiService.activities.getAll();
-        if (isMounted && res && Array.isArray(res.items)) {
-          setAllActivities(res.items);
-          StorageService.saveUserActivities(res.items);
-        }
-      } catch (err: any) {
-        console.warn('Central server activities sync notice:', err.message);
-      }
-    };
     syncActivities();
+    const interval = setInterval(syncActivities, 3500);
+    const onFocus = () => syncActivities();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
+  // Fetch complete authoritative history from central server when inspecting a user
+  useEffect(() => {
+    if (!selectedUserForDashboard) {
+      setInspectedHistory(null);
+      return;
+    }
+    let isMounted = true;
+    setLoadingInspectedHistory(true);
+    apiService.users.getFullHistory(selectedUserForDashboard.id)
+      .then((res) => {
+        if (isMounted && res) {
+          setInspectedHistory({
+            activities: res.activities || [],
+            questionAttempts: res.questionAttempts || [],
+            writtenResponses: res.writtenResponses || [],
+            metrics: res.metrics || null
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed loading full user history from server:', err.message);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingInspectedHistory(false);
+      });
     return () => { isMounted = false; };
-  }, [activeAdminTab]);
+  }, [selectedUserForDashboard?.id]);
 
   // Load SMTP configuration and delivery logs when SMTP tab is active
   useEffect(() => {
@@ -605,10 +654,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => { sound.playClick(); syncActivities(); }}
+              disabled={isSyncingServer}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 cursor-pointer transition-all shadow-2xs"
+              title="Pull latest activities across all machines from central server"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingServer ? 'animate-spin text-indigo-600' : 'text-indigo-600'}`} />
+              <span>{isSyncingServer ? 'Syncing...' : `Sync Now (${lastSyncTime})`}</span>
+            </button>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Cluster Active (10 Modules)</span>
+              <span>Central Vault Online ({allActivities.length} Activities)</span>
             </span>
           </div>
         </div>
@@ -779,17 +838,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           return !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
         });
 
-        // Compute activities and question attempts for inspected user
+        // Compute activities and question attempts for inspected user from authoritative server history
         const targetUserActivities = selectedUserForDashboard
-          ? allActivities.filter((a) => a.userId === selectedUserForDashboard.id || a.userName?.toLowerCase() === selectedUserForDashboard.name.toLowerCase())
+          ? (inspectedHistory?.activities && inspectedHistory.activities.length > 0
+              ? inspectedHistory.activities
+              : allActivities.filter((a) => a.userId === selectedUserForDashboard.id || a.userName?.toLowerCase() === selectedUserForDashboard.name.toLowerCase()))
           : [];
 
         const targetUserQuestions = selectedUserForDashboard
-          ? StorageService.getQuestionAttempts().filter(
-              (q) =>
-                q.userId === selectedUserForDashboard.id ||
-                q.userName?.toLowerCase() === selectedUserForDashboard.name.toLowerCase()
-            )
+          ? (inspectedHistory?.questionAttempts && inspectedHistory.questionAttempts.length > 0
+              ? inspectedHistory.questionAttempts
+              : StorageService.getQuestionAttempts().filter(
+                  (q) =>
+                    q.userId === selectedUserForDashboard.id ||
+                    q.userName?.toLowerCase() === selectedUserForDashboard.name.toLowerCase()
+                ))
           : [];
 
         return (
@@ -1434,6 +1497,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
       {/* 0.5 Dedicated Full-Width Platform Activities Tab (All Users + Admin) */}
       {activeAdminTab === 'activities' && (() => {
+        const userRoleMap = new Map<string, UserRole>();
+        users.forEach((u) => userRoleMap.set(u.id, u.role));
+
         const filteredAll = allActivities.filter((act) => {
           const q = activitySearch.toLowerCase().trim();
           const matchesSearch =
@@ -1446,12 +1512,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
           const matchesCat = activityCategoryFilter === 'all' || act.type === activityCategoryFilter;
 
-          const matchesRole =
-            activityRoleFilter === 'all' ||
-            (activityRoleFilter === 'admin' && (act.userId === 'usr_admin_04' || act.type === 'admin_action')) ||
-            (activityRoleFilter === 'teacher' && act.userId === 'usr_teacher_03') ||
-            (activityRoleFilter === 'parent' && act.userId === 'usr_parent_02') ||
-            (activityRoleFilter === 'student' && act.userId !== 'usr_admin_04' && act.userId !== 'usr_teacher_03' && act.userId !== 'usr_parent_02' && act.type !== 'admin_action');
+          const actRole = userRoleMap.get(act.userId) || (act.type === 'admin_action' ? 'admin' : 'student');
+          const matchesRole = activityRoleFilter === 'all' || actRole === activityRoleFilter;
 
           return matchesSearch && matchesCat && matchesRole;
         });

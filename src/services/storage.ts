@@ -98,7 +98,9 @@ const KEYS = {
   EXAM_SETTINGS: 'edubridge_exam_settings_v1',
   ATTEMPTED_TEST_IDS: 'edubridge_attempted_test_ids_v1',
   ATTEMPTED_QUIZ_IDS: 'edubridge_attempted_quiz_ids_v1',
-  LAST_SYNC: 'edubridge_last_sync_timestamp'
+  LAST_SYNC: 'edubridge_last_sync_timestamp',
+  PENDING_ACTIVITIES: 'edubridge_pending_activities_queue_v1',
+  PENDING_QUESTIONS: 'edubridge_pending_questions_queue_v1'
 };
 
 const inMemoryStore = new Map<string, string>();
@@ -477,9 +479,9 @@ export const StorageService = {
 
   getActiveUserId: (): string | null => {
     try {
-      return localStorage.getItem(KEYS.ACTIVE_USER_ID) || 'usr_student_01';
+      return localStorage.getItem(KEYS.ACTIVE_USER_ID) || null;
     } catch {
-      return 'usr_student_01';
+      return null;
     }
   },
   setActiveUserId: (id: string | null): void => {
@@ -574,6 +576,66 @@ export const StorageService = {
     safeSet(KEYS.ACTIVITIES, activities);
   },
 
+  // Cross-Device Activity & Question Pending Sync Queue
+  getPendingActivitiesQueue: (): UserActivityRecord[] => {
+    return safeGet<UserActivityRecord[]>(KEYS.PENDING_ACTIVITIES, []);
+  },
+
+  enqueuePendingActivity: (act: UserActivityRecord): void => {
+    const queue = StorageService.getPendingActivitiesQueue();
+    if (!queue.some((a) => a.id === act.id)) {
+      safeSet(KEYS.PENDING_ACTIVITIES, [...queue, act]);
+    }
+  },
+
+  clearPendingActivitiesQueue: (): void => {
+    safeSet(KEYS.PENDING_ACTIVITIES, []);
+  },
+
+  getPendingQuestionsQueue: (): QuestionAttemptRecord[] => {
+    return safeGet<QuestionAttemptRecord[]>(KEYS.PENDING_QUESTIONS, []);
+  },
+
+  enqueuePendingQuestions: (attempts: QuestionAttemptRecord[]): void => {
+    const queue = StorageService.getPendingQuestionsQueue();
+    const existingIds = new Set(queue.map((q) => q.id));
+    const newItems = attempts.filter((a) => !existingIds.has(a.id));
+    safeSet(KEYS.PENDING_QUESTIONS, [...queue, ...newItems]);
+  },
+
+  clearPendingQuestionsQueue: (): void => {
+    safeSet(KEYS.PENDING_QUESTIONS, []);
+  },
+
+  flushPendingSyncQueue: async (): Promise<{ flushedActivities: number; flushedQuestions: number }> => {
+    let flushedActs = 0;
+    let flushedQs = 0;
+
+    const pendingActs = StorageService.getPendingActivitiesQueue();
+    if (pendingActs.length > 0) {
+      try {
+        await apiService.activities.saveBatch(pendingActs);
+        flushedActs = pendingActs.length;
+        StorageService.clearPendingActivitiesQueue();
+      } catch (e: any) {
+        console.warn('[EduBridge Storage] Pending activities flush deferred:', e.message);
+      }
+    }
+
+    const pendingQs = StorageService.getPendingQuestionsQueue();
+    if (pendingQs.length > 0) {
+      try {
+        await apiService.attempts.saveQuestions(pendingQs);
+        flushedQs = pendingQs.length;
+        StorageService.clearPendingQuestionsQueue();
+      } catch (e: any) {
+        console.warn('[EduBridge Storage] Pending question attempts flush deferred:', e.message);
+      }
+    }
+
+    return { flushedActivities: flushedActs, flushedQuestions: flushedQs };
+  },
+
   recordUserActivity: (act: Omit<UserActivityRecord, 'id' | 'timestamp'> & { id?: string; timestamp?: string }): UserActivityRecord => {
     const existing = StorageService.getUserActivities();
     const newRecord: UserActivityRecord = {
@@ -585,9 +647,10 @@ export const StorageService = {
     const updated = [newRecord, ...existing];
     StorageService.saveUserActivities(updated);
 
-    // Asynchronously synchronize with centralized server storage
+    // Asynchronously synchronize with centralized server storage (enqueued on network blip)
     apiService.activities.save(newRecord).catch((e) => {
-      console.warn('[EduBridge Storage] Background server sync for activity notice:', e.message);
+      console.warn('[EduBridge Storage] Background server sync deferred, enqueued for retry:', e.message);
+      StorageService.enqueuePendingActivity(newRecord);
     });
 
     return newRecord;
@@ -616,9 +679,10 @@ export const StorageService = {
     const updated = [newRecord, ...existing];
     StorageService.saveQuestionAttempts(updated);
 
-    // Asynchronously synchronize with centralized server
+    // Asynchronously synchronize with centralized server (enqueued on network blip)
     apiService.attempts.saveQuestions(newRecord).catch((e) => {
-      console.warn('[EduBridge Storage] Background server sync for question attempt notice:', e.message);
+      console.warn('[EduBridge Storage] Background server sync for question attempt deferred:', e.message);
+      StorageService.enqueuePendingQuestions([newRecord]);
     });
 
     return newRecord;
@@ -639,7 +703,8 @@ export const StorageService = {
 
     // Asynchronously synchronize batch with centralized server
     apiService.attempts.saveQuestions(newRecords).catch((e) => {
-      console.warn('[EduBridge Storage] Background server sync for batch question attempts notice:', e.message);
+      console.warn('[EduBridge Storage] Background batch question sync deferred:', e.message);
+      StorageService.enqueuePendingQuestions(newRecords);
     });
 
     return newRecords;

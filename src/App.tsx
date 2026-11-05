@@ -33,6 +33,7 @@ import { userAccountToProfile, calculateCohortFromDob, calculateEducationLevel }
 import { Header } from './components/Header';
 import { StudentView, StudentTab } from './components/student/StudentView';
 import { AIService } from './services/aiService';
+import { apiService } from './services/apiService';
 import { ParentPortal } from './components/parent/ParentPortal';
 import { TeacherPortal } from './components/teacher/TeacherPortal';
 import { AdminPortal } from './components/admin/AdminPortal';
@@ -86,6 +87,42 @@ export default function App() {
     const activeScheme = currentUser?.preferences.colorScheme || StorageService.getColorScheme();
     applyThemeToDom(activeScheme);
   }, [currentUser]);
+
+  // Central Server Cross-Device Synchronization & Persistent Session Establishment
+  useEffect(() => {
+    let isMounted = true;
+
+    // 1. Authoritative session token establishment for active user
+    if (currentUser) {
+      apiService.auth.ensureSession(currentUser);
+      try {
+        localStorage.setItem('edubridge_active_user_id', currentUser.id);
+      } catch {}
+    }
+
+    // 2. Initial flush of pending offline queue and pull latest activities from central server
+    const executeSync = async () => {
+      try {
+        await StorageService.flushPendingSyncQueue();
+        const res = await apiService.activities.getAll();
+        if (isMounted && res && Array.isArray(res.items)) {
+          setActivities(res.items);
+          StorageService.saveUserActivities(res.items);
+        }
+      } catch {
+        // Background sync
+      }
+    };
+    executeSync();
+
+    // 3. Periodic Cross-Machine Poller (runs every 4 seconds)
+    const syncInterval = setInterval(executeSync, 4000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(syncInterval);
+    };
+  }, [currentUser?.id]);
 
   const [profile, setProfile] = useState(() => StorageService.getProfile());
   const [activeRole, setActiveRole] = useState<UserRole>(() => currentUser?.role || 'student');

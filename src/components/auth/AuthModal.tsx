@@ -70,7 +70,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [simulatedEmailNotice, setSimulatedEmailNotice] = useState<string | null>(null);
+  const [emailDeliveryNotice, setEmailDeliveryNotice] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
   // OTP resend countdown
@@ -156,7 +156,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       // 1. Dispatch OTP through centralized email service / server
       await apiService.auth.requestPasswordResetOtp(cleanEmail);
-      setSimulatedEmailNotice(
+      setEmailDeliveryNotice(
         `A 6-digit verification passcode has been dispatched to ${cleanEmail}. Please check your email inbox (and spam folder) and enter the code below.`
       );
       setEnteredOtp('');
@@ -184,7 +184,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
     StorageService.savePasswordResetOtp(cleanEmail, generatedOtp);
 
-    setSimulatedEmailNotice(
+    setEmailDeliveryNotice(
       `A 6-digit verification passcode has been dispatched to ${cleanEmail}. Please check your email inbox and enter the code below.`
     );
     setEnteredOtp('');
@@ -235,7 +235,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setLoginPassword('');
       setTab('login');
       setForgotStep('email');
-      setSimulatedEmailNotice(null);
+      setEmailDeliveryNotice(null);
       return;
     } catch (serverErr: any) {
       if (serverErr.statusCode === 400 || serverErr.statusCode === 429) {
@@ -263,7 +263,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoginPassword('');
     setTab('login');
     setForgotStep('email');
-    setSimulatedEmailNotice(null);
+    setEmailDeliveryNotice(null);
   };
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
@@ -371,7 +371,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       sound.playSuccess();
       setRegStep('otp');
       setResendCooldown(60);
-      setSimulatedEmailNotice(
+      setEmailDeliveryNotice(
         `A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your email inbox and enter the code below.`
       );
       setRegOtpCode('');
@@ -572,14 +572,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </p>
               </div>
 
-              {simulatedEmailNotice && (
+              {emailDeliveryNotice && (
                 <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-950 space-y-1.5 animate-in fade-in">
                   <div className="font-bold flex items-center gap-1.5 text-emerald-900">
                     <Mail className="w-4 h-4 text-emerald-600" />
                     <span>Verification Code Dispatched to Email</span>
                   </div>
                   <p className="text-[11px] text-emerald-800 leading-relaxed">
-                    {simulatedEmailNotice}
+                    {emailDeliveryNotice}
                   </p>
                 </div>
               )}
@@ -744,14 +744,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </p>
               </div>
 
-              {simulatedEmailNotice && (
+              {emailDeliveryNotice && (
                 <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-950 space-y-1.5 animate-in fade-in">
                   <div className="font-bold flex items-center gap-1.5 text-emerald-900">
                     <Mail className="w-4 h-4 text-emerald-600" />
                     <span>Verification Code Dispatched to Email</span>
                   </div>
                   <p className="text-[11px] text-emerald-800 leading-relaxed">
-                    {simulatedEmailNotice}
+                    {emailDeliveryNotice}
                   </p>
                 </div>
               )}

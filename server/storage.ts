@@ -100,6 +100,14 @@ const initialWrittenResponses: WrittenResponseRecord[] = [
   }
 ];
 
+export interface SessionRecord {
+  token: string;
+  userId: string;
+  userRole: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
 export const ServerStorage = {
   // --- Initialization & Health ---
   initialize: () => {
@@ -144,6 +152,22 @@ export const ServerStorage = {
       activeIncompleteAttempts: incAtts.length,
       serverTime: new Date().toISOString()
     };
+  },
+
+  // --- Session Persistence ---
+  getSessions: (): SessionRecord[] => {
+    return readJsonFile<SessionRecord[]>('sessions.json', []);
+  },
+
+  saveSession: (session: SessionRecord): void => {
+    const sessions = ServerStorage.getSessions().filter((s) => s.token !== session.token && Date.now() <= s.expiresAt);
+    sessions.push(session);
+    writeJsonFileSync('sessions.json', sessions);
+  },
+
+  removeSession: (token: string): void => {
+    const sessions = ServerStorage.getSessions().filter((s) => s.token !== token);
+    writeJsonFileSync('sessions.json', sessions);
   },
 
   // --- User Management ---

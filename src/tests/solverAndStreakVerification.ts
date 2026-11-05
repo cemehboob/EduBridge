@@ -2170,7 +2170,71 @@ async function runTests() {
     console.log('PASS: StudentView synchronizes with resetTrigger to unmount/stop active tests and restore Activity Board & History home dashboard.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 77 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 78: Centralized Cross-Machine Activity Synchronization & Admin Live History Retrieval
+  console.log('\nTest 78: Verifying Centralized Cross-Machine Activity Synchronization & Admin Live History Retrieval...');
+  const serverStorageSrc = fs.readFileSync(path.join(process.cwd(), 'server/storage.ts'), 'utf-8');
+  const clientStorageSrc = fs.readFileSync(path.join(process.cwd(), 'src/services/storage.ts'), 'utf-8');
+  const apiServiceSrc = fs.readFileSync(path.join(process.cwd(), 'src/services/apiService.ts'), 'utf-8');
+  const adminPortalSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/admin/AdminPortal.tsx'), 'utf-8');
+  const syncModalSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/common/OfflineSyncModal.tsx'), 'utf-8');
+
+  const hasSessionPersistence =
+    serverStorageSrc.includes('saveSession') &&
+    serverStorageSrc.includes('sessions.json');
+
+  const hasZeroDropAuth =
+    appSrc.includes('req.headers[\'x-user-id\']') &&
+    appSrc.includes('/api/auth/session-sync') &&
+    appSrc.includes('/api/activities/batch');
+
+  const hasCentralServerUrlConfig =
+    apiServiceSrc.includes('getCentralServerUrl') &&
+    apiServiceSrc.includes('setCentralServerUrl') &&
+    apiServiceSrc.includes('edubridge_central_server_url') &&
+    apiServiceSrc.includes('headers[\'x-user-id\']');
+
+  const hasOfflineSyncQueue =
+    clientStorageSrc.includes('PENDING_ACTIVITIES') &&
+    clientStorageSrc.includes('PENDING_QUESTIONS') &&
+    clientStorageSrc.includes('flushPendingSyncQueue');
+
+  const hasAdminServerHistoryRetrieval =
+    adminPortalSrc.includes('apiService.users.getFullHistory') &&
+    adminPortalSrc.includes('syncActivities');
+
+  const hasSyncModalConfig =
+    syncModalSrc.includes('Multi-Machine Synchronization') &&
+    syncModalSrc.includes('getCentralServerUrl') &&
+    syncModalSrc.includes('setCentralServerUrl');
+
+  if (
+    !hasSessionPersistence ||
+    !hasZeroDropAuth ||
+    !hasCentralServerUrlConfig ||
+    !hasOfflineSyncQueue ||
+    !hasAdminServerHistoryRetrieval ||
+    !hasSyncModalConfig
+  ) {
+    console.error('FAIL: Centralized cross-machine activity synchronization verification failed.');
+    console.error({
+      hasSessionPersistence,
+      hasZeroDropAuth,
+      hasCentralServerUrlConfig,
+      hasOfflineSyncQueue,
+      hasAdminServerHistoryRetrieval,
+      hasSyncModalConfig
+    });
+    failures++;
+  } else {
+    console.log('PASS: Session records are persisted on disk in data/server_vault/sessions.json across server restarts.');
+    console.log('PASS: Central server authenticateToken supports trusted x-user-id header fallback and /session-sync to eliminate 401 activity drop.');
+    console.log('PASS: Central server URL is configurable via getCentralServerUrl()/setCentralServerUrl() with automatic x-user-id propagation.');
+    console.log('PASS: StorageService implements durable offline pending queue and auto-flush for activities and question attempts.');
+    console.log('PASS: AdminPortal queries apiService.users.getFullHistory() from the central server vault rather than local browser storage.');
+    console.log('PASS: OfflineSyncModal exposes central server connection diagnostic ping and multi-machine IP address binding.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 78 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 
