@@ -1,0 +1,1269 @@
+/**
+ * EduBridge — Neon Postgres Database Layer
+ * Centralized cloud database holding all users, sessions, activities, question attempts,
+ * written responses, autosaves, SMTP config, and scheduled jobs.
+ * 
+ * When DATABASE_URL is set (e.g. deployed to Vercel with Neon Postgres):
+ *   Uses @neondatabase/serverless over HTTP (stateless, connection-pooled, zero-maintenance).
+ * When DATABASE_URL is not set (e.g. offline testing/local dev without DB):
+ *   Gracefully falls back to ServerStorage local vault so tests and local builds always work.
+ */
+
+import { neon } from '@neondatabase/serverless';
+import {
+  UserAccount,
+  UserActivityRecord,
+  QuestionAttemptRecord,
+  WrittenResponseRecord,
+  IncompleteAttemptRecord,
+  AttemptDetailResponse
+} from '../src/types';
+import { initialUsers } from '../src/data/userManagementData';
+import { initialActivities, initialQuestionAttempts } from '../src/data/activityData';
+import { ServerStorage } from './storage';
+
+// ─── DB Connection ───────────────────────────────────────────────────────────
+
+function getSql() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      'DATABASE_URL environment variable is not set. Add it in your Vercel project settings (Neon Postgres integration).'
+    );
+  }
+  return neon(url);
+}
+
+// ─── Schema Creation (DDL) ───────────────────────────────────────────────────
+
+export async function initializeDatabase(): Promise<void> {
+  if (!process.env.DATABASE_URL) {
+    console.log('[EduBridge DB] DATABASE_URL not set — using local storage vault fallback. In Vercel, attach Neon Postgres to activate cloud DB.');
+    ServerStorage.initialize();
+    return;
+  }
+
+  const sql = getSql();
+
+  // Create all tables in order
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id               TEXT PRIMARY KEY,
+      name             TEXT NOT NULL,
+      username         TEXT,
+      email            TEXT NOT NULL UNIQUE,
+      password         TEXT NOT NULL,
+      date_of_birth    TEXT,
+      role             TEXT NOT NULL DEFAULT 'student',
+      status           TEXT NOT NULL DEFAULT 'active',
+      email_verified   BOOLEAN DEFAULT TRUE,
+      email_verification_status TEXT DEFAULT 'verified',
+      created_at       TEXT,
+      last_login_at    TEXT,
+      preferences      JSONB DEFAULT '{}',
+      profile_stats    JSONB DEFAULT '{}'
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS sessions (
+      token       TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_role   TEXT NOT NULL,
+      created_at  BIGINT NOT NULL,
+      expires_at  BIGINT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS activities (
+      id                   TEXT PRIMARY KEY,
+      user_id              TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_name            TEXT,
+      type                 TEXT,
+      title                TEXT,
+      category             TEXT,
+      timestamp            TEXT,
+      relative_time        TEXT,
+      score                TEXT,
+      xp_earned            INTEGER,
+      status               TEXT DEFAULT 'completed',
+      details              TEXT,
+      exam_type            TEXT,
+      module               TEXT,
+      attempt_number       INTEGER,
+      started_at           TEXT,
+      completed_at         TEXT,
+      total_questions      INTEGER,
+      attempted_questions  INTEGER,
+      correct_answers      INTEGER,
+      incorrect_answers    INTEGER,
+      skipped_questions    INTEGER,
+      duration_sec         INTEGER,
+      max_score            TEXT,
+      percentage           INTEGER,
+      evaluation           TEXT,
+      feedback             TEXT,
+      replay_payload       JSONB DEFAULT '{}'
+    )
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_activities_user_id ON activities(user_id)
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_activities_timestamp ON activities(timestamp DESC)
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS question_attempts (
+      id                  TEXT PRIMARY KEY,
+      user_id             TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_name           TEXT,
+      user_role           TEXT,
+      test_id             TEXT,
+      test_title          TEXT,
+      module_or_subject   TEXT,
+      question_number     INTEGER,
+      question_prompt     TEXT,
+      options             JSONB,
+      user_answer         TEXT,
+      correct_answer      TEXT,
+      is_correct          BOOLEAN,
+      score               TEXT,
+      max_score           TEXT,
+      time_spent_sec      INTEGER,
+      is_skipped          BOOLEAN DEFAULT FALSE,
+      explanation         TEXT,
+      ai_feedback         TEXT,
+      instructions        TEXT,
+      timestamp           TEXT
+    )
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_qa_user_id ON question_attempts(user_id)
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_qa_test_id ON question_attempts(test_id)
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS written_responses (
+      id                        TEXT PRIMARY KEY,
+      user_id                   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_name                 TEXT,
+      activity_id               TEXT,
+      attempt_id                TEXT,
+      question_id               TEXT,
+      task_title                TEXT,
+      task_prompt               TEXT,
+      instructions              TEXT,
+      source_passage            TEXT,
+      written_text              TEXT,
+      word_count                INTEGER,
+      character_count           INTEGER,
+      writing_duration_sec      INTEGER,
+      evaluation                JSONB,
+      score                     TEXT,
+      feedback                  TEXT,
+      corrections               JSONB,
+      vocabulary_recommendations JSONB,
+      revisions                 JSONB,
+      timestamp                 TEXT
+    )
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_wr_user_id ON written_responses(user_id)
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_wr_activity_id ON written_responses(activity_id)
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS incomplete_attempts (
+      id                     TEXT PRIMARY KEY,
+      user_id                TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      test_id                TEXT NOT NULL,
+      test_title             TEXT,
+      exam_type              TEXT,
+      module                 TEXT,
+      current_question_index INTEGER DEFAULT 0,
+      user_answers           JSONB DEFAULT '{}',
+      essay_text             TEXT,
+      elapsed_seconds        INTEGER DEFAULT 0,
+      last_saved_at          TEXT,
+      UNIQUE(user_id, test_id)
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS smtp_config (
+      id           INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+      config_json  JSONB NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS email_logs (
+      id           TEXT PRIMARY KEY,
+      timestamp    TEXT,
+      recipient    TEXT,
+      type         TEXT,
+      subject      TEXT,
+      provider     TEXT,
+      status       TEXT,
+      error        TEXT,
+      duration_ms  INTEGER
+    )
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_email_logs_ts ON email_logs(timestamp DESC)
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS scheduled_jobs (
+      id                   TEXT PRIMARY KEY,
+      name                 TEXT,
+      description          TEXT,
+      cron_expression      TEXT,
+      target_time          TEXT,
+      category             TEXT,
+      enabled              BOOLEAN DEFAULT TRUE,
+      last_run_timestamp   TEXT,
+      next_run_timestamp   TEXT,
+      items_generated      INTEGER DEFAULT 0,
+      status               TEXT DEFAULT 'idle',
+      batch_target         TEXT
+    )
+  `;
+
+  console.log('[EduBridge DB] Neon Postgres tables created and verified successfully.');
+}
+
+// ─── Seed Data ───────────────────────────────────────────────────────────────
+
+export async function seedInitialData(): Promise<void> {
+  if (!process.env.DATABASE_URL) return;
+
+  const sql = getSql();
+
+  // Check if users already seeded
+  const existing = await sql`SELECT COUNT(*) as count FROM users`;
+  if (parseInt(String(existing[0].count), 10) > 0) {
+    console.log('[EduBridge DB] Database already seeded — skipping seed.');
+    return;
+  }
+
+  console.log('[EduBridge DB] Seeding initial users into Neon Postgres...');
+
+  for (const user of initialUsers) {
+    try {
+      await sql`
+        INSERT INTO users (
+          id, name, username, email, password, date_of_birth,
+          role, status, email_verified, email_verification_status,
+          created_at, last_login_at, preferences, profile_stats
+        )
+        VALUES (
+          ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
+          ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
+          ${user.emailVerified ?? true}, ${user.emailVerificationStatus || 'verified'},
+          ${user.createdAt}, ${user.lastLoginAt},
+          ${JSON.stringify(user.preferences)}, ${JSON.stringify(user.profileStats)}
+        )
+        ON CONFLICT (id) DO NOTHING
+      `;
+    } catch (err: any) {
+      console.warn(`[EduBridge DB] Skipping user seed for ${user.id}:`, err.message);
+    }
+  }
+
+  // Seed initial activities
+  for (const act of initialActivities) {
+    try {
+      await sql`
+        INSERT INTO activities (
+          id, user_id, user_name, type, title, category, timestamp,
+          score, xp_earned, status, details, exam_type, module,
+          attempt_number, started_at, completed_at,
+          total_questions, attempted_questions, correct_answers,
+          incorrect_answers, skipped_questions, duration_sec,
+          max_score, percentage, evaluation, feedback, replay_payload
+        )
+        VALUES (
+          ${act.id}, ${act.userId}, ${act.userName}, ${act.type}, ${act.title},
+          ${act.category}, ${act.timestamp}, ${String(act.score ?? '')},
+          ${act.xpEarned || 0}, ${act.status}, ${act.details},
+          ${act.examType || null}, ${act.module || null},
+          ${act.attemptNumber || null}, ${act.startedAt || null},
+          ${act.completedAt || null}, ${act.totalQuestions || null},
+          ${act.attemptedQuestions || null}, ${act.correctAnswers || null},
+          ${act.incorrectAnswers || null}, ${act.skippedQuestions || null},
+          ${act.durationSec || null}, ${String(act.maxScore ?? '')},
+          ${act.percentage || null}, ${act.evaluation || null},
+          ${act.feedback || null}, ${JSON.stringify(act.replayPayload || {})}
+        )
+        ON CONFLICT (id) DO NOTHING
+      `;
+    } catch (err: any) {
+      console.warn(`[EduBridge DB] Skipping activity seed for ${act.id}:`, err.message);
+    }
+  }
+
+  // Seed initial question attempts
+  for (const qa of initialQuestionAttempts) {
+    try {
+      await sql`
+        INSERT INTO question_attempts (
+          id, user_id, user_name, user_role, test_id, test_title,
+          module_or_subject, question_number, question_prompt, options,
+          user_answer, correct_answer, is_correct, score, max_score,
+          time_spent_sec, is_skipped, explanation, ai_feedback, instructions, timestamp
+        )
+        VALUES (
+          ${qa.id}, ${qa.userId}, ${qa.userName}, ${qa.userRole || null},
+          ${qa.testId}, ${qa.testTitle}, ${qa.moduleOrSubject},
+          ${qa.questionNumber}, ${qa.questionPrompt},
+          ${JSON.stringify(qa.options || [])}, ${qa.userAnswer},
+          ${qa.correctAnswer || null}, ${qa.isCorrect},
+          ${String(qa.score ?? '')}, ${String(qa.maxScore ?? '')},
+          ${qa.timeSpentSec || null}, ${qa.isSkipped || false},
+          ${qa.explanation || null}, ${qa.aiFeedback || null},
+          ${qa.instructions || null}, ${qa.timestamp}
+        )
+        ON CONFLICT (id) DO NOTHING
+      `;
+    } catch (err: any) {
+      console.warn(`[EduBridge DB] Skipping question attempt seed for ${qa.id}:`, err.message);
+    }
+  }
+
+  // Seed initial scheduled jobs
+  const defaultJobs = [
+    {
+      id: 'job_exam_midnight_00',
+      name: 'Nightly Multi-Exam Mock & Practice Test Generator',
+      description: 'Generates 6 new multi-exam mock tests (PTE, TOEFL, OET, DET, Cambridge, IELTS) and 5 practice tests.',
+      cronExpression: '0 0 * * *',
+      targetTime: '00:00 (Midnight)',
+      category: 'EXAM_PREP',
+      enabled: true,
+      lastRunTimestamp: `Last run: ${new Date().toISOString().slice(0, 10)} 00:00:02`,
+      nextRunTimestamp: 'Tomorrow 00:00',
+      itemsGenerated: 11,
+      status: 'idle',
+      batchTarget: 'At least 6 Mock Tests + 5 Practice Tests'
+    },
+    {
+      id: 'job_vocab_expansion_00',
+      name: 'Daily Vocabulary Vault Expansion',
+      description: 'Expands the Vocabulary Vault with 100 new CEFR-graded words daily.',
+      cronExpression: '0 0 * * *',
+      targetTime: '00:00 (Midnight)',
+      category: 'VOCABULARY',
+      enabled: true,
+      lastRunTimestamp: `Last run: ${new Date().toISOString().slice(0, 10)} 00:00:04`,
+      nextRunTimestamp: 'Tomorrow 00:00',
+      itemsGenerated: 100,
+      status: 'idle',
+      batchTarget: 'At least 100 Vocabulary Words'
+    }
+  ];
+
+  for (const job of defaultJobs) {
+    try {
+      await sql`
+        INSERT INTO scheduled_jobs (
+          id, name, description, cron_expression, target_time, category,
+          enabled, last_run_timestamp, next_run_timestamp,
+          items_generated, status, batch_target
+        )
+        VALUES (
+          ${job.id}, ${job.name}, ${job.description}, ${job.cronExpression},
+          ${job.targetTime}, ${job.category}, ${job.enabled},
+          ${job.lastRunTimestamp}, ${job.nextRunTimestamp},
+          ${job.itemsGenerated}, ${job.status}, ${job.batchTarget}
+        )
+        ON CONFLICT (id) DO NOTHING
+      `;
+    } catch (err: any) {
+      console.warn(`[EduBridge DB] Skipping job seed:`, err.message);
+    }
+  }
+
+  console.log('[EduBridge DB] Initial Neon Postgres seed complete.');
+}
+
+// ─── Helper: Row → Type ───────────────────────────────────────────────────────
+
+function rowToUser(row: any): UserAccount {
+  return {
+    id: row.id,
+    name: row.name,
+    username: row.username || undefined,
+    email: row.email,
+    password: row.password,
+    dateOfBirth: row.date_of_birth || '',
+    role: row.role,
+    status: row.status,
+    emailVerified: row.email_verified ?? true,
+    emailVerificationStatus: row.email_verification_status || 'verified',
+    createdAt: row.created_at || '',
+    lastLoginAt: row.last_login_at || '',
+    preferences: row.preferences || {},
+    profileStats: row.profile_stats || {}
+  } as UserAccount;
+}
+
+function rowToActivity(row: any): UserActivityRecord {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    userName: row.user_name || '',
+    type: row.type,
+    title: row.title,
+    category: row.category,
+    timestamp: row.timestamp,
+    relativeTime: row.relative_time || undefined,
+    score: row.score || undefined,
+    xpEarned: row.xp_earned || undefined,
+    status: row.status,
+    details: row.details || '',
+    examType: row.exam_type || undefined,
+    module: row.module || undefined,
+    attemptNumber: row.attempt_number || undefined,
+    startedAt: row.started_at || undefined,
+    completedAt: row.completed_at || undefined,
+    totalQuestions: row.total_questions || undefined,
+    attemptedQuestions: row.attempted_questions || undefined,
+    correctAnswers: row.correct_answers || undefined,
+    incorrectAnswers: row.incorrect_answers || undefined,
+    skippedQuestions: row.skipped_questions || undefined,
+    durationSec: row.duration_sec || undefined,
+    maxScore: row.max_score || undefined,
+    percentage: row.percentage || undefined,
+    evaluation: row.evaluation || undefined,
+    feedback: row.feedback || undefined,
+    replayPayload: row.replay_payload || { tab: '' }
+  };
+}
+
+function rowToQuestionAttempt(row: any): QuestionAttemptRecord {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    userName: row.user_name || '',
+    userRole: row.user_role || undefined,
+    testId: row.test_id,
+    testTitle: row.test_title || '',
+    moduleOrSubject: row.module_or_subject || '',
+    questionNumber: row.question_number || 0,
+    questionPrompt: row.question_prompt || '',
+    options: row.options || undefined,
+    userAnswer: row.user_answer || '',
+    correctAnswer: row.correct_answer || undefined,
+    isCorrect: row.is_correct || false,
+    score: row.score || undefined,
+    maxScore: row.max_score || undefined,
+    timeSpentSec: row.time_spent_sec || undefined,
+    isSkipped: row.is_skipped || false,
+    explanation: row.explanation || undefined,
+    aiFeedback: row.ai_feedback || undefined,
+    instructions: row.instructions || undefined,
+    timestamp: row.timestamp || ''
+  };
+}
+
+function rowToWrittenResponse(row: any): WrittenResponseRecord {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    userName: row.user_name || '',
+    activityId: row.activity_id || '',
+    attemptId: row.attempt_id || '',
+    questionId: row.question_id || '',
+    taskTitle: row.task_title || '',
+    taskPrompt: row.task_prompt || '',
+    instructions: row.instructions || undefined,
+    sourcePassage: row.source_passage || undefined,
+    writtenText: row.written_text || '',
+    wordCount: row.word_count || 0,
+    characterCount: row.character_count || 0,
+    writingDurationSec: row.writing_duration_sec || undefined,
+    evaluation: row.evaluation || undefined,
+    score: row.score || undefined,
+    feedback: row.feedback || undefined,
+    corrections: row.corrections || undefined,
+    vocabularyRecommendations: row.vocabulary_recommendations || undefined,
+    revisions: row.revisions || undefined,
+    timestamp: row.timestamp || ''
+  };
+}
+
+function rowToIncompleteAttempt(row: any): IncompleteAttemptRecord {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    testId: row.test_id,
+    testTitle: row.test_title || '',
+    examType: row.exam_type || '',
+    module: row.module || '',
+    currentQuestionIndex: row.current_question_index || 0,
+    userAnswers: row.user_answers || {},
+    essayText: row.essay_text || undefined,
+    elapsedSeconds: row.elapsed_seconds || 0,
+    lastSavedAt: row.last_saved_at || new Date().toISOString()
+  };
+}
+
+// ─── Database Storage API ─────────────────────────────────────────────────────
+
+export const DbStorage = {
+
+  // --- Health ---
+  getHealthStats: async () => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getHealthStats();
+    }
+    const sql = getSql();
+    const [users, acts, qAtts, wRes, incAtts] = await Promise.all([
+      sql`SELECT COUNT(*) as count FROM users`,
+      sql`SELECT COUNT(*) as count FROM activities`,
+      sql`SELECT COUNT(*) as count FROM question_attempts`,
+      sql`SELECT COUNT(*) as count FROM written_responses`,
+      sql`SELECT COUNT(*) as count FROM incomplete_attempts`
+    ]);
+    return {
+      status: 'healthy',
+      storageVault: 'Neon Postgres (Centralized Cloud Database)',
+      totalUsers: parseInt(String(users[0].count), 10),
+      totalActivities: parseInt(String(acts[0].count), 10),
+      totalQuestionAttempts: parseInt(String(qAtts[0].count), 10),
+      totalWrittenResponses: parseInt(String(wRes[0].count), 10),
+      activeIncompleteAttempts: parseInt(String(incAtts[0].count), 10),
+      serverTime: new Date().toISOString()
+    };
+  },
+
+  // --- Sessions ---
+  getSessions: async (): Promise<{ token: string; userId: string; userRole: string; createdAt: number; expiresAt: number }[]> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getSessions();
+    }
+    const sql = getSql();
+    const rows = await sql`SELECT * FROM sessions WHERE expires_at > ${Date.now()}`;
+    return rows.map((r) => ({
+      token: r.token,
+      userId: r.user_id,
+      userRole: r.user_role,
+      createdAt: parseInt(String(r.created_at), 10),
+      expiresAt: parseInt(String(r.expires_at), 10)
+    }));
+  },
+
+  saveSession: async (session: { token: string; userId: string; userRole: string; createdAt: number; expiresAt: number }): Promise<void> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.saveSession(session);
+    }
+    const sql = getSql();
+    await sql`
+      INSERT INTO sessions (token, user_id, user_role, created_at, expires_at)
+      VALUES (${session.token}, ${session.userId}, ${session.userRole}, ${session.createdAt}, ${session.expiresAt})
+      ON CONFLICT (token) DO UPDATE SET expires_at = ${session.expiresAt}
+    `;
+    // Cleanup expired sessions periodically
+    await sql`DELETE FROM sessions WHERE expires_at < ${Date.now() - 86400000}`;
+  },
+
+  findSession: async (token: string): Promise<{ userId: string; userRole: string; expiresAt: number } | null> => {
+    if (!process.env.DATABASE_URL) {
+      const sess = ServerStorage.getSessions().find((s) => s.token === token && Date.now() <= s.expiresAt);
+      return sess ? { userId: sess.userId, userRole: sess.userRole, expiresAt: sess.expiresAt } : null;
+    }
+    const sql = getSql();
+    const rows = await sql`SELECT * FROM sessions WHERE token = ${token} AND expires_at > ${Date.now()}`;
+    if (rows.length === 0) return null;
+    return {
+      userId: rows[0].user_id,
+      userRole: rows[0].user_role,
+      expiresAt: parseInt(String(rows[0].expires_at), 10)
+    };
+  },
+
+  removeSession: async (token: string): Promise<void> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.removeSession(token);
+    }
+    const sql = getSql();
+    await sql`DELETE FROM sessions WHERE token = ${token}`;
+  },
+
+  // --- Users ---
+  getUsers: async (): Promise<UserAccount[]> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getUsers();
+    }
+    const sql = getSql();
+    const rows = await sql`SELECT * FROM users ORDER BY created_at DESC`;
+    return rows.map(rowToUser);
+  },
+
+  getUserById: async (id: string): Promise<UserAccount | null> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getUserById(id);
+    }
+    const sql = getSql();
+    const rows = await sql`SELECT * FROM users WHERE id = ${id}`;
+    return rows.length > 0 ? rowToUser(rows[0]) : null;
+  },
+
+  getUserByIdentifier: async (identifier: string): Promise<UserAccount | null> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getUserByIdentifier(identifier);
+    }
+    const clean = identifier.trim().toLowerCase();
+    const sql = getSql();
+    const rows = await sql`
+      SELECT * FROM users
+      WHERE LOWER(email) = ${clean}
+         OR LOWER(username) = ${clean}
+         OR LOWER(name) = ${clean}
+      LIMIT 1
+    `;
+    return rows.length > 0 ? rowToUser(rows[0]) : null;
+  },
+
+  createUser: async (user: UserAccount): Promise<UserAccount> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.createUser(user);
+    }
+    const sql = getSql();
+    // Check uniqueness
+    const existing = await sql`
+      SELECT id FROM users
+      WHERE id = ${user.id} OR LOWER(email) = ${user.email.toLowerCase()}
+      LIMIT 1
+    `;
+    if (existing.length > 0) {
+      throw new Error('An account already exists with this email address.');
+    }
+    await sql`
+      INSERT INTO users (
+        id, name, username, email, password, date_of_birth,
+        role, status, email_verified, email_verification_status,
+        created_at, last_login_at, preferences, profile_stats
+      )
+      VALUES (
+        ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
+        ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
+        ${user.emailVerified ?? true}, ${user.emailVerificationStatus || 'verified'},
+        ${user.createdAt}, ${user.lastLoginAt},
+        ${JSON.stringify(user.preferences)}, ${JSON.stringify(user.profileStats)}
+      )
+    `;
+    const created = await sql`SELECT * FROM users WHERE id = ${user.id}`;
+    return rowToUser(created[0]);
+  },
+
+  updateUser: async (id: string, updates: Partial<UserAccount>): Promise<UserAccount> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.updateUser(id, updates);
+    }
+    const sql = getSql();
+    const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
+    if (existing.length === 0) {
+      throw new Error(`User not found with id ${id}`);
+    }
+    const current = rowToUser(existing[0]);
+
+    const merged: UserAccount = {
+      ...current,
+      ...updates,
+      id: current.id, // immutable
+      preferences: updates.preferences ? { ...current.preferences, ...updates.preferences } : current.preferences,
+      profileStats: updates.profileStats ? { ...current.profileStats, ...updates.profileStats } : current.profileStats
+    };
+
+    await sql`
+      UPDATE users SET
+        name = ${merged.name},
+        username = ${merged.username || null},
+        email = ${merged.email},
+        password = ${merged.password},
+        date_of_birth = ${merged.dateOfBirth},
+        role = ${merged.role},
+        status = ${merged.status},
+        email_verified = ${merged.emailVerified ?? true},
+        email_verification_status = ${merged.emailVerificationStatus || 'verified'},
+        last_login_at = ${merged.lastLoginAt},
+        preferences = ${JSON.stringify(merged.preferences)},
+        profile_stats = ${JSON.stringify(merged.profileStats)}
+      WHERE id = ${id}
+    `;
+    return merged;
+  },
+
+  // --- Activities ---
+  getActivities: async (filter?: {
+    userId?: string;
+    examType?: string;
+    module?: string;
+    category?: string;
+    status?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: UserActivityRecord[]; total: number }> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getActivities(filter);
+    }
+    const sql = getSql();
+
+    // Build dynamic WHERE conditions
+    let query = `SELECT * FROM activities WHERE 1=1`;
+    const params: any[] = [];
+    let paramIdx = 1;
+
+    if (filter?.userId) {
+      query += ` AND user_id = $${paramIdx++}`;
+      params.push(filter.userId);
+    }
+    if (filter?.examType && filter.examType !== 'all') {
+      query += ` AND (LOWER(exam_type) LIKE $${paramIdx} OR LOWER(category) LIKE $${paramIdx})`;
+      params.push(`%${filter.examType.toLowerCase()}%`);
+      paramIdx++;
+    }
+    if (filter?.module && filter.module !== 'all') {
+      query += ` AND (LOWER(module) LIKE $${paramIdx} OR LOWER(title) LIKE $${paramIdx})`;
+      params.push(`%${filter.module.toLowerCase()}%`);
+      paramIdx++;
+    }
+    if (filter?.category && filter.category !== 'all') {
+      query += ` AND LOWER(category) LIKE $${paramIdx++}`;
+      params.push(`%${filter.category.toLowerCase()}%`);
+    }
+    if (filter?.status && filter.status !== 'all') {
+      query += ` AND status = $${paramIdx++}`;
+      params.push(filter.status);
+    }
+    if (filter?.search) {
+      query += ` AND (LOWER(title) LIKE $${paramIdx} OR LOWER(details) LIKE $${paramIdx})`;
+      params.push(`%${filter.search.toLowerCase()}%`);
+      paramIdx++;
+    }
+
+    // Count
+    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countRes: any = await sql.query(countQuery, params);
+    const countList = Array.isArray(countRes) ? countRes : countRes?.rows || [];
+    const total = parseInt(String(countList[0]?.count || 0), 10);
+
+    // Order, limit, offset
+    query += ` ORDER BY timestamp DESC`;
+    if (filter?.limit) {
+      query += ` LIMIT $${paramIdx++}`;
+      params.push(filter.limit);
+    }
+    if (filter?.offset) {
+      query += ` OFFSET $${paramIdx++}`;
+      params.push(filter.offset);
+    }
+
+    const rowsRes: any = await sql.query(query, params);
+    const rowsList = Array.isArray(rowsRes) ? rowsRes : rowsRes?.rows || [];
+    return { items: rowsList.map(rowToActivity), total };
+  },
+
+  getActivityById: async (id: string): Promise<UserActivityRecord | null> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getActivityById(id);
+    }
+    const sql = getSql();
+    const rows = await sql`SELECT * FROM activities WHERE id = ${id}`;
+    return rows.length > 0 ? rowToActivity(rows[0]) : null;
+  },
+
+  saveActivity: async (activity: UserActivityRecord): Promise<UserActivityRecord> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.saveActivity(activity);
+    }
+    const sql = getSql();
+    const id = activity.id || `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const timestamp = activity.timestamp || new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    await sql`
+      INSERT INTO activities (
+        id, user_id, user_name, type, title, category, timestamp,
+        score, xp_earned, status, details, exam_type, module,
+        attempt_number, started_at, completed_at,
+        total_questions, attempted_questions, correct_answers,
+        incorrect_answers, skipped_questions, duration_sec,
+        max_score, percentage, evaluation, feedback, replay_payload
+      )
+      VALUES (
+        ${id}, ${activity.userId}, ${activity.userName || ''}, ${activity.type},
+        ${activity.title}, ${activity.category}, ${timestamp},
+        ${String(activity.score ?? '')}, ${activity.xpEarned || 0},
+        ${activity.status}, ${activity.details || ''},
+        ${activity.examType || null}, ${activity.module || null},
+        ${activity.attemptNumber || null}, ${activity.startedAt || null},
+        ${activity.completedAt || null}, ${activity.totalQuestions || null},
+        ${activity.attemptedQuestions || null}, ${activity.correctAnswers || null},
+        ${activity.incorrectAnswers || null}, ${activity.skippedQuestions || null},
+        ${activity.durationSec || null}, ${String(activity.maxScore ?? '')},
+        ${activity.percentage || null}, ${activity.evaluation || null},
+        ${activity.feedback || null}, ${JSON.stringify(activity.replayPayload || { tab: '' })}
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        score = EXCLUDED.score,
+        xp_earned = EXCLUDED.xp_earned,
+        status = EXCLUDED.status,
+        details = EXCLUDED.details,
+        total_questions = EXCLUDED.total_questions,
+        attempted_questions = EXCLUDED.attempted_questions,
+        correct_answers = EXCLUDED.correct_answers,
+        incorrect_answers = EXCLUDED.incorrect_answers,
+        percentage = EXCLUDED.percentage,
+        evaluation = EXCLUDED.evaluation,
+        feedback = EXCLUDED.feedback,
+        completed_at = EXCLUDED.completed_at,
+        duration_sec = EXCLUDED.duration_sec,
+        replay_payload = EXCLUDED.replay_payload
+    `;
+
+    const saved = await sql`SELECT * FROM activities WHERE id = ${id}`;
+    return rowToActivity(saved[0]);
+  },
+
+  // --- Question Attempts ---
+  getQuestionAttempts: async (filter?: {
+    userId?: string;
+    testId?: string;
+    activityId?: string;
+  }): Promise<QuestionAttemptRecord[]> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getQuestionAttempts(filter);
+    }
+    const sql = getSql();
+
+    let query = `SELECT * FROM question_attempts WHERE 1=1`;
+    const params: any[] = [];
+    let paramIdx = 1;
+
+    if (filter?.userId) {
+      query += ` AND user_id = $${paramIdx++}`;
+      params.push(filter.userId);
+    }
+    if (filter?.testId) {
+      query += ` AND test_id = $${paramIdx++}`;
+      params.push(filter.testId);
+    }
+
+    query += ` ORDER BY timestamp DESC, question_number ASC`;
+
+    const rowsRes: any = await sql.query(query, params);
+    const rowsList = Array.isArray(rowsRes) ? rowsRes : rowsRes?.rows || [];
+    return rowsList.map(rowToQuestionAttempt);
+  },
+
+  saveQuestionAttempt: async (attempt: QuestionAttemptRecord): Promise<QuestionAttemptRecord> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.saveQuestionAttempt(attempt);
+    }
+    const sql = getSql();
+    const id = attempt.id || `qatt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const timestamp = attempt.timestamp || new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    await sql`
+      INSERT INTO question_attempts (
+        id, user_id, user_name, user_role, test_id, test_title,
+        module_or_subject, question_number, question_prompt, options,
+        user_answer, correct_answer, is_correct, score, max_score,
+        time_spent_sec, is_skipped, explanation, ai_feedback, instructions, timestamp
+      )
+      VALUES (
+        ${id}, ${attempt.userId}, ${attempt.userName || ''}, ${attempt.userRole || null},
+        ${attempt.testId}, ${attempt.testTitle || ''},
+        ${attempt.moduleOrSubject || ''}, ${attempt.questionNumber || 0},
+        ${attempt.questionPrompt || ''}, ${JSON.stringify(attempt.options || [])},
+        ${attempt.userAnswer || ''}, ${attempt.correctAnswer || null},
+        ${attempt.isCorrect || false}, ${String(attempt.score ?? '')},
+        ${String(attempt.maxScore ?? '')}, ${attempt.timeSpentSec || null},
+        ${attempt.isSkipped || false}, ${attempt.explanation || null},
+        ${attempt.aiFeedback || null}, ${attempt.instructions || null}, ${timestamp}
+      )
+      ON CONFLICT (id) DO NOTHING
+    `;
+
+    const saved = await sql`SELECT * FROM question_attempts WHERE id = ${id}`;
+    return rowToQuestionAttempt(saved[0]);
+  },
+
+  saveBatchQuestionAttempts: async (attempts: QuestionAttemptRecord[]): Promise<QuestionAttemptRecord[]> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.saveBatchQuestionAttempts(attempts);
+    }
+    const saved: QuestionAttemptRecord[] = [];
+    for (const attempt of attempts) {
+      try {
+        const s = await DbStorage.saveQuestionAttempt(attempt);
+        saved.push(s);
+      } catch (err: any) {
+        console.warn('[EduBridge DB] Batch question attempt save notice:', err.message);
+      }
+    }
+    return saved;
+  },
+
+  // --- Written Responses ---
+  getWrittenResponses: async (filter?: {
+    userId?: string;
+    activityId?: string;
+  }): Promise<WrittenResponseRecord[]> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getWrittenResponses(filter);
+    }
+    const sql = getSql();
+
+    let query = `SELECT * FROM written_responses WHERE 1=1`;
+    const params: any[] = [];
+    let paramIdx = 1;
+
+    if (filter?.userId) {
+      query += ` AND user_id = $${paramIdx++}`;
+      params.push(filter.userId);
+    }
+    if (filter?.activityId) {
+      query += ` AND activity_id = $${paramIdx++}`;
+      params.push(filter.activityId);
+    }
+
+    query += ` ORDER BY timestamp DESC`;
+
+    const rowsRes: any = await sql.query(query, params);
+    const rowsList = Array.isArray(rowsRes) ? rowsRes : rowsRes?.rows || [];
+    return rowsList.map(rowToWrittenResponse);
+  },
+
+  saveWrittenResponse: async (response: WrittenResponseRecord): Promise<WrittenResponseRecord> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.saveWrittenResponse(response);
+    }
+    const sql = getSql();
+    const id = response.id || `wres_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const timestamp = response.timestamp || new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    await sql`
+      INSERT INTO written_responses (
+        id, user_id, user_name, activity_id, attempt_id, question_id,
+        task_title, task_prompt, instructions, source_passage,
+        written_text, word_count, character_count, writing_duration_sec,
+        evaluation, score, feedback, corrections, vocabulary_recommendations,
+        revisions, timestamp
+      )
+      VALUES (
+        ${id}, ${response.userId}, ${response.userName || ''}, ${response.activityId || ''},
+        ${response.attemptId || ''}, ${response.questionId || ''},
+        ${response.taskTitle || ''}, ${response.taskPrompt || ''},
+        ${response.instructions || null}, ${response.sourcePassage || null},
+        ${response.writtenText || ''}, ${response.wordCount || 0},
+        ${response.characterCount || 0}, ${response.writingDurationSec || null},
+        ${JSON.stringify(response.evaluation || {})}, ${String(response.score ?? '')},
+        ${response.feedback || null}, ${JSON.stringify(response.corrections || [])},
+        ${JSON.stringify(response.vocabularyRecommendations || [])},
+        ${JSON.stringify(response.revisions || [])}, ${timestamp}
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        written_text = EXCLUDED.written_text,
+        word_count = EXCLUDED.word_count,
+        character_count = EXCLUDED.character_count,
+        evaluation = EXCLUDED.evaluation,
+        score = EXCLUDED.score,
+        feedback = EXCLUDED.feedback,
+        corrections = EXCLUDED.corrections,
+        vocabulary_recommendations = EXCLUDED.vocabulary_recommendations,
+        revisions = EXCLUDED.revisions
+    `;
+
+    const saved = await sql`SELECT * FROM written_responses WHERE id = ${id}`;
+    return rowToWrittenResponse(saved[0]);
+  },
+
+  // --- Incomplete Attempts ---
+  getIncompleteAttempt: async (userId: string, testId?: string): Promise<IncompleteAttemptRecord | null> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getIncompleteAttempt(userId, testId);
+    }
+    const sql = getSql();
+    if (testId) {
+      const rows = await sql`
+        SELECT * FROM incomplete_attempts WHERE user_id = ${userId} AND test_id = ${testId} LIMIT 1
+      `;
+      return rows.length > 0 ? rowToIncompleteAttempt(rows[0]) : null;
+    }
+    const rows = await sql`
+      SELECT * FROM incomplete_attempts WHERE user_id = ${userId}
+      ORDER BY last_saved_at DESC LIMIT 1
+    `;
+    return rows.length > 0 ? rowToIncompleteAttempt(rows[0]) : null;
+  },
+
+  saveIncompleteAttempt: async (attempt: IncompleteAttemptRecord): Promise<IncompleteAttemptRecord> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.saveIncompleteAttempt(attempt);
+    }
+    const sql = getSql();
+    const id = attempt.id || `inc_${attempt.userId}_${attempt.testId}`;
+    const lastSavedAt = new Date().toISOString();
+
+    await sql`
+      INSERT INTO incomplete_attempts (
+        id, user_id, test_id, test_title, exam_type, module,
+        current_question_index, user_answers, essay_text, elapsed_seconds, last_saved_at
+      )
+      VALUES (
+        ${id}, ${attempt.userId}, ${attempt.testId}, ${attempt.testTitle || ''},
+        ${attempt.examType || ''}, ${attempt.module || ''},
+        ${attempt.currentQuestionIndex || 0}, ${JSON.stringify(attempt.userAnswers || {})},
+        ${attempt.essayText || null}, ${attempt.elapsedSeconds || 0}, ${lastSavedAt}
+      )
+      ON CONFLICT (user_id, test_id) DO UPDATE SET
+        current_question_index = EXCLUDED.current_question_index,
+        user_answers = EXCLUDED.user_answers,
+        essay_text = EXCLUDED.essay_text,
+        elapsed_seconds = EXCLUDED.elapsed_seconds,
+        last_saved_at = EXCLUDED.last_saved_at
+    `;
+
+    const saved = await sql`
+      SELECT * FROM incomplete_attempts WHERE user_id = ${attempt.userId} AND test_id = ${attempt.testId}
+    `;
+    return rowToIncompleteAttempt(saved[0]);
+  },
+
+  clearIncompleteAttempt: async (userId: string, testId?: string): Promise<boolean> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.clearIncompleteAttempt(userId, testId);
+    }
+    const sql = getSql();
+    if (testId) {
+      await sql`DELETE FROM incomplete_attempts WHERE user_id = ${userId} AND test_id = ${testId}`;
+    } else {
+      await sql`DELETE FROM incomplete_attempts WHERE user_id = ${userId}`;
+    }
+    return true;
+  },
+
+  // --- Attempt Detail (Show Attempt) ---
+  getAttemptDetail: async (
+    activityId: string,
+    requestingUserId?: string,
+    requestingUserRole?: string
+  ): Promise<AttemptDetailResponse> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getAttemptDetail(activityId, requestingUserId, requestingUserRole);
+    }
+    const activity = await DbStorage.getActivityById(activityId);
+    if (!activity) {
+      throw Object.assign(new Error(`Activity not found: ${activityId}`), { statusCode: 404 });
+    }
+
+    if (requestingUserRole !== 'admin' && requestingUserId && activity.userId !== requestingUserId) {
+      throw Object.assign(
+        new Error('Unauthorized: You do not have permission to view another user\'s attempt.'),
+        { statusCode: 403 }
+      );
+    }
+
+    const testId = activity.replayPayload?.subId || activity.id;
+    let questions = await DbStorage.getQuestionAttempts({ userId: activity.userId, testId });
+    if (questions.length === 0) {
+      const allUserQ = await DbStorage.getQuestionAttempts({ userId: activity.userId });
+      questions = allUserQ.filter(
+        (q) => q.testId === testId || q.testTitle.toLowerCase().includes(activity.title.toLowerCase().slice(0, 15))
+      );
+    }
+
+    let written = await DbStorage.getWrittenResponses({ userId: activity.userId, activityId });
+    if (written.length === 0) {
+      const allW = await DbStorage.getWrittenResponses({ userId: activity.userId });
+      written = allW.filter(
+        (w) => w.activityId === activity.id || (testId && w.taskTitle.toLowerCase().includes(activity.title.toLowerCase().slice(0, 15)))
+      );
+    }
+    const writtenResponse = written[0] || undefined;
+
+    const totalQ = questions.length || 1;
+    const correctQ = questions.filter((q) => q.isCorrect).length;
+    const percentage = questions.length > 0 ? Math.round((correctQ / totalQ) * 100) : 100;
+    const scoreText = typeof activity.score === 'string' ? activity.score : `${activity.score || percentage}%`;
+
+    return {
+      activity,
+      questions,
+      writtenResponse,
+      summary: {
+        scoreText,
+        percentage,
+        timeSpent: activity.durationSec ? `${Math.round(activity.durationSec / 60)} mins` : 'Timed Session',
+        accuracyText: `${correctQ} / ${totalQ} Correct`,
+        evaluationBadge: percentage >= 80 ? 'Mastery Achieved' : percentage >= 60 ? 'Proficient' : 'Needs Practice'
+      }
+    };
+  },
+
+  // --- Admin Full User History ---
+  getUserFullHistory: async (userId: string) => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getUserFullHistory(userId);
+    }
+    const user = await DbStorage.getUsers().then((users) => users.find((u) => u.id === userId));
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+
+    const [activitiesResult, questionAttempts, writtenResponses, incompleteAttempt] = await Promise.all([
+      DbStorage.getActivities({ userId }),
+      DbStorage.getQuestionAttempts({ userId }),
+      DbStorage.getWrittenResponses({ userId }),
+      DbStorage.getIncompleteAttempt(userId)
+    ]);
+
+    const activities = activitiesResult.items;
+    const totalActivities = activities.length;
+    const totalPracticeTests = activities.filter((a) => a.type === 'practice_test').length;
+    const totalQuizzes = activities.filter((a) => a.type === 'quiz').length;
+    const totalMockTests = activities.filter((a) => a.type === 'mock_test').length;
+    const totalQuestions = questionAttempts.length;
+    const correctQuestions = questionAttempts.filter((q) => q.isCorrect).length;
+    const overallAccuracy = totalQuestions > 0 ? Math.round((correctQuestions / totalQuestions) * 100) : 0;
+
+    return {
+      user,
+      metrics: {
+        totalActivities,
+        totalPracticeTests,
+        totalQuizzes,
+        totalMockTests,
+        totalQuestions,
+        correctQuestions,
+        overallAccuracy: `${overallAccuracy}%`
+      },
+      activities,
+      questionAttempts,
+      writtenResponses,
+      incompleteAttempt
+    };
+  },
+
+  // --- SMTP Config in DB ---
+  getSmtpConfig: async (): Promise<any | null> => {
+    if (!process.env.DATABASE_URL) return null;
+    const sql = getSql();
+    const rows = await sql`SELECT config_json FROM smtp_config WHERE id = 1`;
+    return rows.length > 0 ? rows[0].config_json : null;
+  },
+
+  saveSmtpConfig: async (config: any): Promise<void> => {
+    if (!process.env.DATABASE_URL) return;
+    const sql = getSql();
+    await sql`
+      INSERT INTO smtp_config (id, config_json)
+      VALUES (1, ${JSON.stringify(config)})
+      ON CONFLICT (id) DO UPDATE SET config_json = ${JSON.stringify(config)}
+    `;
+  },
+
+  // --- Email Logs ---
+  appendEmailLog: async (log: any): Promise<void> => {
+    if (!process.env.DATABASE_URL) return;
+    const sql = getSql();
+    await sql`
+      INSERT INTO email_logs (id, timestamp, recipient, type, subject, provider, status, error, duration_ms)
+      VALUES (
+        ${log.id}, ${log.timestamp}, ${log.recipient}, ${log.type},
+        ${log.subject}, ${log.provider || null}, ${log.status},
+        ${log.error || null}, ${log.durationMs || null}
+      )
+      ON CONFLICT (id) DO NOTHING
+    `;
+    // Keep only last 500 logs
+    await sql`
+      DELETE FROM email_logs WHERE id NOT IN (
+        SELECT id FROM email_logs ORDER BY timestamp DESC LIMIT 500
+      )
+    `;
+  },
+
+  getEmailLogs: async (limit: number = 100): Promise<any[]> => {
+    if (!process.env.DATABASE_URL) return [];
+    const sql = getSql();
+    const rows = await sql`SELECT * FROM email_logs ORDER BY timestamp DESC LIMIT ${limit}`;
+    return rows.map((r) => ({
+      id: r.id,
+      timestamp: r.timestamp,
+      recipient: r.recipient,
+      type: r.type,
+      subject: r.subject,
+      provider: r.provider,
+      status: r.status,
+      error: r.error,
+      durationMs: r.duration_ms
+    }));
+  },
+
+  // --- Scheduled Jobs ---
+  getScheduledJobs: async (): Promise<any[]> => {
+    if (!process.env.DATABASE_URL) return [];
+    const sql = getSql();
+    const rows = await sql`SELECT * FROM scheduled_jobs ORDER BY id`;
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      cronExpression: r.cron_expression,
+      targetTime: r.target_time,
+      category: r.category,
+      enabled: r.enabled,
+      lastRunTimestamp: r.last_run_timestamp,
+      nextRunTimestamp: r.next_run_timestamp,
+      itemsGeneratedCount: r.items_generated,
+      status: r.status,
+      batchTarget: r.batch_target
+    }));
+  },
+
+  updateScheduledJob: async (id: string, updates: Partial<{ lastRunTimestamp: string; nextRunTimestamp: string; status: string; itemsGeneratedCount: number; enabled: boolean }>): Promise<void> => {
+    if (!process.env.DATABASE_URL) return;
+    const sql = getSql();
+    if (updates.lastRunTimestamp !== undefined) {
+      await sql`UPDATE scheduled_jobs SET last_run_timestamp = ${updates.lastRunTimestamp} WHERE id = ${id}`;
+    }
+    if (updates.nextRunTimestamp !== undefined) {
+      await sql`UPDATE scheduled_jobs SET next_run_timestamp = ${updates.nextRunTimestamp} WHERE id = ${id}`;
+    }
+    if (updates.status !== undefined) {
+      await sql`UPDATE scheduled_jobs SET status = ${updates.status} WHERE id = ${id}`;
+    }
+    if (updates.itemsGeneratedCount !== undefined) {
+      await sql`UPDATE scheduled_jobs SET items_generated = ${updates.itemsGeneratedCount} WHERE id = ${id}`;
+    }
+    if (updates.enabled !== undefined) {
+      await sql`UPDATE scheduled_jobs SET enabled = ${updates.enabled} WHERE id = ${id}`;
+    }
+  }
+};

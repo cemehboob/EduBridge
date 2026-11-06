@@ -1,8 +1,40 @@
 import express, { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
-import { ServerStorage } from './storage';
+import { DbStorage, initializeDatabase, seedInitialData } from './db';
 import { UserAccount } from '../src/types';
 import { EmailService } from './emailService';
+
+// Initialize Neon Postgres database on server startup
+initializeDatabase()
+  .then(() => seedInitialData())
+  .catch((err) => console.error('[EduBridge DB Init Error]', err.message));
+
+// Alias DbStorage as ServerStorage for minimal code change throughout
+const ServerStorage = {
+  getSessions: () => DbStorage.getSessions(),
+  saveSession: (s: any) => DbStorage.saveSession(s),
+  findSession: (t: string) => DbStorage.findSession(t),
+  removeSession: (t: string) => DbStorage.removeSession(t),
+  getUsers: () => DbStorage.getUsers(),
+  getUserById: (id: string) => DbStorage.getUserById(id),
+  getUserByIdentifier: (id: string) => DbStorage.getUserByIdentifier(id),
+  createUser: (u: UserAccount) => DbStorage.createUser(u),
+  updateUser: (id: string, updates: Partial<UserAccount>) => DbStorage.updateUser(id, updates),
+  getActivities: (filter?: any) => DbStorage.getActivities(filter),
+  getActivityById: (id: string) => DbStorage.getActivityById(id),
+  saveActivity: (a: any) => DbStorage.saveActivity(a),
+  getQuestionAttempts: (filter?: any) => DbStorage.getQuestionAttempts(filter),
+  saveQuestionAttempt: (q: any) => DbStorage.saveQuestionAttempt(q),
+  saveBatchQuestionAttempts: (qs: any[]) => DbStorage.saveBatchQuestionAttempts(qs),
+  getWrittenResponses: (filter?: any) => DbStorage.getWrittenResponses(filter),
+  saveWrittenResponse: (w: any) => DbStorage.saveWrittenResponse(w),
+  getIncompleteAttempt: (uid: string, tid?: string) => DbStorage.getIncompleteAttempt(uid, tid),
+  saveIncompleteAttempt: (a: any) => DbStorage.saveIncompleteAttempt(a),
+  clearIncompleteAttempt: (uid: string, tid?: string) => DbStorage.clearIncompleteAttempt(uid, tid),
+  getAttemptDetail: (id: string, uid?: string, role?: string) => DbStorage.getAttemptDetail(id, uid, role),
+  getUserFullHistory: (uid: string) => DbStorage.getUserFullHistory(uid),
+  getHealthStats: () => DbStorage.getHealthStats(),
+};
 
 export const serverApp = express();
 
@@ -32,44 +64,45 @@ interface SessionInfo {
 
 const activeSessions = new Map<string, SessionInfo>();
 
-// Load persisted sessions from storage vault
-try {
-  const persistedSessions = ServerStorage.getSessions();
+// Load persisted sessions from DB on startup (async background)
+DbStorage.getSessions().then((persistedSessions) => {
   persistedSessions.forEach((sess) => {
     if (Date.now() <= sess.expiresAt) {
-      activeSessions.set(sess.token, sess);
+      activeSessions.set(sess.token, sess as SessionInfo);
     }
   });
-} catch {
-  // Vault initializing
-}
+}).catch(() => {/* DB may not be ready yet — sessions will be loaded on first auth request */});
 
-// Seed permanent testing tokens for seed users (for automated tests and cross-device testing)
-const TEST_TOKENS: Record<string, string> = {
-  'usr_admin_01': 'test_token_admin_david_kim_secure',
-  'usr_student_01': 'test_token_student_alex_rivera_secure',
-  'usr_teacher_01': 'test_token_teacher_dr_vance_secure',
-  'usr_parent_01': 'test_token_parent_maria_santos_secure'
-};
+// Seed permanent testing tokens for seed users (async)
+async function seedTestTokens() {
+  const TEST_TOKENS: Record<string, string> = {
+    'usr_admin_01': 'test_token_admin_david_kim_secure',
+    'usr_student_01': 'test_token_student_alex_rivera_secure',
+    'usr_teacher_01': 'test_token_teacher_dr_vance_secure',
+    'usr_parent_01': 'test_token_parent_maria_santos_secure'
+  };
 
-Object.entries(TEST_TOKENS).forEach(([userId, token]) => {
-  const user = ServerStorage.getUserById(userId);
-  if (user) {
-    const sessionRecord = {
-      token,
-      userId: user.id,
-      userRole: user.role,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 365 * 24 * 3600 * 1000 // 1 year
-    };
-    activeSessions.set(token, sessionRecord);
+  for (const [userId, token] of Object.entries(TEST_TOKENS)) {
     try {
-      ServerStorage.saveSession(sessionRecord);
+      const user = await DbStorage.getUserById(userId);
+      if (user) {
+        const sessionRecord: SessionInfo = {
+          token,
+          userId: user.id,
+          userRole: user.role,
+          createdAt: Date.now(),
+          expiresAt: Date.now() + 365 * 24 * 3600 * 1000
+        };
+        activeSessions.set(token, sessionRecord);
+        await DbStorage.saveSession(sessionRecord);
+      }
     } catch {}
   }
-});
+}
+// Seed test tokens after DB is initialized
+setTimeout(() => seedTestTokens().catch(() => {}), 3000);
 
-function createSessionToken(user: UserAccount): string {
+async function createSessionToken(user: UserAccount): Promise<string> {
   const token = `eb_tok_${crypto.randomUUID().replace(/-/g, '')}`;
   const sessionRecord: SessionInfo = {
     token,
@@ -80,9 +113,9 @@ function createSessionToken(user: UserAccount): string {
   };
   activeSessions.set(token, sessionRecord);
   try {
-    ServerStorage.saveSession(sessionRecord);
+    await DbStorage.saveSession(sessionRecord);
   } catch (err: any) {
-    console.warn('[ServerApp] Failed saving session to vault:', err.message);
+    console.warn('[ServerApp] Failed saving session to DB:', err.message);
   }
   return token;
 }
@@ -115,7 +148,7 @@ export interface AuthenticatedRequest extends Request {
   user?: UserAccount;
 }
 
-const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'] || req.headers['x-auth-token'];
   let token: string | undefined;
 
@@ -127,23 +160,27 @@ const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextF
     }
   }
 
-  // 1. Verify token against activeSessions or persistent vault
+  // 1. Verify token against activeSessions or persistent DB
   if (token) {
     let session = activeSessions.get(token);
     if (!session) {
-      const persisted = ServerStorage.getSessions().find((s) => s.token === token);
-      if (persisted) {
-        session = persisted;
-        activeSessions.set(token, persisted);
-      }
+      try {
+        const persisted = await DbStorage.findSession(token);
+        if (persisted) {
+          session = { token, ...persisted } as SessionInfo;
+          activeSessions.set(token, session);
+        }
+      } catch {}
     }
 
     if (session && Date.now() <= session.expiresAt) {
-      const user = ServerStorage.getUserById(session.userId);
-      if (user && user.status !== 'disabled') {
-        req.user = user;
-        return next();
-      }
+      try {
+        const user = await DbStorage.getUserById(session.userId);
+        if (user && user.status !== 'disabled') {
+          req.user = user;
+          return next();
+        }
+      } catch {}
     }
   }
 
@@ -151,11 +188,13 @@ const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextF
   const userIdHeader = req.headers['x-user-id'];
   if (typeof userIdHeader === 'string' && userIdHeader.trim()) {
     const cleanId = userIdHeader.trim();
-    const user = ServerStorage.getUserById(cleanId) || ServerStorage.getUserByIdentifier(cleanId);
-    if (user && user.status !== 'disabled') {
-      req.user = user;
-      return next();
-    }
+    try {
+      const user = await DbStorage.getUserById(cleanId) || await DbStorage.getUserByIdentifier(cleanId);
+      if (user && user.status !== 'disabled') {
+        req.user = user;
+        return next();
+      }
+    } catch {}
   }
 
   if (!token && !userIdHeader) {
@@ -175,11 +214,13 @@ const requireAdmin = (req: AuthenticatedRequest, res: Response, next: NextFuncti
 };
 
 // ==================== HEALTH ====================
-serverApp.get('/api/health', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    ...ServerStorage.getHealthStats()
-  });
+serverApp.get('/api/health', async (_req: Request, res: Response) => {
+  try {
+    const stats = await DbStorage.getHealthStats();
+    res.json({ success: true, ...stats });
+  } catch (err: any) {
+    res.json({ success: true, status: 'starting', storageVault: 'Neon Postgres', serverTime: new Date().toISOString() });
+  }
 });
 
 // ==================== AUTHENTICATION ====================
@@ -236,7 +277,7 @@ serverApp.post('/api/auth/register', async (req: Request, res: Response) => {
     };
 
     const created = await ServerStorage.createUser(newUser);
-    const token = createSessionToken(created);
+    const token = await createSessionToken(created);
 
     res.status(201).json({
       success: true,
@@ -256,7 +297,7 @@ serverApp.post('/api/auth/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const user = ServerStorage.getUserByIdentifier(identifier);
+    const user = await DbStorage.getUserByIdentifier(identifier);
     if (!user) {
       res.status(404).json({ success: false, error: `No account found for "${identifier}".` });
       return;
@@ -273,11 +314,11 @@ serverApp.post('/api/auth/login', async (req: Request, res: Response) => {
     }
 
     // Update lastLoginAt
-    const updated = await ServerStorage.updateUser(user.id, {
+    const updated = await DbStorage.updateUser(user.id, {
       lastLoginAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
     });
 
-    const token = createSessionToken(updated);
+    const token = await createSessionToken(updated);
     res.json({
       success: true,
       user: updated,
@@ -295,7 +336,7 @@ serverApp.get('/api/auth/me', authenticateToken, (req: AuthenticatedRequest, res
   });
 });
 
-serverApp.post('/api/auth/logout', (req: Request, res: Response) => {
+serverApp.post('/api/auth/logout', async (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'] || req.headers['x-auth-token'];
   let token: string | undefined;
   if (typeof authHeader === 'string') {
@@ -304,19 +345,19 @@ serverApp.post('/api/auth/logout', (req: Request, res: Response) => {
   if (token) {
     activeSessions.delete(token);
     try {
-      ServerStorage.removeSession(token);
+      await DbStorage.removeSession(token);
     } catch {}
   }
   res.json({ success: true, message: 'Logged out successfully.' });
 });
 
 // Automatic Cross-Machine Session Synchronization
-serverApp.post('/api/auth/session-sync', (req: Request, res: Response) => {
+serverApp.post('/api/auth/session-sync', async (req: Request, res: Response) => {
   try {
     const { userId, email } = req.body;
     let user: UserAccount | null = null;
-    if (userId) user = ServerStorage.getUserById(userId);
-    if (!user && email) user = ServerStorage.getUserByIdentifier(email);
+    if (userId) user = await DbStorage.getUserById(userId);
+    if (!user && email) user = await DbStorage.getUserByIdentifier(email);
 
     if (!user) {
       res.status(404).json({ success: false, error: 'User not found in central server repository.' });
@@ -328,7 +369,7 @@ serverApp.post('/api/auth/session-sync', (req: Request, res: Response) => {
       return;
     }
 
-    const token = createSessionToken(user);
+    const token = await createSessionToken(user);
     res.json({ success: true, user, token });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Session synchronization failed.' });
@@ -359,7 +400,7 @@ serverApp.post('/api/auth/register/request-otp', async (req: Request, res: Respo
       return;
     }
 
-    const existingUser = ServerStorage.getUserByIdentifier(cleanEmail);
+    const existingUser = await DbStorage.getUserByIdentifier(cleanEmail);
     if (existingUser) {
       res.status(409).json({ success: false, error: `An account with email "${cleanEmail}" is already registered. Please sign in instead.` });
       return;
@@ -515,7 +556,7 @@ serverApp.post('/api/auth/register/verify-otp', async (req: Request, res: Respon
     };
 
     const created = await ServerStorage.createUser(newUser);
-    const token = createSessionToken(created);
+    const token = await createSessionToken(created);
 
     // Send welcome confirmation asynchronously
     EmailService.sendRegistrationConfirmation(created.email, created.name).catch((e) =>
@@ -543,7 +584,7 @@ serverApp.post('/api/auth/password-reset/request-otp', async (req: Request, res:
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const user = ServerStorage.getUserByIdentifier(cleanEmail);
+    const user = await DbStorage.getUserByIdentifier(cleanEmail);
     if (!user) {
       res.status(404).json({ success: false, error: `No registered account found with email "${cleanEmail}".` });
       return;
@@ -648,7 +689,7 @@ serverApp.post('/api/auth/password-reset/verify-otp', async (req: Request, res: 
     // Invalidate immediately
     activeOtps.delete(otpKey);
 
-    const user = ServerStorage.getUserByIdentifier(cleanEmail);
+    const user = await DbStorage.getUserByIdentifier(cleanEmail);
     if (!user) {
       res.status(404).json({ success: false, error: 'User not found.' });
       return;
@@ -674,40 +715,50 @@ serverApp.post('/api/auth/password-reset/verify-otp', async (req: Request, res: 
 });
 
 // ==================== USER MANAGEMENT ====================
-serverApp.get('/api/users', authenticateToken, requireAdmin, (_req: AuthenticatedRequest, res: Response) => {
-  const users = ServerStorage.getUsers();
-  // Decorate with activity counts
-  const decorated = users.map((u) => {
-    const activities = ServerStorage.getActivities({ userId: u.id }).items;
-    const qAttempts = ServerStorage.getQuestionAttempts({ userId: u.id });
-    const correct = qAttempts.filter((q) => q.isCorrect).length;
-    return {
-      ...u,
-      metrics: {
-        totalActivities: activities.length,
-        totalPracticeTests: activities.filter((a) => a.type === 'practice_test').length,
-        totalQuizzes: activities.filter((a) => a.type === 'quiz').length,
-        totalMockTests: activities.filter((a) => a.type === 'mock_test').length,
-        averageAccuracy: qAttempts.length > 0 ? `${Math.round((correct / qAttempts.length) * 100)}%` : 'N/A'
-      }
-    };
-  });
-  res.json({ success: true, items: decorated, total: decorated.length });
+serverApp.get('/api/users', authenticateToken, requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const users = await DbStorage.getUsers();
+    const decorated = await Promise.all(users.map(async (u) => {
+      const [activitiesResult, qAttempts] = await Promise.all([
+        DbStorage.getActivities({ userId: u.id }),
+        DbStorage.getQuestionAttempts({ userId: u.id })
+      ]);
+      const activities = activitiesResult.items;
+      const correct = qAttempts.filter((q) => q.isCorrect).length;
+      return {
+        ...u,
+        metrics: {
+          totalActivities: activities.length,
+          totalPracticeTests: activities.filter((a) => a.type === 'practice_test').length,
+          totalQuizzes: activities.filter((a) => a.type === 'quiz').length,
+          totalMockTests: activities.filter((a) => a.type === 'mock_test').length,
+          averageAccuracy: qAttempts.length > 0 ? `${Math.round((correct / qAttempts.length) * 100)}%` : 'N/A'
+        }
+      };
+    }));
+    res.json({ success: true, items: decorated, total: decorated.length });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-serverApp.get('/api/users/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+serverApp.get('/api/users/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   // Non-admins can only retrieve their own profile
   if (req.user?.role !== 'admin' && req.user?.id !== id) {
     res.status(403).json({ success: false, error: 'Unauthorized to view this user profile.' });
     return;
   }
-  const user = ServerStorage.getUserById(id);
-  if (!user) {
-    res.status(404).json({ success: false, error: 'User not found.' });
-    return;
+  try {
+    const user = await DbStorage.getUserById(id);
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User not found.' });
+      return;
+    }
+    res.json({ success: true, user });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
-  res.json({ success: true, user });
 });
 
 serverApp.put('/api/users/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
@@ -717,7 +768,7 @@ serverApp.put('/api/users/:id', authenticateToken, async (req: AuthenticatedRequ
       res.status(403).json({ success: false, error: 'Unauthorized to update this user profile.' });
       return;
     }
-    const updated = await ServerStorage.updateUser(id, req.body);
+    const updated = await DbStorage.updateUser(id, req.body);
     res.json({ success: true, user: updated });
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });
@@ -725,38 +776,40 @@ serverApp.put('/api/users/:id', authenticateToken, async (req: AuthenticatedRequ
 });
 
 // ==================== ACTIVITIES ====================
-serverApp.get('/api/activities', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const { userId, examType, module, category, status, search, limit, offset } = req.query;
+serverApp.get('/api/activities', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId, examType, module, category, status, search, limit, offset } = req.query;
 
-  // Regular users are locked to their own userId. Admins can view all activities (userId omitted or 'all') or filter by specific userId.
-  const effectiveUserId =
-    req.user?.role === 'admin'
-      ? typeof userId === 'string' && userId.trim() && userId !== 'all'
-        ? userId.trim()
-        : undefined
-      : req.user?.id;
+    const effectiveUserId =
+      req.user?.role === 'admin'
+        ? typeof userId === 'string' && userId.trim() && userId !== 'all'
+          ? userId.trim()
+          : undefined
+        : req.user?.id;
 
-  const result = ServerStorage.getActivities({
-    userId: effectiveUserId,
-    examType: typeof examType === 'string' ? examType : undefined,
-    module: typeof module === 'string' ? module : undefined,
-    category: typeof category === 'string' ? category : undefined,
-    status: typeof status === 'string' ? status : undefined,
-    search: typeof search === 'string' ? search : undefined,
-    limit: limit ? parseInt(limit as string, 10) : undefined,
-    offset: offset ? parseInt(offset as string, 10) : undefined
-  });
+    const result = await DbStorage.getActivities({
+      userId: effectiveUserId,
+      examType: typeof examType === 'string' ? examType : undefined,
+      module: typeof module === 'string' ? module : undefined,
+      category: typeof category === 'string' ? category : undefined,
+      status: typeof status === 'string' ? status : undefined,
+      search: typeof search === 'string' ? search : undefined,
+      limit: limit ? parseInt(limit as string, 10) : undefined,
+      offset: offset ? parseInt(offset as string, 10) : undefined
+    });
 
-  res.json({ success: true, ...result });
+    res.json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 serverApp.post('/api/activities', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const activityData = req.body;
-    // Retain or assign user ownership
     activityData.userId = activityData.userId || req.user?.id || 'usr_student_01';
     activityData.userName = activityData.userName || req.user?.name || 'EduBridge Learner';
-    const saved = await ServerStorage.saveActivity(activityData);
+    const saved = await DbStorage.saveActivity(activityData);
     res.status(201).json({ success: true, activity: saved });
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });
@@ -774,7 +827,7 @@ serverApp.post('/api/activities/batch', authenticateToken, async (req: Authentic
         userId: act.userId || req.user?.id || 'usr_student_01',
         userName: act.userName || req.user?.name || 'EduBridge Learner'
       };
-      const s = await ServerStorage.saveActivity(sanitized);
+      const s = await DbStorage.saveActivity(sanitized);
       savedList.push(s);
     }
     res.status(201).json({ success: true, count: savedList.length, activities: savedList });
@@ -783,70 +836,76 @@ serverApp.post('/api/activities/batch', authenticateToken, async (req: Authentic
   }
 });
 
-serverApp.get('/api/activities/:id', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const activity = ServerStorage.getActivityById(req.params.id);
-  if (!activity) {
-    res.status(404).json({ success: false, error: 'Activity not found.' });
-    return;
+serverApp.get('/api/activities/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const activity = await DbStorage.getActivityById(req.params.id);
+    if (!activity) {
+      res.status(404).json({ success: false, error: 'Activity not found.' });
+      return;
+    }
+    if (req.user?.role !== 'admin' && activity.userId !== req.user?.id) {
+      res.status(403).json({ success: false, error: 'Unauthorized to view this activity.' });
+      return;
+    }
+    res.json({ success: true, activity });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
-  if (req.user?.role !== 'admin' && activity.userId !== req.user?.id) {
-    res.status(403).json({ success: false, error: 'Unauthorized to view this activity.' });
-    return;
-  }
-  res.json({ success: true, activity });
 });
 
 // ==================== "SHOW ATTEMPT" ENDPOINT ====================
-serverApp.get('/api/activities/:id/show-attempt', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+serverApp.get('/api/activities/:id/show-attempt', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const detail = ServerStorage.getAttemptDetail(id, req.user?.id, req.user?.role);
+    const detail = await DbStorage.getAttemptDetail(id, req.user?.id, req.user?.role);
     res.json({ success: true, data: detail });
   } catch (err: any) {
-    const statusCode = err.statusCode || (err.message.includes('not found') ? 404 : 403);
+    const statusCode = (err as any).statusCode || (err.message.includes('not found') ? 404 : 403);
     res.status(statusCode).json({ success: false, error: err.message });
   }
 });
 
 // ==================== QUESTION ATTEMPTS ====================
-serverApp.get('/api/attempts/questions', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const { userId, testId, activityId } = req.query;
-  const effectiveUserId =
-    req.user?.role === 'admin'
-      ? typeof userId === 'string' && userId.trim() && userId !== 'all'
-        ? userId.trim()
-        : undefined
-      : req.user?.id;
+serverApp.get('/api/attempts/questions', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId, testId, activityId } = req.query;
+    const effectiveUserId =
+      req.user?.role === 'admin'
+        ? typeof userId === 'string' && userId.trim() && userId !== 'all'
+          ? userId.trim()
+          : undefined
+        : req.user?.id;
 
-  const questions = ServerStorage.getQuestionAttempts({
-    userId: effectiveUserId,
-    testId: typeof testId === 'string' ? testId : undefined,
-    activityId: typeof activityId === 'string' ? activityId : undefined
-  });
+    const questions = await DbStorage.getQuestionAttempts({
+      userId: effectiveUserId,
+      testId: typeof testId === 'string' ? testId : undefined,
+      activityId: typeof activityId === 'string' ? activityId : undefined
+    });
 
-  res.json({ success: true, items: questions, total: questions.length });
+    res.json({ success: true, items: questions, total: questions.length });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 serverApp.post('/api/attempts/questions', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const payload = req.body;
     if (Array.isArray(payload)) {
-      // Batch save
       const sanitized = payload.map((q) => ({
         ...q,
         userId: req.user?.role === 'admin' ? q.userId || req.user?.id : req.user?.id,
         userName: req.user?.role === 'admin' ? q.userName || req.user?.name : req.user?.name
       }));
-      const saved = await ServerStorage.saveBatchQuestionAttempts(sanitized);
+      const saved = await DbStorage.saveBatchQuestionAttempts(sanitized);
       res.status(201).json({ success: true, count: saved.length, items: saved });
     } else {
-      // Single save
       const single = {
         ...payload,
         userId: req.user?.role === 'admin' ? payload.userId || req.user?.id : req.user?.id,
         userName: req.user?.role === 'admin' ? payload.userName || req.user?.name : req.user?.name
       };
-      const saved = await ServerStorage.saveQuestionAttempt(single);
+      const saved = await DbStorage.saveQuestionAttempt(single);
       res.status(201).json({ success: true, item: saved });
     }
   } catch (err: any) {
@@ -855,21 +914,25 @@ serverApp.post('/api/attempts/questions', authenticateToken, async (req: Authent
 });
 
 // ==================== WRITTEN RESPONSES ====================
-serverApp.get('/api/attempts/written', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const { userId, activityId } = req.query;
-  const effectiveUserId =
-    req.user?.role === 'admin'
-      ? typeof userId === 'string' && userId.trim() && userId !== 'all'
-        ? userId.trim()
-        : undefined
-      : req.user?.id;
+serverApp.get('/api/attempts/written', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId, activityId } = req.query;
+    const effectiveUserId =
+      req.user?.role === 'admin'
+        ? typeof userId === 'string' && userId.trim() && userId !== 'all'
+          ? userId.trim()
+          : undefined
+        : req.user?.id;
 
-  const responses = ServerStorage.getWrittenResponses({
-    userId: effectiveUserId,
-    activityId: typeof activityId === 'string' ? activityId : undefined
-  });
+    const responses = await DbStorage.getWrittenResponses({
+      userId: effectiveUserId,
+      activityId: typeof activityId === 'string' ? activityId : undefined
+    });
 
-  res.json({ success: true, items: responses, total: responses.length });
+    res.json({ success: true, items: responses, total: responses.length });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 serverApp.post('/api/attempts/written', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
@@ -880,7 +943,7 @@ serverApp.post('/api/attempts/written', authenticateToken, async (req: Authentic
       userId: req.user?.role === 'admin' ? data.userId || req.user?.id : req.user?.id,
       userName: req.user?.role === 'admin' ? data.userName || req.user?.name : req.user?.name
     };
-    const saved = await ServerStorage.saveWrittenResponse(sanitized);
+    const saved = await DbStorage.saveWrittenResponse(sanitized);
     res.status(201).json({ success: true, item: saved });
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });
@@ -888,17 +951,21 @@ serverApp.post('/api/attempts/written', authenticateToken, async (req: Authentic
 });
 
 // ==================== AUTOSAVE & RECOVERY ====================
-serverApp.get('/api/attempts/autosave/:userId', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const { userId } = req.params;
-  const { testId } = req.query;
+serverApp.get('/api/attempts/autosave/:userId', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { testId } = req.query;
 
-  if (req.user?.role !== 'admin' && req.user?.id !== userId) {
-    res.status(403).json({ success: false, error: 'Unauthorized to access this autosave record.' });
-    return;
+    if (req.user?.role !== 'admin' && req.user?.id !== userId) {
+      res.status(403).json({ success: false, error: 'Unauthorized to access this autosave record.' });
+      return;
+    }
+
+    const attempt = await DbStorage.getIncompleteAttempt(userId, typeof testId === 'string' ? testId : undefined);
+    res.json({ success: true, attempt });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
-
-  const attempt = ServerStorage.getIncompleteAttempt(userId, typeof testId === 'string' ? testId : undefined);
-  res.json({ success: true, attempt });
 });
 
 serverApp.post('/api/attempts/autosave', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
@@ -908,7 +975,7 @@ serverApp.post('/api/attempts/autosave', authenticateToken, async (req: Authenti
       ...data,
       userId: req.user?.role === 'admin' ? data.userId || req.user?.id : req.user?.id
     };
-    const saved = await ServerStorage.saveIncompleteAttempt(sanitized);
+    const saved = await DbStorage.saveIncompleteAttempt(sanitized);
     res.json({ success: true, attempt: saved });
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });
@@ -922,7 +989,7 @@ serverApp.delete('/api/attempts/autosave/:userId/:testId', authenticateToken, as
       res.status(403).json({ success: false, error: 'Unauthorized.' });
       return;
     }
-    await ServerStorage.clearIncompleteAttempt(userId, testId);
+    await DbStorage.clearIncompleteAttempt(userId, testId);
     res.json({ success: true, message: 'Autosave record cleared.' });
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });
@@ -930,10 +997,10 @@ serverApp.delete('/api/attempts/autosave/:userId/:testId', authenticateToken, as
 });
 
 // ==================== ADMIN FULL USER HISTORY INSPECTOR ====================
-serverApp.get('/api/admin/users/:userId/full-history', authenticateToken, requireAdmin, (req: AuthenticatedRequest, res: Response) => {
+serverApp.get('/api/admin/users/:userId/full-history', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
-    const history = ServerStorage.getUserFullHistory(userId);
+    const history = await DbStorage.getUserFullHistory(userId);
     res.json({ success: true, data: history });
   } catch (err: any) {
     res.status(404).json({ success: false, error: err.message });
@@ -946,7 +1013,7 @@ serverApp.get('/api/admin/users/:userId/full-history', authenticateToken, requir
 serverApp.post('/api/admin/users/:id/initiate-reset', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const user = ServerStorage.getUserById(id);
+    const user = await DbStorage.getUserById(id);
     if (!user) {
       res.status(404).json({ success: false, error: 'User not found.' });
       return;
@@ -986,7 +1053,7 @@ serverApp.post('/api/admin/users/:id/initiate-reset', authenticateToken, require
 serverApp.post('/api/admin/users/:id/verify-email', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const updated = await ServerStorage.updateUser(id, {
+    const updated = await DbStorage.updateUser(id, {
       emailVerified: true,
       emailVerificationStatus: 'verified'
     });
