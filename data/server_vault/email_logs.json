@@ -1,5 +1,49 @@
 [
   {
+    "id": "mail_1793997520036_hevt",
+    "timestamp": "2026-11-06 20:38:40",
+    "recipient": "admin@edubridge.io",
+    "type": "TEST_EMAIL",
+    "subject": "EduBridge SMTP Integration Test - 11:38:34 PM",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "MAIL FROM rejected: 530 5.7.57 Client not authenticated to send mail. [DX0P273CA0087.AREP273.PROD.OUTLOOK.COM 2026-11-06T20:38:40.033Z 08DF3C2287CD08BF]",
+    "durationMs": 5176
+  },
+  {
+    "id": "mail_1793997514854_pxlf",
+    "timestamp": "2026-11-06 20:38:34",
+    "recipient": "sofia.martinez.1793997499312@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 438109",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "MAIL FROM rejected: 530 5.7.57 Client not authenticated to send mail. [DX1P273CA0003.AREP273.PROD.OUTLOOK.COM 2026-11-06T20:38:34.843Z 08DF3C3DD8E143FC]",
+    "durationMs": 5172
+  },
+  {
+    "id": "mail_1793997509679_son5",
+    "timestamp": "2026-11-06 20:38:29",
+    "recipient": "elena.rostova.1793997499316@edubridge.org",
+    "type": "PASSWORD_RESET_OTP",
+    "subject": "EduBridge Password Reset Code: 619342",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "MAIL FROM rejected: 530 5.7.57 Client not authenticated to send mail. [DX0P273CA0104.AREP273.PROD.OUTLOOK.COM 2026-11-06T20:38:29.677Z 08DF3C1E7F0116C5]",
+    "durationMs": 5160
+  },
+  {
+    "id": "mail_1793997504513_nc1g",
+    "timestamp": "2026-11-06 20:38:24",
+    "recipient": "elena.rostova.1793997499316@edubridge.org",
+    "type": "REGISTRATION_OTP",
+    "subject": "Your EduBridge Verification Code: 849201",
+    "provider": "smtp-mail.outlook.com:587 (STARTTLS)",
+    "status": "FAILED",
+    "error": "MAIL FROM rejected: 530 5.7.57 Client not authenticated to send mail. [DX1P273CA0035.AREP273.PROD.OUTLOOK.COM 2026-11-06T20:38:24.508Z 08DF3C147C9D06C1]",
+    "durationMs": 5197
+  },
+  {
     "id": "mail_1793991481010_uc8h",
     "timestamp": "2026-11-06 18:58:01",
     "recipient": "admin@edubridge.io",

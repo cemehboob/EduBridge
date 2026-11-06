@@ -1,13 +1,27 @@
+import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { DbStorage, initializeDatabase, seedInitialData } from './db';
 import { UserAccount } from '../src/types';
 import { EmailService } from './emailService';
 
-// Initialize Neon Postgres database on server startup
-initializeDatabase()
-  .then(() => seedInitialData())
-  .catch((err) => console.error('[EduBridge DB Init Error]', err.message));
+// Lazy / background initialization of Neon Postgres database on server startup
+let dbInitialized = false;
+export async function ensureDbInitialized(): Promise<void> {
+  if (dbInitialized) return;
+  try {
+    await initializeDatabase();
+    await seedInitialData();
+    dbInitialized = true;
+  } catch (err: any) {
+    console.warn('[EduBridge DB Init Note]', err.message);
+  }
+}
+
+// Trigger background initialization at runtime (avoid network calls during static build bundling)
+if (!process.env.npm_lifecycle_event?.includes('build')) {
+  ensureDbInitialized().catch(() => {});
+}
 
 // Alias DbStorage as ServerStorage for minimal code change throughout
 const ServerStorage = {

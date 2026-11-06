@@ -352,6 +352,69 @@ export async function seedInitialData(): Promise<void> {
     }
   }
 
+  // Seed initial written responses
+  const initialWrittenResponses: WrittenResponseRecord[] = [
+    {
+      id: 'wres_alex_01',
+      userId: 'usr_student_01',
+      userName: 'Alex Rivera',
+      activityId: 'act_alex_03',
+      attemptId: 'att_alex_w1',
+      questionId: 'q_ielts_w2_01',
+      taskTitle: 'IELTS Academic Writing Task 2: Advanced Cohesion',
+      taskPrompt: 'Some people believe that technological advances in artificial intelligence will eliminate human jobs and reduce individual agency. Others contend that AI democratizes creative production and empowers professionals. Discuss both views and give your opinion.',
+      instructions: 'Write at least 250 words. Present a well-developed argument with relevant supporting examples and academic register.',
+      writtenText: 'Throughout contemporary industrial history, transformative technological disruptions have perpetually ignited intense debates regarding societal equilibrium and human agency. While skeptics assert that synthetic intelligence will inevitably eradicate skilled occupations, proponents counter that emerging computational tools democratize creative problem-solving. This essay will examine both perspectives before establishing that generative systems augment rather than supplant human intellect.\\n\\nOn the one hand, valid concerns exist regarding labor displacement. Automated diagnostic algorithms and quantitative trading architectures operate at computational velocities unattainable by human practitioners. If organizations implement automation primarily for operational cost reduction without investing in workforce re-skilling, localized economic dislocation will undoubtedly manifest.\\n\\nNevertheless, historical precedent illustrates that mechanical instruments liberate human capital from routine tasks to focus on higher-order synthesis. In medicine, machine learning models analyze complex radiographic imagery, thereby granting clinicians greater temporal bandwidth to formulate compassionate therapeutic strategies. Similarly, in software engineering, automated code assistants relieve engineers of repetitive boilerplate syntax, empowering them to architect resilient systemic infrastructures.\\n\\nIn conclusion, while technological disruption presents genuine labor challenges requiring proactive governance, generative intelligence fundamentally serves as an amplifier of human capacity rather than its replacement.',
+      wordCount: 262,
+      characterCount: 1782,
+      writingDurationSec: 1680,
+      evaluation: {
+        taskAchievement: 'Band 8.5: Fully addresses all parts of the prompt with well-developed ideas and substantiated examples.',
+        coherenceCohesion: 'Band 8.5: Cohesive devices are used naturally; logical paragraph progression is maintained throughout.',
+        lexicalResource: 'Band 8.5: Sophisticated lexical items used with high precision ("computational velocities", "temporal bandwidth", "localized economic dislocation").',
+        grammaticalAccuracy: 'Band 8.5: Wide range of complex sentence structures with accurate punctuation and consistent academic register.',
+        bandScore: '8.5 Band'
+      },
+      score: '8.5 Band',
+      feedback: 'Exemplary essay demonstrating formal academic vocabulary, nuanced thesis defense, and cohesive counter-argumentation.',
+      corrections: [
+        'Minor: Ensure consistent British/American orthography across all paragraphs.'
+      ],
+      vocabularyRecommendations: [
+        'Consider using "paradigm shift" or "epistemic framework" for further lexical sophistication.'
+      ],
+      timestamp: '2026-11-01 15:30:00'
+    }
+  ];
+
+  for (const wr of initialWrittenResponses) {
+    try {
+      await sql`
+        INSERT INTO written_responses (
+          id, user_id, user_name, activity_id, attempt_id, question_id,
+          task_title, task_prompt, instructions, source_passage,
+          written_text, word_count, character_count, writing_duration_sec,
+          evaluation, score, feedback, corrections, vocabulary_recommendations,
+          revisions, timestamp
+        )
+        VALUES (
+          ${wr.id}, ${wr.userId}, ${wr.userName}, ${wr.activityId},
+          ${wr.attemptId}, ${wr.questionId}, ${wr.taskTitle},
+          ${wr.taskPrompt}, ${wr.instructions || null}, ${wr.sourcePassage || null},
+          ${wr.writtenText}, ${wr.wordCount}, ${wr.characterCount},
+          ${wr.writingDurationSec || null}, ${JSON.stringify(wr.evaluation || {})},
+          ${String(wr.score ?? '')}, ${wr.feedback || null},
+          ${JSON.stringify(wr.corrections || [])},
+          ${JSON.stringify(wr.vocabularyRecommendations || [])},
+          ${JSON.stringify(wr.revisions || [])}, ${wr.timestamp}
+        )
+        ON CONFLICT (id) DO NOTHING
+      `;
+    } catch (err: any) {
+      console.warn(`[EduBridge DB] Skipping written response seed for ${wr.id}:`, err.message);
+    }
+  }
+
   // Seed initial scheduled jobs
   const defaultJobs = [
     {
