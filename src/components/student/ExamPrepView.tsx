@@ -41,6 +41,7 @@ import {
 import { IELTSPracticeService } from '../../services/ieltsPracticeService';
 import { AIService } from '../../services/aiService';
 import { StorageService } from '../../services/storage';
+import { apiService } from '../../services/apiService';
 import { VoicePersonaSelector } from '../common/VoicePersonaSelector';
 import { tfngExercises, band9EssayTemplates, cueCardItems, ageCohorts } from '../../data/ageCohortsData';
 import { sound } from '../../utils/audio';
@@ -556,6 +557,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
       const updated = [newTest, ...practiceTests];
       setPracticeTests(updated);
       StorageService.savePracticeTests([newTest, ...StorageService.getPracticeTests()]);
+      apiService.tests.save(newTest).catch(() => {});
 
       // Automatically launch test in workspace
       setActivePracticeItem(newTest);

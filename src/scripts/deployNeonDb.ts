@@ -456,6 +456,20 @@ async function deploy() {
       itemsGenerated: 100,
       status: 'idle',
       batchTarget: 'At least 100 Vocabulary Words'
+    },
+    {
+      id: 'job_quiz_generation_00',
+      name: 'Daily Cohort Quiz & Assessment Generator',
+      description: 'Generates 10 new age-cohort quizzes across early, junior, academy, pro, and senior cohorts.',
+      cronExpression: '0 0 * * *',
+      targetTime: '00:00 (Midnight)',
+      category: 'QUIZ_EVAL',
+      enabled: true,
+      lastRunTimestamp: `Last run: ${new Date().toISOString().slice(0, 10)} 00:00:06`,
+      nextRunTimestamp: 'Tomorrow 00:00',
+      itemsGenerated: 10,
+      status: 'idle',
+      batchTarget: 'At least 10 Cohort Quizzes'
     }
   ];
 

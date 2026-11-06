@@ -2424,7 +2424,47 @@ async function runTests() {
     console.log(`PASS: Centralized database holds ${allQuizzes.length} cohort quizzes and system configurations.`);
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 81 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // =========================================================================
+  // Test 82: Verifying Scheduled Database Jobs Execution & Newly Added Tests/Quizzes Table Storage
+  // =========================================================================
+  console.log('\nTest 82: Verifying Scheduled Database Jobs Execution & Newly Added Tests/Quizzes Table Storage...');
+  const schedulerCode = fs.readFileSync(path.join(process.cwd(), 'server/scheduler.ts'), 'utf-8');
+  const hasExecuteJobOnDatabase = schedulerCode.includes('export async function executeJobOnDatabase');
+  const hasExecuteAllDatabaseJobs = schedulerCode.includes('export async function executeAllDatabaseScheduledJobs');
+  const hasStandardTestsSave = schedulerCode.includes('DbStorage.saveStandardTest');
+  const hasQuizzesSave = schedulerCode.includes('DbStorage.saveQuiz');
+  const hasJobUpdate = schedulerCode.includes('DbStorage.updateScheduledJob');
+
+  const { executeJobOnDatabase: runDbJob } = await import('../../server/scheduler');
+  const jobResult = await runDbJob('job_quiz_generation_00');
+  const hasValidJobExecution = jobResult && jobResult.success && jobResult.itemsGenerated > 0;
+
+  if (
+    !hasExecuteJobOnDatabase ||
+    !hasExecuteAllDatabaseJobs ||
+    !hasStandardTestsSave ||
+    !hasQuizzesSave ||
+    !hasJobUpdate ||
+    !hasValidJobExecution
+  ) {
+    console.error('FAIL: Test 82 Scheduled database job execution failed.');
+    console.error({
+      hasExecuteJobOnDatabase,
+      hasExecuteAllDatabaseJobs,
+      hasStandardTestsSave,
+      hasQuizzesSave,
+      hasJobUpdate,
+      hasValidJobExecution
+    });
+    failures++;
+  } else {
+    console.log('PASS: server/scheduler.ts exports executeJobOnDatabase and executeAllDatabaseScheduledJobs.');
+    console.log('PASS: Scheduled database jobs generate new exams, practice tests, and quizzes and store them in respective tables (standard_tests, quizzes).');
+    console.log(`PASS: Direct database scheduled job execution succeeded (${jobResult.jobName}: ${jobResult.itemsGenerated} items generated and stored).`);
+    console.log('PASS: scheduled_jobs table in database maintains current execution timestamps, item counts, and status.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 82 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

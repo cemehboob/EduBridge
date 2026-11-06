@@ -427,7 +427,7 @@ export interface ScheduledJob {
   description: string;
   cronExpression: string; // e.g. "0 0 * * *" (Night 00:00)
   targetTime: string;
-  category: 'EXAM_PREP' | 'VOCABULARY';
+  category: 'EXAM_PREP' | 'VOCABULARY' | 'QUIZ_EVAL' | string;
   enabled: boolean;
   lastRunTimestamp?: string;
   nextRunTimestamp: string;

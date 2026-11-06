@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { DbStorage, initializeDatabase, seedInitialData } from './db';
+import { executeJobOnDatabase, executeAllDatabaseScheduledJobs } from './scheduler';
 import { UserAccount } from '../src/types';
 import { EmailService } from './emailService';
 
@@ -1181,12 +1182,23 @@ serverApp.get('/api/tests/:id', async (req: Request, res: Response) => {
 
 serverApp.post('/api/tests', async (req: Request, res: Response) => {
   try {
-    const test = req.body;
-    if (!test || !test.id) {
+    const body = req.body;
+    if (Array.isArray(body)) {
+      const savedList = [];
+      for (const t of body) {
+        if (t && t.id) {
+          const s = await DbStorage.saveStandardTest(t);
+          savedList.push(s);
+        }
+      }
+      res.json({ success: true, count: savedList.length, items: savedList });
+      return;
+    }
+    if (!body || !body.id) {
       res.status(400).json({ success: false, error: 'Valid test object with id required' });
       return;
     }
-    const saved = await DbStorage.saveStandardTest(test);
+    const saved = await DbStorage.saveStandardTest(body);
     res.json({ success: true, test: saved });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to save test' });
@@ -1326,12 +1338,12 @@ serverApp.put('/api/jobs/:id', async (req: Request, res: Response) => {
 
 serverApp.post('/api/jobs/:id/run', async (req: Request, res: Response) => {
   try {
-    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    await DbStorage.updateScheduledJob(req.params.id, {
-      lastRunTimestamp: `Last run: ${timestamp}`,
-      status: 'idle'
+    const result = await executeJobOnDatabase(req.params.id);
+    res.json({
+      success: true,
+      message: `Job ${req.params.id} executed successfully. Generated ${result.itemsGenerated} items stored in database.`,
+      result
     });
-    res.json({ success: true, message: `Job ${req.params.id} executed successfully at ${timestamp}` });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || 'Failed to trigger job run' });
   }
@@ -1347,33 +1359,24 @@ export async function executeServerScheduledJobs(): Promise<{
   timestamp: string;
   jobsExecuted: string[];
   mockTestsGenerated: number;
-  vocabWordsGenerated: number;
+  practiceTestsGenerated: number;
+  vocabQuizzesGenerated: number;
+  totalItemsGenerated: number;
 }> {
   const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
   lastServerCronDate = timestamp.slice(0, 10);
 
-  console.log(`[Server Scheduler] Auto-executing nightly scheduled jobs at ${timestamp}...`);
+  console.log(`[Server Scheduler] Auto-executing nightly database scheduled jobs at ${timestamp}...`);
 
-  try {
-    await DbStorage.updateScheduledJob('job_exam_midnight_00', {
-      lastRunTimestamp: `Last run: ${timestamp}`,
-      status: 'idle',
-      itemsGeneratedCount: 11
-    });
-    await DbStorage.updateScheduledJob('job_vocab_expansion_00', {
-      lastRunTimestamp: `Last run: ${timestamp}`,
-      status: 'idle',
-      itemsGeneratedCount: 100
-    });
-  } catch (err: any) {
-    console.warn('[Server Scheduler] Note updating DB job state:', err.message);
-  }
+  const summary = await executeAllDatabaseScheduledJobs();
 
   return {
     timestamp,
-    jobsExecuted: ['job_exam_midnight_00', 'job_vocab_expansion_00'],
-    mockTestsGenerated: 6,
-    vocabWordsGenerated: 100
+    jobsExecuted: summary.results.map((r) => r.jobId),
+    mockTestsGenerated: summary.totalMockTests,
+    practiceTestsGenerated: summary.totalPracticeTests,
+    vocabQuizzesGenerated: summary.totalQuizzes,
+    totalItemsGenerated: summary.totalMockTests + summary.totalPracticeTests + summary.totalQuizzes
   };
 }
 

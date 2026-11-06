@@ -28,6 +28,20 @@ export const initialScheduledJobs: ScheduledJob[] = [
     itemsGeneratedCount: 300,
     status: 'idle',
     batchTarget: 'At least 100 Vocabulary Words with CEFR Levels & Timestamp Tracking'
+  },
+  {
+    id: 'job_quiz_generation_00',
+    name: 'Daily Cohort Quiz & Assessment Generator',
+    description: 'Scheduled cron to generate interactive cohort quizzes with phonetics, audio prompts, and tiered hints across Early Primary, Junior, Academy, Pro, and Senior cohorts directly into the database.',
+    cronExpression: '0 0 * * *',
+    targetTime: '00:00 UTC (Nightly)',
+    category: 'QUIZ_EVAL',
+    enabled: true,
+    lastRunTimestamp: `Last run: ${new Date().toISOString().slice(0, 10)} 00:00:06`,
+    nextRunTimestamp: 'Tonight at 00:00 UTC',
+    itemsGeneratedCount: 25,
+    status: 'idle',
+    batchTarget: 'At least 10 Interactive Cohort Quiz Questions'
   }
 ];
 

@@ -310,7 +310,15 @@ export const StorageService = {
     }
     return existing;
   },
-  saveMockTests: (m: MockTest[]): void => safeSet(KEYS.MOCK_TESTS, m),
+  saveMockTests: (m: MockTest[]): void => {
+    safeSet(KEYS.MOCK_TESTS, m);
+    try {
+      if (m && m.length > 0) {
+        // Persist latest mock test to database standard_tests table
+        apiService.tests.save(m[m.length - 1]).catch(() => {});
+      }
+    } catch {}
+  },
 
   moveMockTestToEnd: (testId: string): MockTest[] => {
     const tests = StorageService.getMockTests();
@@ -436,7 +444,25 @@ export const StorageService = {
     }
     return list;
   },
-  savePracticeTests: (tests: IELTSPracticeTest[]): void => safeSet(KEYS.PRACTICE_TESTS, tests),
+  savePracticeTests: (tests: IELTSPracticeTest[]): void => {
+    safeSet(KEYS.PRACTICE_TESTS, tests);
+    try {
+      if (tests && tests.length > 0) {
+        // Persist latest practice test to database standard_tests table
+        apiService.tests.save(tests[0]).catch(() => {});
+      }
+    } catch {}
+  },
+
+  saveCohortQuizQuestions: (quizzes: any[]): void => {
+    safeSet('edubridge_cohort_quizzes_v1', quizzes);
+    try {
+      if (quizzes && quizzes.length > 0) {
+        // Persist new quiz questions to database quizzes table
+        apiService.quizzes.saveBatch(quizzes).catch(() => {});
+      }
+    } catch {}
+  },
 
   movePracticeTestToEnd: (testId: string, currentList?: IELTSPracticeTest[]): IELTSPracticeTest[] => {
     const tests = currentList && currentList.length > 0 ? currentList : StorageService.getPracticeTests();

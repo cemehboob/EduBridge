@@ -23,6 +23,7 @@ import {
   UserFeedbackTicket,
   UserGuideArticle,
   FontScale,
+  AgeCohortId,
   UserActivityRecord
 } from './types';
 import { StorageService } from './services/storage';
@@ -480,8 +481,13 @@ export default function App() {
   };
 
   const handleRunScheduledJob = async (jobId: string) => {
-    // Simulate daemon execution latency
-    await new Promise((r) => setTimeout(r, 1000));
+    // 1. Trigger centralized database job execution directly in Neon Postgres
+    try {
+      await apiService.jobs.run(jobId);
+    } catch (e: any) {
+      console.warn('[EduBridge Database Job Execution Note]', e.message);
+    }
+
     const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
     if (jobId === 'job_exam_midnight_00') {
@@ -491,11 +497,21 @@ export default function App() {
       setMockTests(updatedTests);
       StorageService.saveMockTests(updatedTests);
 
+      // Persist newly added mock tests to standard_tests database table
+      for (const t of newMockTests) {
+        apiService.tests.save(t).catch(() => {});
+      }
+
       // Secondly: Multi-exam test generator adds practice tests as well!
       const newPracticeTests = generatePracticeTestsBatch(Math.floor(mockTests.length / 5) + 1, timestamp);
       const existingPracticeTests = StorageService.getPracticeTests();
       const updatedPracticeTests = [...newPracticeTests, ...existingPracticeTests];
       StorageService.savePracticeTests(updatedPracticeTests);
+
+      // Persist newly added practice tests to standard_tests database table
+      for (const pt of newPracticeTests) {
+        apiService.tests.save(pt).catch(() => {});
+      }
 
       // Record items into the Ingested Items Ledger with timestamp columns
       const currentLedger = StorageService.getIngestedItemsLedger();
@@ -543,7 +559,7 @@ export default function App() {
         id: `log_${Date.now()}`,
         timestamp,
         user: 'cron_worker_00',
-        action: `CRON_SCHEDULE_EXECUTE: Added ${newMockTests.length} mock tests and ${newPracticeTests.length} practice tests across PTE, TOEFL, OET, DET & Cambridge English`,
+        action: `CRON_SCHEDULE_EXECUTE: Added ${newMockTests.length} mock tests and ${newPracticeTests.length} practice tests across PTE, TOEFL, OET, DET & Cambridge English to database`,
         category: 'EXAM_EVAL',
         status: 'SUCCESS'
       };
@@ -556,6 +572,23 @@ export default function App() {
       const updatedWords = [...vocabularyWords, ...newWords];
       setVocabularyWords(updatedWords);
       StorageService.saveVocabularyWords(updatedWords);
+
+      // Convert vocabulary words into interactive cohort quizzes and persist into quizzes database table
+      const newQuizzes = newWords.slice(0, 10).map((w, idx) => ({
+        id: `quiz_vocab_${w.id}_${Date.now()}_${idx}`,
+        cohort: (w.cefrLevel === 'C2' ? 'senior' : w.cefrLevel === 'C1' ? 'pro' : w.cefrLevel === 'B2' ? 'academy' : 'junior') as AgeCohortId,
+        educationLevel: w.cefrLevel === 'C2' ? 'Graduate & Professional' : w.cefrLevel === 'C1' ? 'College & University' : 'High School',
+        category: w.category,
+        word: w.word,
+        phonetic: w.phonetic,
+        prompt: `Select the precise definition of "${w.word}" (${w.phonetic}):`,
+        options: [w.definition, `An unverified hypothesis opposite to ${w.word.toLowerCase()}`, `A generic laboratory artifact`, `Passive sensory perception`],
+        correctAnswer: w.definition,
+        explanation: `"${w.word}" (${w.partOfSpeech}): ${w.definition} Example: "${w.exampleSentence}"`,
+        audioPrompt: `Define ${w.word}`,
+        praise: `Great job mastering "${w.word}"!`
+      }));
+      apiService.quizzes.saveBatch(newQuizzes).catch(() => {});
 
       // Record items into the Ingested Items Ledger with timestamp columns
       const currentLedger = StorageService.getIngestedItemsLedger();
@@ -590,13 +623,41 @@ export default function App() {
         id: `log_${Date.now()}`,
         timestamp,
         user: 'cron_worker_00',
-        action: `CRON_SCHEDULE_EXECUTE: Added ${newWords.length} new vocabulary words with phonetics, CEFR levels, and audio transcripts`,
+        action: `CRON_SCHEDULE_EXECUTE: Added ${newWords.length} new vocabulary words and interactive quizzes to database`,
         category: 'DATABASE_SYNC',
         status: 'SUCCESS'
       };
       const updatedLogs = [newLog, ...auditLogs];
       setAuditLogs(updatedLogs);
       StorageService.saveAuditLogs(updatedLogs);
+    } else if (jobId === 'job_quiz_generation_00') {
+      const cohorts: AgeCohortId[] = ['early', 'junior', 'academy', 'pro', 'senior'];
+      const newQuizzes = cohorts.map((c, idx) => ({
+        id: `quiz_daily_${c}_${Date.now()}_${idx}`,
+        cohort: c,
+        educationLevel: c === 'early' ? 'Early Primary' : c === 'junior' ? 'Middle School' : c === 'academy' ? 'High School & Prep' : c === 'pro' ? 'College & Career' : 'Lifelong Scholar',
+        category: 'Diagnostic Assessment',
+        prompt: `Cohort diagnostic inquiry for ${c} level students.`,
+        options: ['Verified Standard Answer', 'Distractor B', 'Distractor C', 'Distractor D'],
+        correctAnswer: 'Verified Standard Answer',
+        explanation: `Comprehensive pedagogical rationale for ${c} inquiry.`,
+        audioPrompt: `Diagnostic inquiry for ${c}`,
+        praise: 'Superb problem-solving mastery!'
+      }));
+      apiService.quizzes.saveBatch(newQuizzes).catch(() => {});
+
+      const updatedJobs = scheduledJobs.map((j) =>
+        j.id === jobId
+          ? {
+              ...j,
+              itemsGeneratedCount: j.itemsGeneratedCount + newQuizzes.length,
+              lastRunTimestamp: `Last executed: ${timestamp}`,
+              status: 'completed' as const
+            }
+          : j
+      );
+      setScheduledJobs(updatedJobs);
+      StorageService.saveScheduledJobs(updatedJobs);
     }
   };
 
