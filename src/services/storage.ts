@@ -563,7 +563,10 @@ export const StorageService = {
   },
 
   getFeatureFlags: (): FeatureFlag[] => safeGet<FeatureFlag[]>(KEYS.FEATURE_FLAGS, initialFeatureFlags),
-  saveFeatureFlags: (flags: FeatureFlag[]): void => safeSet(KEYS.FEATURE_FLAGS, flags),
+  saveFeatureFlags: (flags: FeatureFlag[]): void => {
+    safeSet(KEYS.FEATURE_FLAGS, flags);
+    apiService.config.set('feature_flags', flags, 'features', 'System feature flags').catch(() => {});
+  },
 
   getFeedbackTickets: (): UserFeedbackTicket[] => safeGet<UserFeedbackTicket[]>(KEYS.FEEDBACK_TICKETS, initialFeedbackTickets),
   saveFeedbackTickets: (tickets: UserFeedbackTicket[]): void => safeSet(KEYS.FEEDBACK_TICKETS, tickets),
@@ -613,7 +616,10 @@ export const StorageService = {
   },
 
   getColorScheme: (): ColorSchemeConfig => safeGet<ColorSchemeConfig>(KEYS.COLOR_SCHEME, DEFAULT_COLOR_SCHEME),
-  saveColorScheme: (scheme: ColorSchemeConfig): void => safeSet(KEYS.COLOR_SCHEME, scheme),
+  saveColorScheme: (scheme: ColorSchemeConfig): void => {
+    safeSet(KEYS.COLOR_SCHEME, scheme);
+    apiService.config.set('color_scheme', scheme, 'ui', 'Global portal theme').catch(() => {});
+  },
 
   // Standardized Exam & Practice Test Configuration
   getExamSettings: (): ExamSettingsConfig => {
@@ -625,6 +631,49 @@ export const StorageService = {
   },
   saveExamSettings: (settings: ExamSettingsConfig): void => {
     safeSet(KEYS.EXAM_SETTINGS, settings);
+    apiService.config.set('exam_settings', settings, 'exam', 'Standardized test question counts').catch(() => {});
+  },
+
+  // Cloud Synchronization for Application Configurations & Tests
+  syncConfigurationsFromCloud: async (): Promise<void> => {
+    try {
+      const configs = await apiService.config.getAll();
+      if (configs.exam_settings) {
+        safeSet(KEYS.EXAM_SETTINGS, configs.exam_settings);
+      }
+      if (configs.feature_flags && Array.isArray(configs.feature_flags)) {
+        safeSet(KEYS.FEATURE_FLAGS, configs.feature_flags);
+      }
+      if (configs.color_scheme) {
+        safeSet(KEYS.COLOR_SCHEME, configs.color_scheme);
+      }
+    } catch {
+      // Offline fallback
+    }
+  },
+
+  syncTestsFromCloud: async (): Promise<void> => {
+    try {
+      const cloudTests = await apiService.tests.getAll();
+      if (cloudTests && cloudTests.length > 0) {
+        const mockCloud = cloudTests.filter((t) => t.testType === 'mock');
+        const practiceCloud = cloudTests.filter((t) => t.testType === 'practice');
+        if (mockCloud.length > 0) {
+          const currentMocks = StorageService.getMockTests();
+          const currentMap = new Map(currentMocks.map((t) => [t.id, t]));
+          mockCloud.forEach((t) => currentMap.set(t.id, { ...currentMap.get(t.id), ...t }));
+          safeSet(KEYS.MOCK_TESTS, Array.from(currentMap.values()));
+        }
+        if (practiceCloud.length > 0) {
+          const currentPractice = StorageService.getPracticeTests();
+          const currentMap = new Map(currentPractice.map((t) => [t.id, t]));
+          practiceCloud.forEach((t) => currentMap.set(t.id, { ...currentMap.get(t.id), ...t }));
+          safeSet(KEYS.PRACTICE_TESTS, Array.from(currentMap.values()));
+        }
+      }
+    } catch {
+      // Offline fallback
+    }
   },
 
   // User Activities (Chronological History & Dashboard Board)

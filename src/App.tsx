@@ -109,6 +109,8 @@ export default function App() {
           setActivities(res.items);
           StorageService.saveUserActivities(res.items);
         }
+        await StorageService.syncConfigurationsFromCloud();
+        await StorageService.syncTestsFromCloud();
       } catch {
         // Background sync
       }

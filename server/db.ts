@@ -16,10 +16,17 @@ import {
   QuestionAttemptRecord,
   WrittenResponseRecord,
   IncompleteAttemptRecord,
-  AttemptDetailResponse
+  AttemptDetailResponse,
+  MockTest,
+  IELTSPracticeTest
 } from '../src/types';
-import { initialUsers } from '../src/data/userManagementData';
+import { initialUsers, initialFeatureFlags } from '../src/data/userManagementData';
 import { initialActivities, initialQuestionAttempts } from '../src/data/activityData';
+import { multiExamMockTests } from '../src/data/multiExamMockTestsData';
+import { mockTests } from '../src/data/initialData';
+import { cohortQuizQuestions } from '../src/data/cohortQuizzesData';
+import { IELTSPracticeService } from '../src/services/ieltsPracticeService';
+import { DEFAULT_COLOR_SCHEME } from '../src/utils/themeManager';
 import { ServerStorage } from './storage';
 
 // ─── DB Connection ───────────────────────────────────────────────────────────
@@ -251,6 +258,65 @@ export async function initializeDatabase(): Promise<void> {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS standard_tests (
+      id                  TEXT PRIMARY KEY,
+      test_standard       TEXT NOT NULL,
+      test_type           TEXT NOT NULL DEFAULT 'mock',
+      title               TEXT NOT NULL,
+      difficulty          TEXT DEFAULT 'Standard',
+      category            TEXT,
+      subject             TEXT NOT NULL,
+      duration_minutes    INTEGER DEFAULT 30,
+      question_count      INTEGER DEFAULT 10,
+      target_score        TEXT,
+      sections            JSONB DEFAULT '[]',
+      questions           JSONB NOT NULL DEFAULT '[]',
+      metadata            JSONB DEFAULT '{}',
+      created_at          TEXT,
+      updated_at          TEXT
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_std_tests_standard ON standard_tests(test_standard)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_std_tests_type ON standard_tests(test_type)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_std_tests_subject ON standard_tests(subject)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS quizzes (
+      id                  TEXT PRIMARY KEY,
+      cohort              TEXT NOT NULL,
+      education_level     TEXT,
+      category            TEXT NOT NULL,
+      word                TEXT,
+      phonetic            TEXT,
+      prompt              TEXT NOT NULL,
+      options             JSONB NOT NULL DEFAULT '[]',
+      correct_answer      TEXT NOT NULL,
+      explanation         TEXT,
+      audio_prompt        TEXT,
+      praise              TEXT,
+      metadata            JSONB DEFAULT '{}',
+      created_at          TEXT
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_quizzes_cohort ON quizzes(cohort)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_quizzes_category ON quizzes(category)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS app_configurations (
+      key                 TEXT PRIMARY KEY,
+      value               JSONB NOT NULL,
+      category            TEXT DEFAULT 'general',
+      description         TEXT,
+      updated_at          TEXT,
+      updated_by          TEXT DEFAULT 'system'
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_configs_category ON app_configurations(category)`;
+
   console.log('[EduBridge DB] Neon Postgres tables created and verified successfully.');
 }
 
@@ -261,214 +327,392 @@ export async function seedInitialData(): Promise<void> {
 
   const sql = getSql();
 
-  // Check if users already seeded
-  const existing = await sql`SELECT COUNT(*) as count FROM users`;
-  if (parseInt(String(existing[0].count), 10) > 0) {
-    console.log('[EduBridge DB] Database already seeded — skipping seed.');
-    return;
-  }
+  // 1. Check & seed users if empty
+  const existingUsers = await sql`SELECT COUNT(*) as count FROM users`;
+  if (parseInt(String(existingUsers[0].count), 10) === 0) {
+    console.log('[EduBridge DB] Seeding initial users into Neon Postgres...');
 
-  console.log('[EduBridge DB] Seeding initial users into Neon Postgres...');
-
-  for (const user of initialUsers) {
-    try {
-      await sql`
-        INSERT INTO users (
-          id, name, username, email, password, date_of_birth,
-          role, status, email_verified, email_verification_status,
-          created_at, last_login_at, preferences, profile_stats
-        )
-        VALUES (
-          ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
-          ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
-          ${user.emailVerified ?? true}, ${user.emailVerificationStatus || 'verified'},
-          ${user.createdAt}, ${user.lastLoginAt},
-          ${JSON.stringify(user.preferences)}, ${JSON.stringify(user.profileStats)}
-        )
-        ON CONFLICT (id) DO NOTHING
-      `;
-    } catch (err: any) {
-      console.warn(`[EduBridge DB] Skipping user seed for ${user.id}:`, err.message);
+    for (const user of initialUsers) {
+      try {
+        await sql`
+          INSERT INTO users (
+            id, name, username, email, password, date_of_birth,
+            role, status, email_verified, email_verification_status,
+            created_at, last_login_at, preferences, profile_stats
+          )
+          VALUES (
+            ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
+            ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
+            ${user.emailVerified ?? true}, ${user.emailVerificationStatus || 'verified'},
+            ${user.createdAt}, ${user.lastLoginAt},
+            ${JSON.stringify(user.preferences)}, ${JSON.stringify(user.profileStats)}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `;
+      } catch (err: any) {
+        console.warn(`[EduBridge DB] Skipping user seed for ${user.id}:`, err.message);
+      }
     }
-  }
 
-  // Seed initial activities
-  for (const act of initialActivities) {
-    try {
-      await sql`
-        INSERT INTO activities (
-          id, user_id, user_name, type, title, category, timestamp,
-          score, xp_earned, status, details, exam_type, module,
-          attempt_number, started_at, completed_at,
-          total_questions, attempted_questions, correct_answers,
-          incorrect_answers, skipped_questions, duration_sec,
-          max_score, percentage, evaluation, feedback, replay_payload
-        )
-        VALUES (
-          ${act.id}, ${act.userId}, ${act.userName}, ${act.type}, ${act.title},
-          ${act.category}, ${act.timestamp}, ${String(act.score ?? '')},
-          ${act.xpEarned || 0}, ${act.status}, ${act.details},
-          ${act.examType || null}, ${act.module || null},
-          ${act.attemptNumber || null}, ${act.startedAt || null},
-          ${act.completedAt || null}, ${act.totalQuestions || null},
-          ${act.attemptedQuestions || null}, ${act.correctAnswers || null},
-          ${act.incorrectAnswers || null}, ${act.skippedQuestions || null},
-          ${act.durationSec || null}, ${String(act.maxScore ?? '')},
-          ${act.percentage || null}, ${act.evaluation || null},
-          ${act.feedback || null}, ${JSON.stringify(act.replayPayload || {})}
-        )
-        ON CONFLICT (id) DO NOTHING
-      `;
-    } catch (err: any) {
-      console.warn(`[EduBridge DB] Skipping activity seed for ${act.id}:`, err.message);
+    // Seed initial activities
+    for (const act of initialActivities) {
+      try {
+        await sql`
+          INSERT INTO activities (
+            id, user_id, user_name, type, title, category, timestamp,
+            score, xp_earned, status, details, exam_type, module,
+            attempt_number, started_at, completed_at,
+            total_questions, attempted_questions, correct_answers,
+            incorrect_answers, skipped_questions, duration_sec,
+            max_score, percentage, evaluation, feedback, replay_payload
+          )
+          VALUES (
+            ${act.id}, ${act.userId}, ${act.userName}, ${act.type}, ${act.title},
+            ${act.category}, ${act.timestamp}, ${String(act.score ?? '')},
+            ${act.xpEarned || 0}, ${act.status}, ${act.details},
+            ${act.examType || null}, ${act.module || null},
+            ${act.attemptNumber || null}, ${act.startedAt || null},
+            ${act.completedAt || null}, ${act.totalQuestions || null},
+            ${act.attemptedQuestions || null}, ${act.correctAnswers || null},
+            ${act.incorrectAnswers || null}, ${act.skippedQuestions || null},
+            ${act.durationSec || null}, ${String(act.maxScore ?? '')},
+            ${act.percentage || null}, ${act.evaluation || null},
+            ${act.feedback || null}, ${JSON.stringify(act.replayPayload || {})}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `;
+      } catch (err: any) {
+        console.warn(`[EduBridge DB] Skipping activity seed for ${act.id}:`, err.message);
+      }
     }
-  }
 
-  // Seed initial question attempts
-  for (const qa of initialQuestionAttempts) {
-    try {
-      await sql`
-        INSERT INTO question_attempts (
-          id, user_id, user_name, user_role, test_id, test_title,
-          module_or_subject, question_number, question_prompt, options,
-          user_answer, correct_answer, is_correct, score, max_score,
-          time_spent_sec, is_skipped, explanation, ai_feedback, instructions, timestamp
-        )
-        VALUES (
-          ${qa.id}, ${qa.userId}, ${qa.userName}, ${qa.userRole || null},
-          ${qa.testId}, ${qa.testTitle}, ${qa.moduleOrSubject},
-          ${qa.questionNumber}, ${qa.questionPrompt},
-          ${JSON.stringify(qa.options || [])}, ${qa.userAnswer},
-          ${qa.correctAnswer || null}, ${qa.isCorrect},
-          ${String(qa.score ?? '')}, ${String(qa.maxScore ?? '')},
-          ${qa.timeSpentSec || null}, ${qa.isSkipped || false},
-          ${qa.explanation || null}, ${qa.aiFeedback || null},
-          ${qa.instructions || null}, ${qa.timestamp}
-        )
-        ON CONFLICT (id) DO NOTHING
-      `;
-    } catch (err: any) {
-      console.warn(`[EduBridge DB] Skipping question attempt seed for ${qa.id}:`, err.message);
+    // Seed initial question attempts
+    for (const qa of initialQuestionAttempts) {
+      try {
+        await sql`
+          INSERT INTO question_attempts (
+            id, user_id, user_name, user_role, test_id, test_title,
+            module_or_subject, question_number, question_prompt, options,
+            user_answer, correct_answer, is_correct, score, max_score,
+            time_spent_sec, is_skipped, explanation, ai_feedback, instructions, timestamp
+          )
+          VALUES (
+            ${qa.id}, ${qa.userId}, ${qa.userName}, ${qa.userRole || null},
+            ${qa.testId}, ${qa.testTitle}, ${qa.moduleOrSubject},
+            ${qa.questionNumber}, ${qa.questionPrompt},
+            ${JSON.stringify(qa.options || [])}, ${qa.userAnswer},
+            ${qa.correctAnswer || null}, ${qa.isCorrect},
+            ${String(qa.score ?? '')}, ${String(qa.maxScore ?? '')},
+            ${qa.timeSpentSec || null}, ${qa.isSkipped || false},
+            ${qa.explanation || null}, ${qa.aiFeedback || null},
+            ${qa.instructions || null}, ${qa.timestamp}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `;
+      } catch (err: any) {
+        console.warn(`[EduBridge DB] Skipping question attempt seed for ${qa.id}:`, err.message);
+      }
     }
-  }
 
-  // Seed initial written responses
-  const initialWrittenResponses: WrittenResponseRecord[] = [
-    {
-      id: 'wres_alex_01',
-      userId: 'usr_student_01',
-      userName: 'Alex Rivera',
-      activityId: 'act_alex_03',
-      attemptId: 'att_alex_w1',
-      questionId: 'q_ielts_w2_01',
-      taskTitle: 'IELTS Academic Writing Task 2: Advanced Cohesion',
-      taskPrompt: 'Some people believe that technological advances in artificial intelligence will eliminate human jobs and reduce individual agency. Others contend that AI democratizes creative production and empowers professionals. Discuss both views and give your opinion.',
-      instructions: 'Write at least 250 words. Present a well-developed argument with relevant supporting examples and academic register.',
-      writtenText: 'Throughout contemporary industrial history, transformative technological disruptions have perpetually ignited intense debates regarding societal equilibrium and human agency. While skeptics assert that synthetic intelligence will inevitably eradicate skilled occupations, proponents counter that emerging computational tools democratize creative problem-solving. This essay will examine both perspectives before establishing that generative systems augment rather than supplant human intellect.\\n\\nOn the one hand, valid concerns exist regarding labor displacement. Automated diagnostic algorithms and quantitative trading architectures operate at computational velocities unattainable by human practitioners. If organizations implement automation primarily for operational cost reduction without investing in workforce re-skilling, localized economic dislocation will undoubtedly manifest.\\n\\nNevertheless, historical precedent illustrates that mechanical instruments liberate human capital from routine tasks to focus on higher-order synthesis. In medicine, machine learning models analyze complex radiographic imagery, thereby granting clinicians greater temporal bandwidth to formulate compassionate therapeutic strategies. Similarly, in software engineering, automated code assistants relieve engineers of repetitive boilerplate syntax, empowering them to architect resilient systemic infrastructures.\\n\\nIn conclusion, while technological disruption presents genuine labor challenges requiring proactive governance, generative intelligence fundamentally serves as an amplifier of human capacity rather than its replacement.',
-      wordCount: 262,
-      characterCount: 1782,
-      writingDurationSec: 1680,
-      evaluation: {
-        taskAchievement: 'Band 8.5: Fully addresses all parts of the prompt with well-developed ideas and substantiated examples.',
-        coherenceCohesion: 'Band 8.5: Cohesive devices are used naturally; logical paragraph progression is maintained throughout.',
-        lexicalResource: 'Band 8.5: Sophisticated lexical items used with high precision ("computational velocities", "temporal bandwidth", "localized economic dislocation").',
-        grammaticalAccuracy: 'Band 8.5: Wide range of complex sentence structures with accurate punctuation and consistent academic register.',
-        bandScore: '8.5 Band'
+    // Seed initial written responses
+    const initialWrittenResponses: WrittenResponseRecord[] = [
+      {
+        id: 'wres_alex_01',
+        userId: 'usr_student_01',
+        userName: 'Alex Rivera',
+        activityId: 'act_alex_03',
+        attemptId: 'att_alex_w1',
+        questionId: 'q_ielts_w2_01',
+        taskTitle: 'IELTS Academic Writing Task 2: Advanced Cohesion',
+        taskPrompt: 'Some people believe that technological advances in artificial intelligence will eliminate human jobs and reduce individual agency. Others contend that AI democratizes creative production and empowers professionals. Discuss both views and give your opinion.',
+        instructions: 'Write at least 250 words. Present a well-developed argument with relevant supporting examples and academic register.',
+        writtenText: 'Throughout contemporary industrial history, transformative technological disruptions have perpetually ignited intense debates regarding societal equilibrium and human agency. While skeptics assert that synthetic intelligence will inevitably eradicate skilled occupations, proponents counter that emerging computational tools democratize creative problem-solving. This essay will examine both perspectives before establishing that generative systems augment rather than supplant human intellect.\\n\\nOn the one hand, valid concerns exist regarding labor displacement. Automated diagnostic algorithms and quantitative trading architectures operate at computational velocities unattainable by human practitioners. If organizations implement automation primarily for operational cost reduction without investing in workforce re-skilling, localized economic dislocation will undoubtedly manifest.\\n\\nNevertheless, historical precedent illustrates that mechanical instruments liberate human capital from routine tasks to focus on higher-order synthesis. In medicine, machine learning models analyze complex radiographic imagery, thereby granting clinicians greater temporal bandwidth to formulate compassionate therapeutic strategies. Similarly, in software engineering, automated code assistants relieve engineers of repetitive boilerplate syntax, empowering them to architect resilient systemic infrastructures.\\n\\nIn conclusion, while technological disruption presents genuine labor challenges requiring proactive governance, generative intelligence fundamentally serves as an amplifier of human capacity rather than its replacement.',
+        wordCount: 262,
+        characterCount: 1782,
+        writingDurationSec: 1680,
+        evaluation: {
+          taskAchievement: 'Band 8.5: Fully addresses all parts of the prompt with well-developed ideas and substantiated examples.',
+          coherenceCohesion: 'Band 8.5: Cohesive devices are used naturally; logical paragraph progression is maintained throughout.',
+          lexicalResource: 'Band 8.5: Sophisticated lexical items used with high precision ("computational velocities", "temporal bandwidth", "localized economic dislocation").',
+          grammaticalAccuracy: 'Band 8.5: Wide range of complex sentence structures with accurate punctuation and consistent academic register.',
+          bandScore: '8.5 Band'
+        },
+        score: '8.5 Band',
+        feedback: 'Exemplary essay demonstrating formal academic vocabulary, nuanced thesis defense, and cohesive counter-argumentation.',
+        corrections: [
+          'Minor: Ensure consistent British/American orthography across all paragraphs.'
+        ],
+        vocabularyRecommendations: [
+          'Consider using "paradigm shift" or "epistemic framework" for further lexical sophistication.'
+        ],
+        timestamp: '2026-11-01 15:30:00'
+      }
+    ];
+
+    for (const wr of initialWrittenResponses) {
+      try {
+        await sql`
+          INSERT INTO written_responses (
+            id, user_id, user_name, activity_id, attempt_id, question_id,
+            task_title, task_prompt, instructions, source_passage,
+            written_text, word_count, character_count, writing_duration_sec,
+            evaluation, score, feedback, corrections, vocabulary_recommendations,
+            revisions, timestamp
+          )
+          VALUES (
+            ${wr.id}, ${wr.userId}, ${wr.userName}, ${wr.activityId},
+            ${wr.attemptId}, ${wr.questionId}, ${wr.taskTitle},
+            ${wr.taskPrompt}, ${wr.instructions || null}, ${wr.sourcePassage || null},
+            ${wr.writtenText}, ${wr.wordCount}, ${wr.characterCount},
+            ${wr.writingDurationSec || null}, ${JSON.stringify(wr.evaluation || {})},
+            ${String(wr.score ?? '')}, ${wr.feedback || null},
+            ${JSON.stringify(wr.corrections || [])},
+            ${JSON.stringify(wr.vocabularyRecommendations || [])},
+            ${JSON.stringify(wr.revisions || [])}, ${wr.timestamp}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `;
+      } catch (err: any) {
+        console.warn(`[EduBridge DB] Skipping written response seed for ${wr.id}:`, err.message);
+      }
+    }
+
+    // Seed initial scheduled jobs
+    const defaultJobs = [
+      {
+        id: 'job_exam_midnight_00',
+        name: 'Nightly Multi-Exam Mock & Practice Test Generator',
+        description: 'Generates 6 new multi-exam mock tests (PTE, TOEFL, OET, DET, Cambridge, IELTS) and 5 practice tests.',
+        cronExpression: '0 0 * * *',
+        targetTime: '00:00 (Midnight)',
+        category: 'EXAM_PREP',
+        enabled: true,
+        lastRunTimestamp: `Last run: ${new Date().toISOString().slice(0, 10)} 00:00:02`,
+        nextRunTimestamp: 'Tomorrow 00:00',
+        itemsGenerated: 11,
+        status: 'idle',
+        batchTarget: 'At least 6 Mock Tests + 5 Practice Tests'
       },
-      score: '8.5 Band',
-      feedback: 'Exemplary essay demonstrating formal academic vocabulary, nuanced thesis defense, and cohesive counter-argumentation.',
-      corrections: [
-        'Minor: Ensure consistent British/American orthography across all paragraphs.'
-      ],
-      vocabularyRecommendations: [
-        'Consider using "paradigm shift" or "epistemic framework" for further lexical sophistication.'
-      ],
-      timestamp: '2026-11-01 15:30:00'
-    }
-  ];
+      {
+        id: 'job_vocab_expansion_00',
+        name: 'Daily Vocabulary Vault Expansion',
+        description: 'Expands the Vocabulary Vault with 100 new CEFR-graded words daily.',
+        cronExpression: '0 0 * * *',
+        targetTime: '00:00 (Midnight)',
+        category: 'VOCABULARY',
+        enabled: true,
+        lastRunTimestamp: `Last run: ${new Date().toISOString().slice(0, 10)} 00:00:04`,
+        nextRunTimestamp: 'Tomorrow 00:00',
+        itemsGenerated: 100,
+        status: 'idle',
+        batchTarget: 'At least 100 Vocabulary Words'
+      }
+    ];
 
-  for (const wr of initialWrittenResponses) {
-    try {
-      await sql`
-        INSERT INTO written_responses (
-          id, user_id, user_name, activity_id, attempt_id, question_id,
-          task_title, task_prompt, instructions, source_passage,
-          written_text, word_count, character_count, writing_duration_sec,
-          evaluation, score, feedback, corrections, vocabulary_recommendations,
-          revisions, timestamp
-        )
-        VALUES (
-          ${wr.id}, ${wr.userId}, ${wr.userName}, ${wr.activityId},
-          ${wr.attemptId}, ${wr.questionId}, ${wr.taskTitle},
-          ${wr.taskPrompt}, ${wr.instructions || null}, ${wr.sourcePassage || null},
-          ${wr.writtenText}, ${wr.wordCount}, ${wr.characterCount},
-          ${wr.writingDurationSec || null}, ${JSON.stringify(wr.evaluation || {})},
-          ${String(wr.score ?? '')}, ${wr.feedback || null},
-          ${JSON.stringify(wr.corrections || [])},
-          ${JSON.stringify(wr.vocabularyRecommendations || [])},
-          ${JSON.stringify(wr.revisions || [])}, ${wr.timestamp}
-        )
-        ON CONFLICT (id) DO NOTHING
-      `;
-    } catch (err: any) {
-      console.warn(`[EduBridge DB] Skipping written response seed for ${wr.id}:`, err.message);
+    for (const job of defaultJobs) {
+      try {
+        await sql`
+          INSERT INTO scheduled_jobs (
+            id, name, description, cron_expression, target_time, category,
+            enabled, last_run_timestamp, next_run_timestamp,
+            items_generated, status, batch_target
+          )
+          VALUES (
+            ${job.id}, ${job.name}, ${job.description}, ${job.cronExpression},
+            ${job.targetTime}, ${job.category}, ${job.enabled},
+            ${job.lastRunTimestamp}, ${job.nextRunTimestamp},
+            ${job.itemsGenerated}, ${job.status}, ${job.batchTarget}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `;
+      } catch (err: any) {
+        console.warn(`[EduBridge DB] Skipping job seed:`, err.message);
+      }
     }
   }
 
-  // Seed initial scheduled jobs
-  const defaultJobs = [
-    {
-      id: 'job_exam_midnight_00',
-      name: 'Nightly Multi-Exam Mock & Practice Test Generator',
-      description: 'Generates 6 new multi-exam mock tests (PTE, TOEFL, OET, DET, Cambridge, IELTS) and 5 practice tests.',
-      cronExpression: '0 0 * * *',
-      targetTime: '00:00 (Midnight)',
-      category: 'EXAM_PREP',
-      enabled: true,
-      lastRunTimestamp: `Last run: ${new Date().toISOString().slice(0, 10)} 00:00:02`,
-      nextRunTimestamp: 'Tomorrow 00:00',
-      itemsGenerated: 11,
-      status: 'idle',
-      batchTarget: 'At least 6 Mock Tests + 5 Practice Tests'
-    },
-    {
-      id: 'job_vocab_expansion_00',
-      name: 'Daily Vocabulary Vault Expansion',
-      description: 'Expands the Vocabulary Vault with 100 new CEFR-graded words daily.',
-      cronExpression: '0 0 * * *',
-      targetTime: '00:00 (Midnight)',
-      category: 'VOCABULARY',
-      enabled: true,
-      lastRunTimestamp: `Last run: ${new Date().toISOString().slice(0, 10)} 00:00:04`,
-      nextRunTimestamp: 'Tomorrow 00:00',
-      itemsGenerated: 100,
-      status: 'idle',
-      batchTarget: 'At least 100 Vocabulary Words'
-    }
-  ];
+  // 2. Check & seed standard_tests if empty
+  const existingTests = await sql`SELECT COUNT(*) as count FROM standard_tests`;
+  if (parseInt(String(existingTests[0].count), 10) === 0) {
+    console.log('[EduBridge DB] Seeding multi-exam mock tests & practice tests into Neon Postgres...');
 
-  for (const job of defaultJobs) {
+    // Seed 14 multi-exam mock tests (PTE, TOEFL, OET, DET, Cambridge English, IELTS)
+    for (const test of multiExamMockTests) {
+      try {
+        await sql`
+          INSERT INTO standard_tests (
+            id, test_standard, test_type, title, difficulty, category,
+            subject, duration_minutes, question_count, target_score,
+            sections, questions, metadata, created_at, updated_at
+          )
+          VALUES (
+            ${test.id}, ${test.exam || 'General'}, 'mock', ${test.title},
+            ${test.difficulty || 'Standard'}, ${test.exam + ' Mock'},
+            ${test.subject || 'Standard Assessment'}, ${test.totalDurationMin || 30},
+            ${test.questions ? test.questions.length : 10}, ${test.targetBandRequirement || ''},
+            ${JSON.stringify(test.sections || [])}, ${JSON.stringify(test.questions || [])},
+            ${JSON.stringify({ lastAttemptedAt: test.lastAttemptedAt, attemptCount: test.attemptCount || 0 })},
+            ${test.timestamp || test.dateAdded || new Date().toISOString()},
+            ${new Date().toISOString()}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `;
+      } catch (err: any) {
+        console.warn(`[EduBridge DB] Skipping test seed for ${test.id}:`, err.message);
+      }
+    }
+
+    // Also seed additional initial mock tests
+    for (const test of mockTests) {
+      try {
+        await sql`
+          INSERT INTO standard_tests (
+            id, test_standard, test_type, title, difficulty, category,
+            subject, duration_minutes, question_count, target_score,
+            sections, questions, metadata, created_at, updated_at
+          )
+          VALUES (
+            ${test.id}, ${test.exam || 'IELTS'}, 'mock', ${test.title},
+            ${test.difficulty || 'Standard'}, ${test.exam + ' Mock'},
+            ${test.subject || 'Standard Assessment'}, ${test.totalDurationMin || 30},
+            ${test.questions ? test.questions.length : 10}, ${test.targetBandRequirement || ''},
+            ${JSON.stringify(test.sections || [])}, ${JSON.stringify(test.questions || [])},
+            ${JSON.stringify({ lastAttemptedAt: test.lastAttemptedAt, attemptCount: test.attemptCount || 0 })},
+            ${test.timestamp || test.dateAdded || new Date().toISOString()},
+            ${new Date().toISOString()}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `;
+      } catch (err: any) {
+        // Skip duplicate
+      }
+    }
+
+    // Seed top authentic practice tests from IELTSPracticeService
     try {
-      await sql`
-        INSERT INTO scheduled_jobs (
-          id, name, description, cron_expression, target_time, category,
-          enabled, last_run_timestamp, next_run_timestamp,
-          items_generated, status, batch_target
-        )
-        VALUES (
-          ${job.id}, ${job.name}, ${job.description}, ${job.cronExpression},
-          ${job.targetTime}, ${job.category}, ${job.enabled},
-          ${job.lastRunTimestamp}, ${job.nextRunTimestamp},
-          ${job.itemsGenerated}, ${job.status}, ${job.batchTarget}
-        )
-        ON CONFLICT (id) DO NOTHING
-      `;
+      const practiceTests = IELTSPracticeService.getPracticeTests().slice(0, 30);
+      for (const pt of practiceTests) {
+        await sql`
+          INSERT INTO standard_tests (
+            id, test_standard, test_type, title, difficulty, category,
+            subject, duration_minutes, question_count, target_score,
+            sections, questions, metadata, created_at, updated_at
+          )
+          VALUES (
+            ${pt.id}, 'IELTS', 'practice', ${pt.title},
+            ${pt.difficulty || 'Standard'}, ${pt.category},
+            ${pt.subject || 'IELTS ' + pt.module}, ${pt.durationMinutes || 25},
+            ${pt.questionCount || (pt.questions ? pt.questions.length : 10)}, 'Band 7.0+',
+            ${JSON.stringify([])}, ${JSON.stringify(pt.questions || [])},
+            ${JSON.stringify({ module: pt.module, passage: pt.passage, audioTranscript: pt.audioTranscript })},
+            ${pt.timestamp || pt.dateAdded || new Date().toISOString()},
+            ${new Date().toISOString()}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `;
+      }
     } catch (err: any) {
-      console.warn(`[EduBridge DB] Skipping job seed:`, err.message);
+      console.warn('[EduBridge DB] Practice test seed note:', err.message);
     }
   }
 
-  console.log('[EduBridge DB] Initial Neon Postgres seed complete.');
+  // 3. Check & seed quizzes if empty
+  const existingQuizzes = await sql`SELECT COUNT(*) as count FROM quizzes`;
+  if (parseInt(String(existingQuizzes[0].count), 10) === 0) {
+    console.log('[EduBridge DB] Seeding cohort quizzes into Neon Postgres...');
+    for (const q of cohortQuizQuestions) {
+      try {
+        await sql`
+          INSERT INTO quizzes (
+            id, cohort, education_level, category, word, phonetic,
+            prompt, options, correct_answer, explanation, audio_prompt,
+            praise, metadata, created_at
+          )
+          VALUES (
+            ${q.id}, ${q.cohort}, ${q.educationLevel || ''}, ${q.category},
+            ${q.word || ''}, ${q.phonetic || ''}, ${q.prompt},
+            ${JSON.stringify(q.options || [])}, ${q.correctAnswer},
+            ${q.explanation || ''}, ${q.audioPrompt || ''}, ${q.praise || ''},
+            ${JSON.stringify({})}, ${new Date().toISOString()}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `;
+      } catch (err: any) {
+        console.warn(`[EduBridge DB] Skipping quiz seed for ${q.id}:`, err.message);
+      }
+    }
+  }
+
+  // 4. Check & seed app_configurations if empty
+  const existingConfigs = await sql`SELECT COUNT(*) as count FROM app_configurations`;
+  if (parseInt(String(existingConfigs[0].count), 10) === 0) {
+    console.log('[EduBridge DB] Seeding application configuration tables into Neon Postgres...');
+    const initialConfigs = [
+      {
+        key: 'exam_settings',
+        value: {
+          questionsPerTest: 10,
+          allowShuffleOptions: true,
+          writingTestQuestions: 1
+        },
+        category: 'exam',
+        description: 'Standardized test question counts, option shuffling, and section parameters'
+      },
+      {
+        key: 'feature_flags',
+        value: initialFeatureFlags,
+        category: 'features',
+        description: 'System-wide feature flags and capabilities'
+      },
+      {
+        key: 'color_scheme',
+        value: DEFAULT_COLOR_SCHEME,
+        category: 'ui',
+        description: 'Global portal theme and color palettes'
+      },
+      {
+        key: 'system_setup',
+        value: {
+          appName: 'EduBridge',
+          version: '2.5.0',
+          centralizedDb: 'Neon Postgres',
+          databaseDriver: '@neondatabase/serverless',
+          minQuestionsPerTest: 10,
+          supportedStandards: ['IELTS', 'PTE', 'TOEFL', 'OET', 'DET', 'Cambridge English'],
+          schedulerActive: true,
+          cloudStorageActive: true
+        },
+        category: 'system',
+        description: 'Global system architecture and operational settings'
+      },
+      {
+        key: 'voice_persona',
+        value: {
+          name: 'Emma',
+          region: 'British Academic',
+          gender: 'Female',
+          rate: 1.0,
+          pitch: 1.0
+        },
+        category: 'audio',
+        description: 'Audio speech synthesis voice persona'
+      }
+    ];
+
+    for (const cfg of initialConfigs) {
+      try {
+        await sql`
+          INSERT INTO app_configurations (key, value, category, description, updated_at, updated_by)
+          VALUES (${cfg.key}, ${JSON.stringify(cfg.value)}, ${cfg.category}, ${cfg.description}, ${new Date().toISOString()}, 'system')
+          ON CONFLICT (key) DO NOTHING
+        `;
+      } catch (err: any) {
+        console.warn(`[EduBridge DB] Skipping config seed for ${cfg.key}:`, err.message);
+      }
+    }
+  }
+
+  console.log('[EduBridge DB] Initial Neon Postgres seed verified.');
 }
 
 // ─── Helper: Row → Type ───────────────────────────────────────────────────────
@@ -593,6 +837,48 @@ function rowToIncompleteAttempt(row: any): IncompleteAttemptRecord {
   };
 }
 
+function rowToStandardTest(row: any): any {
+  return {
+    id: row.id,
+    testStandard: row.test_standard,
+    exam: row.test_standard,
+    testType: row.test_type,
+    title: row.title,
+    difficulty: row.difficulty,
+    category: row.category,
+    subject: row.subject,
+    durationMinutes: row.duration_minutes,
+    totalDurationMin: row.duration_minutes,
+    questionCount: row.question_count,
+    targetScore: row.target_score,
+    targetBandRequirement: row.target_score,
+    sections: row.sections || [],
+    questions: row.questions || [],
+    metadata: row.metadata || {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function rowToQuiz(row: any): any {
+  return {
+    id: row.id,
+    cohort: row.cohort,
+    educationLevel: row.education_level || '',
+    category: row.category,
+    word: row.word || '',
+    phonetic: row.phonetic || '',
+    prompt: row.prompt,
+    options: row.options || [],
+    correctAnswer: row.correct_answer,
+    explanation: row.explanation || '',
+    audioPrompt: row.audio_prompt || '',
+    praise: row.praise || '',
+    metadata: row.metadata || {},
+    createdAt: row.created_at
+  };
+}
+
 // ─── Database Storage API ─────────────────────────────────────────────────────
 
 export const DbStorage = {
@@ -603,12 +889,15 @@ export const DbStorage = {
       return ServerStorage.getHealthStats();
     }
     const sql = getSql();
-    const [users, acts, qAtts, wRes, incAtts] = await Promise.all([
+    const [users, acts, qAtts, wRes, incAtts, tests, quizzes, configs] = await Promise.all([
       sql`SELECT COUNT(*) as count FROM users`,
       sql`SELECT COUNT(*) as count FROM activities`,
       sql`SELECT COUNT(*) as count FROM question_attempts`,
       sql`SELECT COUNT(*) as count FROM written_responses`,
-      sql`SELECT COUNT(*) as count FROM incomplete_attempts`
+      sql`SELECT COUNT(*) as count FROM incomplete_attempts`,
+      sql`SELECT COUNT(*) as count FROM standard_tests`,
+      sql`SELECT COUNT(*) as count FROM quizzes`,
+      sql`SELECT COUNT(*) as count FROM app_configurations`
     ]);
     return {
       status: 'healthy',
@@ -618,6 +907,9 @@ export const DbStorage = {
       totalQuestionAttempts: parseInt(String(qAtts[0].count), 10),
       totalWrittenResponses: parseInt(String(wRes[0].count), 10),
       activeIncompleteAttempts: parseInt(String(incAtts[0].count), 10),
+      totalStandardTests: parseInt(String(tests[0].count), 10),
+      totalQuizzes: parseInt(String(quizzes[0].count), 10),
+      totalConfigurations: parseInt(String(configs[0].count), 10),
       serverTime: new Date().toISOString()
     };
   },
@@ -1328,5 +1620,270 @@ export const DbStorage = {
     if (updates.enabled !== undefined) {
       await sql`UPDATE scheduled_jobs SET enabled = ${updates.enabled} WHERE id = ${id}`;
     }
+  },
+
+  // --- Standard & Practice Tests ---
+  getStandardTests: async (filter?: {
+    testStandard?: string;
+    testType?: string;
+    subject?: string;
+    category?: string;
+    difficulty?: string;
+    limit?: number;
+  }): Promise<any[]> => {
+    if (!process.env.DATABASE_URL) {
+      let list = [...multiExamMockTests];
+      if (filter?.testStandard) {
+        list = list.filter((t) => t.exam?.toLowerCase() === filter.testStandard!.toLowerCase());
+      }
+      if (filter?.subject) {
+        list = list.filter((t) => t.subject?.toLowerCase().includes(filter.subject!.toLowerCase()));
+      }
+      return list;
+    }
+
+    const sql = getSql();
+    let query = 'SELECT * FROM standard_tests WHERE 1=1';
+    const params: any[] = [];
+    let pIdx = 1;
+
+    if (filter?.testStandard) {
+      query += ` AND LOWER(test_standard) = LOWER($${pIdx++})`;
+      params.push(filter.testStandard);
+    }
+    if (filter?.testType) {
+      query += ` AND LOWER(test_type) = LOWER($${pIdx++})`;
+      params.push(filter.testType);
+    }
+    if (filter?.subject) {
+      query += ` AND LOWER(subject) LIKE LOWER($${pIdx++})`;
+      params.push(`%${filter.subject}%`);
+    }
+    if (filter?.category) {
+      query += ` AND LOWER(category) = LOWER($${pIdx++})`;
+      params.push(filter.category);
+    }
+    if (filter?.difficulty) {
+      query += ` AND LOWER(difficulty) = LOWER($${pIdx++})`;
+      params.push(filter.difficulty);
+    }
+
+    query += ' ORDER BY id ASC';
+    if (filter?.limit && filter.limit > 0) {
+      query += ` LIMIT $${pIdx++}`;
+      params.push(filter.limit);
+    }
+
+    const res = await (sql as any).query(query, params);
+    const rows = Array.isArray(res) ? res : res?.rows || [];
+    return rows.map(rowToStandardTest);
+  },
+
+  getStandardTestById: async (id: string): Promise<any | null> => {
+    if (!process.env.DATABASE_URL) {
+      return [...multiExamMockTests, ...mockTests].find((t) => t.id === id) || null;
+    }
+    const sql = getSql();
+    const rows = await sql`SELECT * FROM standard_tests WHERE id = ${id}`;
+    return rows.length > 0 ? rowToStandardTest(rows[0]) : null;
+  },
+
+  saveStandardTest: async (test: any): Promise<any> => {
+    const questions = test.questions || [];
+    const questionCount = questions.length || test.questionCount || 10;
+    const testStandard = test.testStandard || test.exam || 'General';
+    const testType = test.testType || (test.exam ? 'mock' : 'practice');
+    const title = test.title || 'Untitled Assessment';
+    const difficulty = test.difficulty || 'Standard';
+    const category = test.category || (testStandard + ' ' + (testType === 'mock' ? 'Mock' : 'Practice'));
+    const subject = test.subject || questions[0]?.subject || 'English';
+    const duration = test.durationMinutes || test.totalDurationMin || 30;
+    const targetScore = test.targetScore || test.targetBandRequirement || '';
+    const sections = test.sections || [];
+    const metadata = test.metadata || {};
+    const now = new Date().toISOString();
+
+    if (!process.env.DATABASE_URL) {
+      return { ...test, id: test.id, questions, questionCount };
+    }
+
+    const sql = getSql();
+    await sql`
+      INSERT INTO standard_tests (
+        id, test_standard, test_type, title, difficulty, category,
+        subject, duration_minutes, question_count, target_score,
+        sections, questions, metadata, created_at, updated_at
+      )
+      VALUES (
+        ${test.id}, ${testStandard}, ${testType}, ${title},
+        ${difficulty}, ${category}, ${subject}, ${duration},
+        ${questionCount}, ${targetScore},
+        ${JSON.stringify(sections)}, ${JSON.stringify(questions)},
+        ${JSON.stringify(metadata)}, ${test.createdAt || now}, ${now}
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        test_standard = EXCLUDED.test_standard,
+        test_type = EXCLUDED.test_type,
+        title = EXCLUDED.title,
+        difficulty = EXCLUDED.difficulty,
+        category = EXCLUDED.category,
+        subject = EXCLUDED.subject,
+        duration_minutes = EXCLUDED.duration_minutes,
+        question_count = EXCLUDED.question_count,
+        target_score = EXCLUDED.target_score,
+        sections = EXCLUDED.sections,
+        questions = EXCLUDED.questions,
+        metadata = EXCLUDED.metadata,
+        updated_at = EXCLUDED.updated_at
+    `;
+
+    return DbStorage.getStandardTestById(test.id);
+  },
+
+  deleteStandardTest: async (id: string): Promise<boolean> => {
+    if (!process.env.DATABASE_URL) return true;
+    const sql = getSql();
+    await sql`DELETE FROM standard_tests WHERE id = ${id}`;
+    return true;
+  },
+
+  // --- Quizzes ---
+  getQuizzes: async (filter?: { cohort?: string; category?: string; limit?: number }): Promise<any[]> => {
+    if (!process.env.DATABASE_URL) {
+      let list = [...cohortQuizQuestions];
+      if (filter?.cohort) list = list.filter((q) => q.cohort === filter.cohort);
+      if (filter?.category) list = list.filter((q) => q.category === filter.category);
+      if (filter?.limit) list = list.slice(0, filter.limit);
+      return list;
+    }
+
+    const sql = getSql();
+    let query = 'SELECT * FROM quizzes WHERE 1=1';
+    const params: any[] = [];
+    let pIdx = 1;
+
+    if (filter?.cohort) {
+      query += ` AND LOWER(cohort) = LOWER($${pIdx++})`;
+      params.push(filter.cohort);
+    }
+    if (filter?.category) {
+      query += ` AND LOWER(category) = LOWER($${pIdx++})`;
+      params.push(filter.category);
+    }
+    query += ' ORDER BY id ASC';
+    if (filter?.limit && filter.limit > 0) {
+      query += ` LIMIT $${pIdx++}`;
+      params.push(filter.limit);
+    }
+
+    const res = await (sql as any).query(query, params);
+    const rows = Array.isArray(res) ? res : res?.rows || [];
+    return rows.map(rowToQuiz);
+  },
+
+  getQuizById: async (id: string): Promise<any | null> => {
+    if (!process.env.DATABASE_URL) {
+      return cohortQuizQuestions.find((q) => q.id === id) || null;
+    }
+    const sql = getSql();
+    const rows = await sql`SELECT * FROM quizzes WHERE id = ${id}`;
+    return rows.length > 0 ? rowToQuiz(rows[0]) : null;
+  },
+
+  saveQuiz: async (quiz: any): Promise<any> => {
+    if (!process.env.DATABASE_URL) return quiz;
+    const sql = getSql();
+    const now = new Date().toISOString();
+    await sql`
+      INSERT INTO quizzes (
+        id, cohort, education_level, category, word, phonetic,
+        prompt, options, correct_answer, explanation, audio_prompt,
+        praise, metadata, created_at
+      )
+      VALUES (
+        ${quiz.id}, ${quiz.cohort}, ${quiz.educationLevel || ''}, ${quiz.category},
+        ${quiz.word || ''}, ${quiz.phonetic || ''}, ${quiz.prompt},
+        ${JSON.stringify(quiz.options || [])}, ${quiz.correctAnswer},
+        ${quiz.explanation || ''}, ${quiz.audioPrompt || ''}, ${quiz.praise || ''},
+        ${JSON.stringify(quiz.metadata || {})}, ${quiz.createdAt || now}
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        cohort = EXCLUDED.cohort,
+        education_level = EXCLUDED.education_level,
+        category = EXCLUDED.category,
+        word = EXCLUDED.word,
+        phonetic = EXCLUDED.phonetic,
+        prompt = EXCLUDED.prompt,
+        options = EXCLUDED.options,
+        correct_answer = EXCLUDED.correct_answer,
+        explanation = EXCLUDED.explanation,
+        audio_prompt = EXCLUDED.audio_prompt,
+        praise = EXCLUDED.praise,
+        metadata = EXCLUDED.metadata
+    `;
+    return DbStorage.getQuizById(quiz.id);
+  },
+
+  saveBatchQuizzes: async (quizzes: any[]): Promise<any[]> => {
+    const saved: any[] = [];
+    for (const q of quizzes) {
+      const res = await DbStorage.saveQuiz(q);
+      saved.push(res);
+    }
+    return saved;
+  },
+
+  // --- App Configurations ---
+  getAllConfigurations: async (): Promise<Record<string, any>> => {
+    if (!process.env.DATABASE_URL) {
+      return {
+        exam_settings: { questionsPerTest: 10, allowShuffleOptions: true, writingTestQuestions: 1 },
+        feature_flags: initialFeatureFlags,
+        color_scheme: DEFAULT_COLOR_SCHEME,
+        system_setup: { appName: 'EduBridge', initialized: true, centralizedDb: 'Local Vault' }
+      };
+    }
+    const sql = getSql();
+    const rows = await sql`SELECT * FROM app_configurations ORDER BY key ASC`;
+    const map: Record<string, any> = {};
+    for (const r of rows) {
+      map[r.key] = r.value;
+    }
+    return map;
+  },
+
+  getConfiguration: async (key: string): Promise<any | null> => {
+    if (!process.env.DATABASE_URL) {
+      if (key === 'exam_settings') return { questionsPerTest: 10, allowShuffleOptions: true, writingTestQuestions: 1 };
+      if (key === 'feature_flags') return initialFeatureFlags;
+      if (key === 'color_scheme') return DEFAULT_COLOR_SCHEME;
+      return null;
+    }
+    const sql = getSql();
+    const rows = await sql`SELECT value FROM app_configurations WHERE key = ${key}`;
+    return rows.length > 0 ? rows[0].value : null;
+  },
+
+  setConfiguration: async (
+    key: string,
+    value: any,
+    category: string = 'general',
+    description: string = '',
+    updatedBy: string = 'system'
+  ): Promise<any> => {
+    if (!process.env.DATABASE_URL) return value;
+    const sql = getSql();
+    const now = new Date().toISOString();
+    await sql`
+      INSERT INTO app_configurations (key, value, category, description, updated_at, updated_by)
+      VALUES (${key}, ${JSON.stringify(value)}, ${category}, ${description}, ${now}, ${updatedBy})
+      ON CONFLICT (key) DO UPDATE SET
+        value = EXCLUDED.value,
+        category = CASE WHEN EXCLUDED.category <> 'general' THEN EXCLUDED.category ELSE app_configurations.category END,
+        description = CASE WHEN EXCLUDED.description <> '' THEN EXCLUDED.description ELSE app_configurations.description END,
+        updated_at = EXCLUDED.updated_at,
+        updated_by = EXCLUDED.updated_by
+    `;
+    return value;
   }
 };

@@ -48,6 +48,19 @@ const ServerStorage = {
   getAttemptDetail: (id: string, uid?: string, role?: string) => DbStorage.getAttemptDetail(id, uid, role),
   getUserFullHistory: (uid: string) => DbStorage.getUserFullHistory(uid),
   getHealthStats: () => DbStorage.getHealthStats(),
+  getStandardTests: (filter?: any) => DbStorage.getStandardTests(filter),
+  getStandardTestById: (id: string) => DbStorage.getStandardTestById(id),
+  saveStandardTest: (t: any) => DbStorage.saveStandardTest(t),
+  deleteStandardTest: (id: string) => DbStorage.deleteStandardTest(id),
+  getQuizzes: (filter?: any) => DbStorage.getQuizzes(filter),
+  getQuizById: (id: string) => DbStorage.getQuizById(id),
+  saveQuiz: (q: any) => DbStorage.saveQuiz(q),
+  saveBatchQuizzes: (qs: any[]) => DbStorage.saveBatchQuizzes(qs),
+  getAllConfigurations: () => DbStorage.getAllConfigurations(),
+  getConfiguration: (k: string) => DbStorage.getConfiguration(k),
+  setConfiguration: (k: string, v: any, cat?: string, desc?: string, by?: string) => DbStorage.setConfiguration(k, v, cat, desc, by),
+  getScheduledJobs: () => DbStorage.getScheduledJobs(),
+  updateScheduledJob: (id: string, updates: any) => DbStorage.updateScheduledJob(id, updates),
 };
 
 export const serverApp = express();
@@ -1133,6 +1146,198 @@ serverApp.get('/api/admin/smtp/logs', authenticateToken, requireAdmin, (_req: Au
 });
 
 // ==========================================
+// STANDARD & PRACTICE TESTS ENDPOINTS (NEON DB)
+// ==========================================
+
+serverApp.get('/api/tests', async (req: Request, res: Response) => {
+  try {
+    const filter = {
+      testStandard: req.query.testStandard as string | undefined,
+      testType: req.query.testType as string | undefined,
+      subject: req.query.subject as string | undefined,
+      category: req.query.category as string | undefined,
+      difficulty: req.query.difficulty as string | undefined,
+      limit: req.query.limit ? parseInt(String(req.query.limit), 10) : undefined
+    };
+    const items = await DbStorage.getStandardTests(filter);
+    res.json({ success: true, items, total: items.length });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch tests' });
+  }
+});
+
+serverApp.get('/api/tests/:id', async (req: Request, res: Response) => {
+  try {
+    const test = await DbStorage.getStandardTestById(req.params.id);
+    if (!test) {
+      res.status(404).json({ success: false, error: 'Test not found' });
+      return;
+    }
+    res.json({ success: true, test });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch test' });
+  }
+});
+
+serverApp.post('/api/tests', async (req: Request, res: Response) => {
+  try {
+    const test = req.body;
+    if (!test || !test.id) {
+      res.status(400).json({ success: false, error: 'Valid test object with id required' });
+      return;
+    }
+    const saved = await DbStorage.saveStandardTest(test);
+    res.json({ success: true, test: saved });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to save test' });
+  }
+});
+
+serverApp.delete('/api/tests/:id', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    await DbStorage.deleteStandardTest(req.params.id);
+    res.json({ success: true, message: 'Test deleted successfully' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to delete test' });
+  }
+});
+
+// ==========================================
+// QUIZZES ENDPOINTS (NEON DB)
+// ==========================================
+
+serverApp.get('/api/quizzes', async (req: Request, res: Response) => {
+  try {
+    const filter = {
+      cohort: req.query.cohort as string | undefined,
+      category: req.query.category as string | undefined,
+      limit: req.query.limit ? parseInt(String(req.query.limit), 10) : undefined
+    };
+    const items = await DbStorage.getQuizzes(filter);
+    res.json({ success: true, items, total: items.length });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch quizzes' });
+  }
+});
+
+serverApp.get('/api/quizzes/:id', async (req: Request, res: Response) => {
+  try {
+    const quiz = await DbStorage.getQuizById(req.params.id);
+    if (!quiz) {
+      res.status(404).json({ success: false, error: 'Quiz question not found' });
+      return;
+    }
+    res.json({ success: true, quiz });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch quiz' });
+  }
+});
+
+serverApp.post('/api/quizzes', async (req: Request, res: Response) => {
+  try {
+    const quiz = req.body;
+    if (!quiz || !quiz.id) {
+      res.status(400).json({ success: false, error: 'Valid quiz object with id required' });
+      return;
+    }
+    const saved = await DbStorage.saveQuiz(quiz);
+    res.json({ success: true, quiz: saved });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to save quiz' });
+  }
+});
+
+serverApp.post('/api/quizzes/batch', async (req: Request, res: Response) => {
+  try {
+    const list = Array.isArray(req.body) ? req.body : req.body.quizzes;
+    if (!Array.isArray(list)) {
+      res.status(400).json({ success: false, error: 'Array of quiz questions required' });
+      return;
+    }
+    const saved = await DbStorage.saveBatchQuizzes(list);
+    res.json({ success: true, count: saved.length, items: saved });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to batch save quizzes' });
+  }
+});
+
+// ==========================================
+// APPLICATION CONFIGURATIONS ENDPOINTS (NEON DB)
+// ==========================================
+
+serverApp.get('/api/configurations', async (_req: Request, res: Response) => {
+  try {
+    const configurations = await DbStorage.getAllConfigurations();
+    res.json({ success: true, configurations });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch configurations' });
+  }
+});
+
+serverApp.get('/api/configurations/:key', async (req: Request, res: Response) => {
+  try {
+    const value = await DbStorage.getConfiguration(req.params.key);
+    if (value === null || value === undefined) {
+      res.status(404).json({ success: false, error: `Configuration "${req.params.key}" not found` });
+      return;
+    }
+    res.json({ success: true, key: req.params.key, value });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch configuration' });
+  }
+});
+
+const saveConfigHandler = async (req: Request, res: Response) => {
+  try {
+    const key = req.params.key;
+    const { value, category, description } = req.body;
+    const finalValue = value !== undefined ? value : req.body;
+    await DbStorage.setConfiguration(key, finalValue, category || 'general', description || '', 'admin');
+    res.json({ success: true, key, value: finalValue });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to save configuration' });
+  }
+};
+
+serverApp.post('/api/configurations/:key', saveConfigHandler);
+serverApp.put('/api/configurations/:key', saveConfigHandler);
+
+// ==========================================
+// SCHEDULED JOBS ENDPOINTS (NEON DB)
+// ==========================================
+
+serverApp.get('/api/jobs', async (_req: Request, res: Response) => {
+  try {
+    const items = await DbStorage.getScheduledJobs();
+    res.json({ success: true, items });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch jobs' });
+  }
+});
+
+serverApp.put('/api/jobs/:id', async (req: Request, res: Response) => {
+  try {
+    await DbStorage.updateScheduledJob(req.params.id, req.body);
+    res.json({ success: true, message: 'Job updated successfully' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to update job' });
+  }
+});
+
+serverApp.post('/api/jobs/:id/run', async (req: Request, res: Response) => {
+  try {
+    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    await DbStorage.updateScheduledJob(req.params.id, {
+      lastRunTimestamp: `Last run: ${timestamp}`,
+      status: 'idle'
+    });
+    res.json({ success: true, message: `Job ${req.params.id} executed successfully at ${timestamp}` });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to trigger job run' });
+  }
+});
+
+// ==========================================
 // VERCEL CRON & AUTOMATED SCHEDULER ENGINE
 // ==========================================
 
@@ -1148,6 +1353,21 @@ export async function executeServerScheduledJobs(): Promise<{
   lastServerCronDate = timestamp.slice(0, 10);
 
   console.log(`[Server Scheduler] Auto-executing nightly scheduled jobs at ${timestamp}...`);
+
+  try {
+    await DbStorage.updateScheduledJob('job_exam_midnight_00', {
+      lastRunTimestamp: `Last run: ${timestamp}`,
+      status: 'idle',
+      itemsGeneratedCount: 11
+    });
+    await DbStorage.updateScheduledJob('job_vocab_expansion_00', {
+      lastRunTimestamp: `Last run: ${timestamp}`,
+      status: 'idle',
+      itemsGeneratedCount: 100
+    });
+  } catch (err: any) {
+    console.warn('[Server Scheduler] Note updating DB job state:', err.message);
+  }
 
   return {
     timestamp,

@@ -448,6 +448,132 @@ class ApiService {
       return res.logs;
     }
   };
+
+  // --- Standard & Practice Tests APIs ---
+  public tests = {
+    getAll: async (filter?: {
+      testStandard?: string;
+      testType?: string;
+      subject?: string;
+      category?: string;
+      difficulty?: string;
+      limit?: number;
+    }): Promise<any[]> => {
+      const params = new URLSearchParams();
+      if (filter?.testStandard) params.set('testStandard', filter.testStandard);
+      if (filter?.testType) params.set('testType', filter.testType);
+      if (filter?.subject) params.set('subject', filter.subject);
+      if (filter?.category) params.set('category', filter.category);
+      if (filter?.difficulty) params.set('difficulty', filter.difficulty);
+      if (filter?.limit) params.set('limit', String(filter.limit));
+
+      const query = params.toString() ? `?${params.toString()}` : '';
+      const res = await this.request<{ success: boolean; items: any[]; total: number }>(`/tests${query}`);
+      return res.items || [];
+    },
+
+    getById: async (id: string): Promise<any> => {
+      const res = await this.request<{ success: boolean; test: any }>(`/tests/${encodeURIComponent(id)}`);
+      return res.test;
+    },
+
+    save: async (test: any): Promise<any> => {
+      const res = await this.request<{ success: boolean; test: any }>('/tests', {
+        method: 'POST',
+        body: JSON.stringify(test)
+      });
+      return res.test;
+    },
+
+    delete: async (id: string): Promise<boolean> => {
+      const res = await this.request<{ success: boolean }>(`/tests/${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+      return res.success;
+    }
+  };
+
+  // --- Quizzes APIs ---
+  public quizzes = {
+    getAll: async (filter?: { cohort?: string; category?: string; limit?: number }): Promise<any[]> => {
+      const params = new URLSearchParams();
+      if (filter?.cohort) params.set('cohort', filter.cohort);
+      if (filter?.category) params.set('category', filter.category);
+      if (filter?.limit) params.set('limit', String(filter.limit));
+
+      const query = params.toString() ? `?${params.toString()}` : '';
+      const res = await this.request<{ success: boolean; items: any[]; total: number }>(`/quizzes${query}`);
+      return res.items || [];
+    },
+
+    getById: async (id: string): Promise<any> => {
+      const res = await this.request<{ success: boolean; quiz: any }>(`/quizzes/${encodeURIComponent(id)}`);
+      return res.quiz;
+    },
+
+    save: async (quiz: any): Promise<any> => {
+      const res = await this.request<{ success: boolean; quiz: any }>('/quizzes', {
+        method: 'POST',
+        body: JSON.stringify(quiz)
+      });
+      return res.quiz;
+    },
+
+    saveBatch: async (quizzes: any[]): Promise<any[]> => {
+      const res = await this.request<{ success: boolean; count: number; items: any[] }>('/quizzes/batch', {
+        method: 'POST',
+        body: JSON.stringify({ quizzes })
+      });
+      return res.items || [];
+    }
+  };
+
+  // --- Application Configurations APIs ---
+  public config = {
+    getAll: async (): Promise<Record<string, any>> => {
+      const res = await this.request<{ success: boolean; configurations: Record<string, any> }>('/configurations');
+      return res.configurations || {};
+    },
+
+    get: async <T = any>(key: string): Promise<T | null> => {
+      try {
+        const res = await this.request<{ success: boolean; key: string; value: T }>(`/configurations/${encodeURIComponent(key)}`);
+        return res.value;
+      } catch {
+        return null;
+      }
+    },
+
+    set: async <T = any>(key: string, value: T, category?: string, description?: string): Promise<T> => {
+      const res = await this.request<{ success: boolean; key: string; value: T }>(`/configurations/${encodeURIComponent(key)}`, {
+        method: 'POST',
+        body: JSON.stringify({ value, category, description })
+      });
+      return res.value;
+    }
+  };
+
+  // --- Scheduled Jobs APIs ---
+  public jobs = {
+    getAll: async (): Promise<any[]> => {
+      const res = await this.request<{ success: boolean; items: any[] }>('/jobs');
+      return res.items || [];
+    },
+
+    update: async (id: string, updates: any): Promise<boolean> => {
+      const res = await this.request<{ success: boolean }>(`/jobs/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
+      return res.success;
+    },
+
+    run: async (id: string): Promise<any> => {
+      return this.request(`/jobs/${encodeURIComponent(id)}/run`, {
+        method: 'POST'
+      });
+    }
+  };
 }
 
 export const apiService = new ApiService();

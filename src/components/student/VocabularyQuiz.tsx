@@ -25,6 +25,7 @@ import { sound } from '../../utils/audio';
 import { triggerCelebration } from '../../utils/celebration';
 import { AIService } from '../../services/aiService';
 import { StorageService } from '../../services/storage';
+import { apiService } from '../../services/apiService';
 import { cohortQuizCategories, cohortQuizQuestions, CohortQuizQuestion } from '../../data/cohortQuizzesData';
 import { calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
 
@@ -77,6 +78,18 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
   const [maxStreak, setMaxStreak] = useState<number>(0);
   const [starsEarned, setStarsEarned] = useState<number>(0);
   const [isQuizFinished, setIsQuizFinished] = useState<boolean>(false);
+  const [cloudQuizPool, setCloudQuizPool] = useState<CohortQuizQuestion[]>(cohortQuizQuestions);
+
+  // Sync cohort quizzes from Neon Postgres database on mount
+  useEffect(() => {
+    let isMounted = true;
+    apiService.quizzes.getAll().then((items) => {
+      if (isMounted && items && items.length > 0) {
+        setCloudQuizPool(items);
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
 
   // Active category info
   const activeCategoryInfo = cohortQuizCategories.find((c) => c.id === selectedCohort) || cohortQuizCategories[2];
@@ -95,7 +108,8 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
   const handleStartQuiz = () => {
     sound.playClick();
     // Filter questions by selected cohort: unattempted questions come first, attempted move to end of bank
-    const pool = cohortQuizQuestions.filter((q) => q.cohort === selectedCohort);
+    const currentPool = cloudQuizPool.length > 0 ? cloudQuizPool : cohortQuizQuestions;
+    const pool = currentPool.filter((q) => q.cohort === selectedCohort);
     const attemptedIds = StorageService.getAttemptedCohortQuizIds();
     const unattempted = pool.filter((q) => !attemptedIds.includes(q.id));
     const attempted = pool

@@ -8,8 +8,13 @@
 import { neon } from '@neondatabase/serverless';
 import fs from 'fs';
 import path from 'path';
-import { initialUsers } from '../data/userManagementData';
+import { initialUsers, initialFeatureFlags } from '../data/userManagementData';
 import { initialActivities, initialQuestionAttempts } from '../data/activityData';
+import { multiExamMockTests } from '../data/multiExamMockTestsData';
+import { mockTests } from '../data/initialData';
+import { cohortQuizQuestions } from '../data/cohortQuizzesData';
+import { IELTSPracticeService } from '../services/ieltsPracticeService';
+import { DEFAULT_COLOR_SCHEME } from '../utils/themeManager';
 import { WrittenResponseRecord } from '../types';
 
 const NEON_CONNECTION_STRING =
@@ -212,7 +217,66 @@ async function deploy() {
       batch_target         TEXT
     )
   `;
-  console.log('  ✓ Table "scheduled_jobs" verified\n');
+  console.log('  ✓ Table "scheduled_jobs" verified');
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS standard_tests (
+      id                  TEXT PRIMARY KEY,
+      test_standard       TEXT NOT NULL,
+      test_type           TEXT NOT NULL DEFAULT 'mock',
+      title               TEXT NOT NULL,
+      difficulty          TEXT DEFAULT 'Standard',
+      category            TEXT,
+      subject             TEXT NOT NULL,
+      duration_minutes    INTEGER DEFAULT 30,
+      question_count      INTEGER DEFAULT 10,
+      target_score        TEXT,
+      sections            JSONB DEFAULT '[]',
+      questions           JSONB NOT NULL DEFAULT '[]',
+      metadata            JSONB DEFAULT '{}',
+      created_at          TEXT,
+      updated_at          TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_std_tests_standard ON standard_tests(test_standard)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_std_tests_type ON standard_tests(test_type)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_std_tests_subject ON standard_tests(subject)`;
+  console.log('  ✓ Table "standard_tests" verified');
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS quizzes (
+      id                  TEXT PRIMARY KEY,
+      cohort              TEXT NOT NULL,
+      education_level     TEXT,
+      category            TEXT NOT NULL,
+      word                TEXT,
+      phonetic            TEXT,
+      prompt              TEXT NOT NULL,
+      options             JSONB NOT NULL DEFAULT '[]',
+      correct_answer      TEXT NOT NULL,
+      explanation         TEXT,
+      audio_prompt        TEXT,
+      praise              TEXT,
+      metadata            JSONB DEFAULT '{}',
+      created_at          TEXT
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_quizzes_cohort ON quizzes(cohort)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_quizzes_category ON quizzes(category)`;
+  console.log('  ✓ Table "quizzes" verified');
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS app_configurations (
+      key                 TEXT PRIMARY KEY,
+      value               JSONB NOT NULL,
+      category            TEXT DEFAULT 'general',
+      description         TEXT,
+      updated_at          TEXT,
+      updated_by          TEXT DEFAULT 'system'
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_configs_category ON app_configurations(category)`;
+  console.log('  ✓ Table "app_configurations" verified\n');
 
   // 2. Seed Data
   console.log('Step 2/4: Seeding baseline accounts, activities & records...');
@@ -413,16 +477,192 @@ async function deploy() {
         items_generated = EXCLUDED.items_generated
     `;
   }
-  console.log(`  ✓ Seeded scheduled jobs\n`);
+  console.log(`  ✓ Seeded scheduled jobs`);
+
+  // Standard Mock & Practice Tests
+  let testsInserted = 0;
+  for (const test of multiExamMockTests) {
+    await sql`
+      INSERT INTO standard_tests (
+        id, test_standard, test_type, title, difficulty, category,
+        subject, duration_minutes, question_count, target_score,
+        sections, questions, metadata, created_at, updated_at
+      )
+      VALUES (
+        ${test.id}, ${test.exam || 'General'}, 'mock', ${test.title},
+        ${test.difficulty || 'Standard'}, ${test.exam + ' Mock'},
+        ${test.subject || 'Standard Assessment'}, ${test.totalDurationMin || 30},
+        ${test.questions ? test.questions.length : 10}, ${test.targetBandRequirement || ''},
+        ${JSON.stringify(test.sections || [])}, ${JSON.stringify(test.questions || [])},
+        ${JSON.stringify({ lastAttemptedAt: test.lastAttemptedAt, attemptCount: test.attemptCount || 0 })},
+        ${test.timestamp || test.dateAdded || new Date().toISOString()},
+        ${new Date().toISOString()}
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        questions = EXCLUDED.questions,
+        sections = EXCLUDED.sections,
+        subject = EXCLUDED.subject,
+        updated_at = EXCLUDED.updated_at
+    `;
+    testsInserted++;
+  }
+
+  for (const test of mockTests) {
+    try {
+      await sql`
+        INSERT INTO standard_tests (
+          id, test_standard, test_type, title, difficulty, category,
+          subject, duration_minutes, question_count, target_score,
+          sections, questions, metadata, created_at, updated_at
+        )
+        VALUES (
+          ${test.id}, ${test.exam || 'IELTS'}, 'mock', ${test.title},
+          ${test.difficulty || 'Standard'}, ${test.exam + ' Mock'},
+          ${test.subject || 'Standard Assessment'}, ${test.totalDurationMin || 30},
+          ${test.questions ? test.questions.length : 10}, ${test.targetBandRequirement || ''},
+          ${JSON.stringify(test.sections || [])}, ${JSON.stringify(test.questions || [])},
+          ${JSON.stringify({ lastAttemptedAt: test.lastAttemptedAt, attemptCount: test.attemptCount || 0 })},
+          ${test.timestamp || test.dateAdded || new Date().toISOString()},
+          ${new Date().toISOString()}
+        )
+        ON CONFLICT (id) DO NOTHING
+      `;
+      testsInserted++;
+    } catch {}
+  }
+
+  try {
+    const practiceTests = IELTSPracticeService.getPracticeTests().slice(0, 30);
+    for (const pt of practiceTests) {
+      await sql`
+        INSERT INTO standard_tests (
+          id, test_standard, test_type, title, difficulty, category,
+          subject, duration_minutes, question_count, target_score,
+          sections, questions, metadata, created_at, updated_at
+        )
+        VALUES (
+          ${pt.id}, 'IELTS', 'practice', ${pt.title},
+          ${pt.difficulty || 'Standard'}, ${pt.category},
+          ${pt.subject || 'IELTS ' + pt.module}, ${pt.durationMinutes || 25},
+          ${pt.questionCount || (pt.questions ? pt.questions.length : 10)}, 'Band 7.0+',
+          ${JSON.stringify([])}, ${JSON.stringify(pt.questions || [])},
+          ${JSON.stringify({ module: pt.module, passage: pt.passage, audioTranscript: pt.audioTranscript })},
+          ${pt.timestamp || pt.dateAdded || new Date().toISOString()},
+          ${new Date().toISOString()}
+        )
+        ON CONFLICT (id) DO NOTHING
+      `;
+      testsInserted++;
+    }
+  } catch {}
+  console.log(`  ✓ Seeded/Updated ${testsInserted} standard mock and practice tests`);
+
+  // Cohort Quizzes
+  let quizzesInserted = 0;
+  for (const q of cohortQuizQuestions) {
+    await sql`
+      INSERT INTO quizzes (
+        id, cohort, education_level, category, word, phonetic,
+        prompt, options, correct_answer, explanation, audio_prompt,
+        praise, metadata, created_at
+      )
+      VALUES (
+        ${q.id}, ${q.cohort}, ${q.educationLevel || ''}, ${q.category},
+        ${q.word || ''}, ${q.phonetic || ''}, ${q.prompt},
+        ${JSON.stringify(q.options || [])}, ${q.correctAnswer},
+        ${q.explanation || ''}, ${q.audioPrompt || ''}, ${q.praise || ''},
+        ${JSON.stringify({})}, ${new Date().toISOString()}
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        prompt = EXCLUDED.prompt,
+        options = EXCLUDED.options,
+        correct_answer = EXCLUDED.correct_answer,
+        explanation = EXCLUDED.explanation
+    `;
+    quizzesInserted++;
+  }
+  console.log(`  ✓ Seeded/Updated ${quizzesInserted} cohort quizzes`);
+
+  // Application Configurations
+  const configsToSeed = [
+    {
+      key: 'exam_settings',
+      value: {
+        questionsPerTest: 10,
+        allowShuffleOptions: true,
+        writingTestQuestions: 1
+      },
+      category: 'exam',
+      description: 'Standardized test question counts, option shuffling, and section parameters'
+    },
+    {
+      key: 'feature_flags',
+      value: initialFeatureFlags,
+      category: 'features',
+      description: 'System-wide feature flags and capabilities'
+    },
+    {
+      key: 'color_scheme',
+      value: DEFAULT_COLOR_SCHEME,
+      category: 'ui',
+      description: 'Global portal theme and color palettes'
+    },
+    {
+      key: 'system_setup',
+      value: {
+        appName: 'EduBridge',
+        version: '2.5.0',
+        centralizedDb: 'Neon Postgres',
+        databaseDriver: '@neondatabase/serverless',
+        minQuestionsPerTest: 10,
+        supportedStandards: ['IELTS', 'PTE', 'TOEFL', 'OET', 'DET', 'Cambridge English'],
+        schedulerActive: true,
+        cloudStorageActive: true
+      },
+      category: 'system',
+      description: 'Global system architecture and operational settings'
+    },
+    {
+      key: 'voice_persona',
+      value: {
+        name: 'Emma',
+        region: 'British Academic',
+        gender: 'Female',
+        rate: 1.0,
+        pitch: 1.0
+      },
+      category: 'audio',
+      description: 'Audio speech synthesis voice persona'
+    }
+  ];
+
+  let configsInserted = 0;
+  for (const cfg of configsToSeed) {
+    await sql`
+      INSERT INTO app_configurations (key, value, category, description, updated_at, updated_by)
+      VALUES (${cfg.key}, ${JSON.stringify(cfg.value)}, ${cfg.category}, ${cfg.description}, ${new Date().toISOString()}, 'system')
+      ON CONFLICT (key) DO UPDATE SET
+        value = EXCLUDED.value,
+        category = EXCLUDED.category,
+        description = EXCLUDED.description,
+        updated_at = EXCLUDED.updated_at
+    `;
+    configsInserted++;
+  }
+  console.log(`  ✓ Seeded/Updated ${configsInserted} application configurations\n`);
 
   // 3. Verification Queries
   console.log('Step 3/4: Verifying deployed tables and row counts in Neon...');
-  const [uCount, aCount, qCount, wCount, jCount] = await Promise.all([
+  const [uCount, aCount, qCount, wCount, jCount, tCount, qzCount, cCount] = await Promise.all([
     sql`SELECT COUNT(*) as count FROM users`,
     sql`SELECT COUNT(*) as count FROM activities`,
     sql`SELECT COUNT(*) as count FROM question_attempts`,
     sql`SELECT COUNT(*) as count FROM written_responses`,
-    sql`SELECT COUNT(*) as count FROM scheduled_jobs`
+    sql`SELECT COUNT(*) as count FROM scheduled_jobs`,
+    sql`SELECT COUNT(*) as count FROM standard_tests`,
+    sql`SELECT COUNT(*) as count FROM quizzes`,
+    sql`SELECT COUNT(*) as count FROM app_configurations`
   ]);
 
   console.log(`  • users:              ${uCount[0].count} records`);
@@ -430,6 +670,9 @@ async function deploy() {
   console.log(`  • question_attempts:  ${qCount[0].count} records`);
   console.log(`  • written_responses:  ${wCount[0].count} records`);
   console.log(`  • scheduled_jobs:     ${jCount[0].count} records`);
+  console.log(`  • standard_tests:     ${tCount[0].count} records`);
+  console.log(`  • quizzes:            ${qzCount[0].count} records`);
+  console.log(`  • app_configurations: ${cCount[0].count} records`);
 
   // 4. Save to .env
   console.log('\nStep 4/4: Writing connection string to project configuration (.env)...');
@@ -448,3 +691,4 @@ deploy().catch((err) => {
   console.error('\nDeployment Error:', err);
   process.exit(1);
 });
+
