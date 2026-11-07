@@ -62,6 +62,10 @@ export function userAccountToProfile(user: UserAccount): UserProfile {
     targetExam: user.preferences.targetExam,
     targetExamDate: user.preferences.targetExamDate,
     targetBand: user.preferences.targetBand,
+    targetListeningBand: user.preferences.targetListeningBand,
+    targetReadingBand: user.preferences.targetReadingBand,
+    targetWritingBand: user.preferences.targetWritingBand,
+    targetSpeakingBand: user.preferences.targetSpeakingBand,
     targetCareer: user.preferences.targetCareer,
     joinedDate: user.createdAt,
     preferredLanguage: user.preferences.preferredLanguage,
@@ -73,7 +77,8 @@ export function userAccountToProfile(user: UserAccount): UserProfile {
       : (cohort === 'early' || cohort === 'junior'),
     visibleModules: user.preferences.visibleModules,
     personaVoice: user.preferences.personaVoice,
-    colorScheme: user.preferences.colorScheme
+    colorScheme: user.preferences.colorScheme,
+    enableQuickUserSwitch: Boolean(user.preferences.enableQuickUserSwitch)
   };
 }
 

@@ -10,7 +10,7 @@ import tls from "tls";
 var initialUsers = [
 	{
 		id: "usr_student_01",
-		name: "Alex Rivera",
+		name: "Educator Rivera",
 		username: "alex.rivera",
 		email: "alex.rivera@edubridge.org",
 		password: "Password123!",
@@ -329,7 +329,7 @@ var initialFeatureFlags = [
 var initialFeedbackTickets = [{
 	id: "fb_101",
 	userId: "usr_student_01",
-	userName: "Alex Rivera",
+	userName: "Educator Rivera",
 	userEmail: "alex.rivera@edubridge.org",
 	userRole: "student",
 	category: "Feature Request",
@@ -341,14 +341,14 @@ var initialFeedbackTickets = [{
 	adminResponse: {
 		respondedBy: "System Administrator (Root)",
 		respondedAt: "2026-10-31 01:30:00",
-		message: "Great suggestion Alex! We have added dark mode color tokens into our Tailwind layer and linked it to your user preferences profile."
+		message: "Great suggestion Educator! We have added dark mode color tokens into our Tailwind layer and linked it to your user preferences profile."
 	},
 	emailNotificationSent: true,
 	adminEmailRecipients: ["admin@edubridge.org", "dev-lead@edubridge.org"]
 }, {
 	id: "fb_102",
 	userId: "usr_student_01",
-	userName: "Alex Rivera",
+	userName: "Educator Rivera",
 	userEmail: "alex.rivera@edubridge.org",
 	userRole: "student",
 	category: "Bug Report",
@@ -1672,7 +1672,7 @@ var initialActivities = [
 	{
 		id: "act_alex_01",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		type: "mock_test",
 		title: "IELTS Academic Reading Full Simulation",
 		category: "IELTS Academic",
@@ -1694,7 +1694,7 @@ var initialActivities = [
 	{
 		id: "act_alex_02",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		type: "solver",
 		title: "Solved Quadratic Equation: 2x² - 8 = 0",
 		category: "Mathematics (Algebra)",
@@ -1716,7 +1716,7 @@ var initialActivities = [
 	{
 		id: "act_alex_03",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		type: "lesson",
 		title: "IELTS Academic Writing Task 2: Advanced Cohesion",
 		category: "English Language Arts",
@@ -1738,7 +1738,7 @@ var initialActivities = [
 	{
 		id: "act_alex_04",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		type: "vocab_quiz",
 		title: "Vocabulary Vault Quiz: C1 Academic Lexicon",
 		category: "Lexicon Vault",
@@ -1760,7 +1760,7 @@ var initialActivities = [
 	{
 		id: "act_alex_05",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		type: "solver",
 		title: "Solved Physics Problem: Newton's 2nd Law (F = m · a)",
 		category: "Physics",
@@ -1782,7 +1782,7 @@ var initialActivities = [
 	{
 		id: "act_alex_06",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		type: "study_task",
 		title: "Completed Daily Spaced Repetition Flashcards",
 		category: "Study Habits",
@@ -1801,7 +1801,7 @@ var initialActivities = [
 	{
 		id: "act_alex_07",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		type: "career_cv",
 		title: "AI Career Audit & CV Regional Adaptation",
 		category: "Career Portfolio",
@@ -1995,7 +1995,7 @@ var initialActivities = [
 		userId: "usr_parent_02",
 		userName: "Eleanor Rivera",
 		type: "study_task",
-		title: "Parental Growth & Oversight Review: Alex Rivera",
+		title: "Parental Growth & Oversight Review: Educator Rivera",
 		category: "Parental Oversight",
 		timestamp: "2026-11-02 09:15:00",
 		relativeTime: "8 hours ago",
@@ -2093,7 +2093,7 @@ var initialQuestionAttempts = [
 	{
 		id: "q_att_01",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		testId: "test_ielts_acad_01",
 		testTitle: "IELTS Academic Reading: Environmental Sustainability",
 		moduleOrSubject: "IELTS Reading",
@@ -2116,7 +2116,7 @@ var initialQuestionAttempts = [
 	{
 		id: "q_att_02",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		testId: "test_ielts_acad_01",
 		testTitle: "IELTS Academic Reading: Environmental Sustainability",
 		moduleOrSubject: "IELTS Reading",
@@ -2139,7 +2139,7 @@ var initialQuestionAttempts = [
 	{
 		id: "q_att_03",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		testId: "test_math_quad_01",
 		testTitle: "Quadratic Factorization & Roots",
 		moduleOrSubject: "Mathematics",
@@ -2162,7 +2162,7 @@ var initialQuestionAttempts = [
 	{
 		id: "q_att_04",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		testId: "test_vocab_c1_01",
 		testTitle: "C1 Academic Vocabulary Mastery Quiz",
 		moduleOrSubject: "Vocabulary",
@@ -2185,7 +2185,7 @@ var initialQuestionAttempts = [
 	{
 		id: "q_att_05",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		testId: "test_physics_newton_01",
 		testTitle: "Newtonian Classical Mechanics",
 		moduleOrSubject: "Physics",
@@ -2208,7 +2208,7 @@ var initialQuestionAttempts = [
 	{
 		id: "q_att_06",
 		userId: "usr_student_01",
-		userName: "Alex Rivera",
+		userName: "Educator Rivera",
 		testId: "practice_writing_task2_01",
 		testTitle: "IELTS Academic Writing Task 2: Artificial Intelligence in Higher Education",
 		moduleOrSubject: "IELTS Writing",
@@ -5017,7 +5017,7 @@ function shuffleIndexedOptions(options, correctIndex) {
 // src/data/initialData.ts
 var initialProfile = {
 	id: "user_edubridge_01",
-	name: "Alex Rivera",
+	name: "Educator Rivera",
 	email: "alex.rivera@edubridge.org",
 	role: "student",
 	currentStreak: 14,
@@ -5632,7 +5632,7 @@ var careerRoadmaps = [
 	}
 ];
 var initialResume = {
-	fullName: "Alex Rivera",
+	fullName: "Educator Rivera",
 	headline: "Full-Stack & Applied AI Engineer | Top 5% EduBridge Scholar",
 	summary: "Motivated technologist and multilingual learner specializing in high-performance web systems and open-source AI infrastructure. Demonstrated expertise in TypeScript, React, PostgreSQL, and Ollama model deployment with a 14-day study streak and verified mastery certifications.",
 	skills: [
@@ -5682,7 +5682,7 @@ var initialResume = {
 var sampleCertificates = [{
 	id: "cert_1",
 	title: "EduBridge Certified AI Systems Engineer (Foundation)",
-	recipientName: "Alex Rivera",
+	recipientName: "Educator Rivera",
 	issueDate: "October 15, 2026",
 	credentialId: "EDU-AI-88392-VERIFIED",
 	skillsDemonstrated: [
@@ -5696,7 +5696,7 @@ var sampleCertificates = [{
 }, {
 	id: "cert_2",
 	title: "Advanced Calculus & Optimization for Machine Learning",
-	recipientName: "Alex Rivera",
+	recipientName: "Educator Rivera",
 	issueDate: "September 28, 2026",
 	credentialId: "EDU-MTH-44910-VERIFIED",
 	skillsDemonstrated: [
@@ -5709,7 +5709,7 @@ var sampleCertificates = [{
 	verificationHash: "0x3c2e1189ab04f981dc90b334aaef0919241ba"
 }];
 var sampleChildProgress = {
-	childName: "Alex Rivera",
+	childName: "Educator Rivera",
 	weeklyHours: 18.5,
 	weeklyTargetHours: 20,
 	xpEarnedThisWeek: 840,
@@ -5737,7 +5737,7 @@ var sampleChildProgress = {
 			result: "Mastery 78%"
 		}
 	],
-	parentAdvice: "Alex is showing great dedication to Spanish and AI engineering! Consider scheduling 20 minutes on Friday for untimed Bayesian statistics review to reinforce confidence."
+	parentAdvice: "Educator is showing great dedication to Spanish and AI engineering! Consider scheduling 20 minutes on Friday for untimed Bayesian statistics review to reinforce confidence."
 };
 var sampleAssignments = [
 	{
@@ -8859,7 +8859,7 @@ function generateOneHundredWordsBatch(batchNumber, timestamp) {
 			"adj",
 			"Laudable / encomiable",
 			"Deserving praise and commendation.",
-			"Alex’s 14-day study habit is a laudable demonstration of academic commitment."
+			"The educator’s 14-day study habit is a laudable demonstration of academic commitment."
 		],
 		[
 			"Loquacious",
@@ -10735,6 +10735,10 @@ function userAccountToProfile(user) {
 		targetExam: user.preferences.targetExam,
 		targetExamDate: user.preferences.targetExamDate,
 		targetBand: user.preferences.targetBand,
+		targetListeningBand: user.preferences.targetListeningBand,
+		targetReadingBand: user.preferences.targetReadingBand,
+		targetWritingBand: user.preferences.targetWritingBand,
+		targetSpeakingBand: user.preferences.targetSpeakingBand,
 		targetCareer: user.preferences.targetCareer,
 		joinedDate: user.createdAt,
 		preferredLanguage: user.preferences.preferredLanguage,
@@ -10744,7 +10748,8 @@ function userAccountToProfile(user) {
 		simplifiedInterface: user.preferences.simplifiedInterface !== void 0 ? user.preferences.simplifiedInterface : cohort === "early" || cohort === "junior",
 		visibleModules: user.preferences.visibleModules,
 		personaVoice: user.preferences.personaVoice,
-		colorScheme: user.preferences.colorScheme
+		colorScheme: user.preferences.colorScheme,
+		enableQuickUserSwitch: Boolean(user.preferences.enableQuickUserSwitch)
 	};
 }
 // src/services/storage.ts
@@ -10790,8 +10795,7 @@ var KEYS = {
 	ATTEMPTED_QUIZ_IDS: "edubridge_attempted_quiz_ids_v1",
 	LAST_SYNC: "edubridge_last_sync_timestamp",
 	PENDING_ACTIVITIES: "edubridge_pending_activities_queue_v1",
-	PENDING_QUESTIONS: "edubridge_pending_questions_queue_v1",
-	IELTS_DAILY_PLAN: "edubridge_ielts_daily_plan_v1"
+	PENDING_QUESTIONS: "edubridge_pending_questions_queue_v1"
 };
 var inMemoryStore = /* @__PURE__ */ new Map();
 function safeGet(key, fallback) {
@@ -10823,8 +10827,8 @@ var initialTestConductionLogs = [
 	{
 		id: "tc_init_01",
 		timestamp: (/* @__PURE__ */ new Date(Date.now() - 72e5)).toISOString(),
-		userEmail: "alex.chen@edubridge.edu",
-		userName: "Alex Chen",
+		userEmail: "educator@edubridge.edu",
+		userName: "Educator",
 		userRole: "student",
 		cohort: "academy",
 		testType: "LESSON_UNIT",
@@ -10840,8 +10844,8 @@ var initialTestConductionLogs = [
 	{
 		id: "tc_init_02",
 		timestamp: (/* @__PURE__ */ new Date(Date.now() - 18e6)).toISOString(),
-		userEmail: "alex.chen@edubridge.edu",
-		userName: "Alex Chen",
+		userEmail: "educator@edubridge.edu",
+		userName: "Educator",
 		userRole: "student",
 		cohort: "academy",
 		testType: "LESSON_UNIT",
@@ -10857,8 +10861,8 @@ var initialTestConductionLogs = [
 	{
 		id: "tc_init_03",
 		timestamp: (/* @__PURE__ */ new Date(Date.now() - 432e5)).toISOString(),
-		userEmail: "alex.chen@edubridge.edu",
-		userName: "Alex Chen",
+		userEmail: "educator@edubridge.edu",
+		userName: "Educator",
 		userRole: "student",
 		cohort: "academy",
 		testType: "LESSON_UNIT",
@@ -10874,8 +10878,8 @@ var initialTestConductionLogs = [
 	{
 		id: "tc_init_04",
 		timestamp: (/* @__PURE__ */ new Date(Date.now() - 864e5)).toISOString(),
-		userEmail: "alex.chen@edubridge.edu",
-		userName: "Alex Chen",
+		userEmail: "educator@edubridge.edu",
+		userName: "Educator",
 		userRole: "student",
 		cohort: "academy",
 		testType: "PRACTICE_TEST",
@@ -10923,14 +10927,6 @@ var StorageService = {
 		});
 	},
 	saveIeltsUnits: (u) => safeSet(KEYS.IELTS_UNITS, u),
-	getIeltsDailyPlan: (userId) => {
-		return safeGet(KEYS.IELTS_DAILY_PLAN, {})[userId] || null;
-	},
-	saveIeltsDailyPlan: (userId, plan) => {
-		const allPlans = safeGet(KEYS.IELTS_DAILY_PLAN, {});
-		allPlans[userId] = plan;
-		safeSet(KEYS.IELTS_DAILY_PLAN, allPlans);
-	},
 	getTestConductionLogs: () => {
 		return safeGet(KEYS.TEST_CONDUCTION_LOGS, initialTestConductionLogs);
 	},
@@ -11043,7 +11039,7 @@ var StorageService = {
 		sender: "bridge",
 		modelUsed: "qwen-3-8b",
 		mode: "socratic",
-		content: `Hello Alex! I am Bridge, your personal AI mentor powered by self-hosted open-source models.\n\nWhether you need grammar drills with Phi-4, academic Socratic tutoring with Qwen 3, mathematical proofs with DeepSeek, or career strategy with Llama 3.3, I'm here to guide you step-by-step. What would you like to master today?`,
+		content: `Hello Educator! I am Bridge, your personal AI mentor powered by self-hosted open-source models.\n\nWhether you need grammar drills with Phi-4, academic Socratic tutoring with Qwen 3, mathematical proofs with DeepSeek, or career strategy with Llama 3.3, I'm here to guide you step-by-step. What would you like to master today?`,
 		timestamp: "Just now",
 		suggestedFollowUps: [
 			"Guide me through IELTS Task 2 writing structure",
@@ -11134,6 +11130,12 @@ var StorageService = {
 	},
 	getIngestedItemsLedger: () => safeGet(KEYS.INGESTED_LEDGER, getInitialIngestedItemsLedger()),
 	saveIngestedItemsLedger: (ledger) => safeSet(KEYS.INGESTED_LEDGER, ledger),
+	getIeltsDailyPlan: (userId) => {
+		return safeGet(`edubridge_ielts_daily_plan_${userId}`, null);
+	},
+	saveIeltsDailyPlan: (userId, plan) => {
+		safeSet(`edubridge_ielts_daily_plan_${userId}`, plan);
+	},
 	getVoicePersona: () => {
 		const active = StorageService.getActiveUser();
 		if (active?.preferences?.personaVoice) return active.preferences.personaVoice;
@@ -15742,6 +15744,9 @@ var EmailService = class {
 	static async executeSmtpSend(config, options) {
 		return new Promise((resolve, reject) => {
 			const timeoutMs = (config.timeoutSec || 10) * 1e3;
+			const cleanHost = (config.host || "").trim();
+			const cleanUser = (config.auth?.user || "").trim();
+			const cleanPass = (config.auth?.pass || "").replace(/\s+/g, "");
 			let socket;
 			let buffer = "";
 			let stage = "CONNECT";
@@ -15776,7 +15781,7 @@ var EmailService = class {
 					if (stage === "CONNECT") {
 						if (code !== 220) throw new Error(`Unexpected greeting: ${responseLine}`);
 						stage = "EHLO";
-						sendCommand(`EHLO ${net.isIP(config.host) ? `[${config.host}]` : "edubridge.portal"}`);
+						sendCommand(`EHLO ${net.isIP(cleanHost) ? `[${cleanHost}]` : "edubridge.portal"}`);
 					} else if (stage === "EHLO") {
 						if (code !== 250) throw new Error(`EHLO rejected: ${responseLine}`);
 						if (config.encryption === "STARTTLS" && !("encrypted" in socket && socket.encrypted)) {
@@ -15788,19 +15793,19 @@ var EmailService = class {
 						socket.removeAllListeners("data");
 						const tlsSocket = tls.connect({
 							socket,
-							host: config.host,
-							servername: config.host,
+							host: cleanHost,
+							servername: cleanHost,
 							rejectUnauthorized: false
 						}, () => {
 							socket = tlsSocket;
 							tlsSocket.on("data", onDataReceived);
 							stage = "EHLO_POST_TLS";
-							sendCommand(`EHLO ${net.isIP(config.host) ? `[${config.host}]` : "edubridge.portal"}`);
+							sendCommand(`EHLO ${net.isIP(cleanHost) ? `[${cleanHost}]` : "edubridge.portal"}`);
 						});
 						tlsSocket.on("error", (err) => {
 							clearTimeout(timer);
 							cleanup();
-							reject(/* @__PURE__ */ new Error(`TLS handshake failed with ${config.host}: ${err.message}`));
+							reject(/* @__PURE__ */ new Error(`TLS handshake failed with ${cleanHost}: ${err.message}`));
 						});
 					} else if (stage === "EHLO_POST_TLS") {
 						if (code !== 250) throw new Error(`EHLO post-TLS rejected: ${responseLine}`);
@@ -15808,13 +15813,16 @@ var EmailService = class {
 					} else if (stage === "AUTH_LOGIN") {
 						if (code !== 334) throw new Error(`AUTH LOGIN initiation failed: ${responseLine}`);
 						stage = "AUTH_USER";
-						sendCommand(Buffer.from(config.auth.user).toString("base64"));
+						sendCommand(Buffer.from(cleanUser).toString("base64"));
 					} else if (stage === "AUTH_USER") {
 						if (code !== 334) throw new Error(`AUTH username rejected: ${responseLine}`);
 						stage = "AUTH_PASS";
-						sendCommand(Buffer.from(config.auth.pass).toString("base64"));
+						sendCommand(Buffer.from(cleanPass).toString("base64"));
 					} else if (stage === "AUTH_PASS") {
-						if (code !== 235 && code !== 250) throw new Error(`SMTP authentication failed: ${responseLine}. If using Gmail/Yahoo, ensure an App Password is used.`);
+						if (code !== 235 && code !== 250) {
+							if (responseLine.includes("535") || responseLine.includes("BadCredentials")) throw new Error(`Google SMTP authentication rejected (535 5.7.8 BadCredentials). Standard Gmail passwords cannot be used for SMTP. Please generate a 16-character App Password at https://myaccount.google.com/apppasswords and paste it in SMTP Password.`);
+							throw new Error(`SMTP authentication failed: ${responseLine}. If using Gmail/Yahoo, ensure a dedicated 16-character App Password is used.`);
+						}
 						proceedToMailFrom();
 					} else if (stage === "MAIL_FROM") {
 						if (code !== 250) throw new Error(`MAIL FROM rejected: ${responseLine}`);
@@ -15861,7 +15869,7 @@ var EmailService = class {
 						cleanup();
 						resolve({
 							delivered: true,
-							info: `Delivered via ${config.host}:${config.port}`
+							info: `Delivered via ${cleanHost}:${config.port}`
 						});
 					}
 				} catch (err) {
@@ -15871,7 +15879,7 @@ var EmailService = class {
 				}
 			};
 			const proceedToAuth = () => {
-				if (config.auth && config.auth.user && config.auth.pass) {
+				if (cleanUser && cleanPass) {
 					stage = "AUTH_LOGIN";
 					sendCommand("AUTH LOGIN");
 				} else proceedToMailFrom();
@@ -15882,20 +15890,20 @@ var EmailService = class {
 			};
 			try {
 				if (config.secure || config.encryption === "SSL/TLS" || config.port === 465) socket = tls.connect({
-					host: config.host,
+					host: cleanHost,
 					port: config.port,
-					servername: config.host,
+					servername: cleanHost,
 					rejectUnauthorized: false
 				});
 				else socket = net.connect({
-					host: config.host,
+					host: cleanHost,
 					port: config.port
 				});
 				socket.on("data", onDataReceived);
 				socket.on("error", (err) => {
 					clearTimeout(timer);
 					cleanup();
-					reject(/* @__PURE__ */ new Error(`Failed connecting to ${config.host}:${config.port} (${err.message})`));
+					reject(/* @__PURE__ */ new Error(`Failed connecting to ${cleanHost}:${config.port} (${err.message})`));
 				});
 			} catch (err) {
 				clearTimeout(timer);
@@ -16126,9 +16134,11 @@ var EmailService = class {
 	}
 	/**
 	* 5. Administrator SMTP Test Email
+	* Directly exercises the live SMTP handshake and returns verified delivery or real error diagnostics.
 	*/
 	static async sendTestEmail(recipientEmail, testConfig) {
 		const config = testConfig || this.readConfig();
+		const startTime = Date.now();
 		const subject = `EduBridge SMTP Integration Test - ${(/* @__PURE__ */ new Date()).toLocaleTimeString()}`;
 		const text = `Hello Administrator,\n\nThis is an automated test message from the EduBridge Central Administrator Cluster.\n\nSMTP Host: ${config.host}:${config.port}\nEncryption: ${config.encryption}\nSender: ${config.fromEmail}\nTimestamp: ${(/* @__PURE__ */ new Date()).toISOString()}\n\nIf you received this email, your SMTP integration is correctly configured and operational.`;
 		const html = `
@@ -16145,17 +16155,57 @@ var EmailService = class {
         </div>
       </div>
     `;
-		const res = await this.sendMail({
-			to: recipientEmail,
-			subject,
-			text,
-			html,
-			type: "TEST_EMAIL"
-		});
-		return {
-			success: res.success,
-			info: res.info
+		const cleanConfig = {
+			...config,
+			host: (config.host || "").trim(),
+			fromEmail: (config.fromEmail || "").trim(),
+			fromName: (config.fromName || "").trim(),
+			auth: {
+				user: (config.auth?.user || "").trim(),
+				pass: (config.auth?.pass || "").replace(/\s+/g, "")
+			}
 		};
+		try {
+			await this.executeSmtpSend(cleanConfig, {
+				to: recipientEmail,
+				subject,
+				text,
+				html,
+				type: "TEST_EMAIL"
+			});
+			this.appendLog({
+				id: `mail_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+				timestamp: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19),
+				recipient: recipientEmail,
+				type: "TEST_EMAIL",
+				subject,
+				provider: `${cleanConfig.host}:${cleanConfig.port} (${cleanConfig.encryption})`,
+				status: "DELIVERED",
+				durationMs: Date.now() - startTime
+			});
+			return {
+				success: true,
+				delivered: true,
+				info: `✓ Test verification email successfully delivered to ${recipientEmail} via ${cleanConfig.host}:${cleanConfig.port}`
+			};
+		} catch (err) {
+			this.appendLog({
+				id: `mail_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+				timestamp: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19),
+				recipient: recipientEmail,
+				type: "TEST_EMAIL",
+				subject,
+				provider: `${cleanConfig.host}:${cleanConfig.port} (${cleanConfig.encryption})`,
+				status: "FAILED",
+				error: err.message,
+				durationMs: Date.now() - startTime
+			});
+			return {
+				success: false,
+				delivered: false,
+				info: err.message
+			};
+		}
 	}
 };
 // server/app.ts
@@ -17173,6 +17223,7 @@ serverApp.put("/api/users/:id", authenticateToken, async (req, res) => {
 			});
 			return;
 		}
+		if (req.body.preferences && req.body.preferences.enableQuickUserSwitch !== void 0 && req.user?.role !== "admin") delete req.body.preferences.enableQuickUserSwitch;
 		const updated = await DbStorage.updateUser(id, req.body);
 		res.json({
 			success: true,
@@ -17562,8 +17613,16 @@ serverApp.post("/api/admin/smtp/test", authenticateToken, requireAdmin, async (r
 		const { recipientEmail, ...smtpOverrides } = req.body;
 		const targetEmail = recipientEmail || req.user?.email || "admin@edubridge.io";
 		const result = await EmailService.sendTestEmail(targetEmail, smtpOverrides);
+		if (!result.success || result.delivered === false) return res.status(400).json({
+			success: false,
+			delivered: false,
+			message: result.info,
+			error: result.info,
+			logs: EmailService.getLogs().slice(0, 5)
+		});
 		res.json({
-			success: result.success,
+			success: true,
+			delivered: true,
 			message: result.info,
 			logs: EmailService.getLogs().slice(0, 5)
 		});

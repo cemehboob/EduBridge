@@ -272,7 +272,7 @@ export const QuestionSolverView: React.FC<QuestionSolverViewProps> = ({
         const solverTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
         StorageService.recordQuestionAttempt({
           userId: 'usr_student_01',
-          userName: 'Alex Rivera',
+          userName: 'Educator Rivera',
           testId: `solver_${result.id}`,
           testTitle: `AI Solver: ${result.topic}`,
           moduleOrSubject: `${result.subject} Solver`,

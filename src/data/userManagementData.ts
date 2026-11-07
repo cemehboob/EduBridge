@@ -3,7 +3,7 @@ import { UserAccount, FeatureFlag, UserFeedbackTicket, UserGuideArticle } from '
 export const initialUsers: UserAccount[] = [
   {
     id: 'usr_student_01',
-    name: 'Alex Rivera',
+    name: 'Educator Rivera',
     username: 'alex.rivera',
     email: 'alex.rivera@edubridge.org',
     password: 'Password123!',
@@ -325,7 +325,7 @@ export const initialFeedbackTickets: UserFeedbackTicket[] = [
   {
     id: 'fb_101',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     userEmail: 'alex.rivera@edubridge.org',
     userRole: 'student',
     category: 'Feature Request',
@@ -337,7 +337,7 @@ export const initialFeedbackTickets: UserFeedbackTicket[] = [
     adminResponse: {
       respondedBy: 'System Administrator (Root)',
       respondedAt: '2026-10-31 01:30:00',
-      message: 'Great suggestion Alex! We have added dark mode color tokens into our Tailwind layer and linked it to your user preferences profile.'
+      message: 'Great suggestion Educator! We have added dark mode color tokens into our Tailwind layer and linked it to your user preferences profile.'
     },
     emailNotificationSent: true,
     adminEmailRecipients: ['admin@edubridge.org', 'dev-lead@edubridge.org']
@@ -345,7 +345,7 @@ export const initialFeedbackTickets: UserFeedbackTicket[] = [
   {
     id: 'fb_102',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     userEmail: 'alex.rivera@edubridge.org',
     userRole: 'student',
     category: 'Bug Report',

@@ -162,6 +162,9 @@ export class EmailService {
   private static async executeSmtpSend(config: SmtpConfig, options: SendEmailOptions): Promise<{ delivered: boolean; info: string }> {
     return new Promise((resolve, reject) => {
       const timeoutMs = (config.timeoutSec || 10) * 1000;
+      const cleanHost = (config.host || '').trim();
+      const cleanUser = (config.auth?.user || '').trim();
+      const cleanPass = (config.auth?.pass || '').replace(/\s+/g, ''); // Automatically strip spaces from Google/Yahoo App Passwords
       let socket: net.Socket | tls.TLSSocket;
       let buffer = '';
       let stage = 'CONNECT';
@@ -206,7 +209,7 @@ export class EmailService {
           if (stage === 'CONNECT') {
             if (code !== 220) throw new Error(`Unexpected greeting: ${responseLine}`);
             stage = 'EHLO';
-            sendCommand(`EHLO ${net.isIP(config.host) ? `[${config.host}]` : 'edubridge.portal'}`);
+            sendCommand(`EHLO ${net.isIP(cleanHost) ? `[${cleanHost}]` : 'edubridge.portal'}`);
           } else if (stage === 'EHLO') {
             if (code !== 250) throw new Error(`EHLO rejected: ${responseLine}`);
 
@@ -222,20 +225,20 @@ export class EmailService {
             socket.removeAllListeners('data');
             const tlsSocket = tls.connect({
               socket: socket,
-              host: config.host,
-              servername: config.host,
+              host: cleanHost,
+              servername: cleanHost,
               rejectUnauthorized: false // Allow self-signed in enterprise exchange
             }, () => {
               socket = tlsSocket;
               tlsSocket.on('data', onDataReceived);
               stage = 'EHLO_POST_TLS';
-              sendCommand(`EHLO ${net.isIP(config.host) ? `[${config.host}]` : 'edubridge.portal'}`);
+              sendCommand(`EHLO ${net.isIP(cleanHost) ? `[${cleanHost}]` : 'edubridge.portal'}`);
             });
 
             tlsSocket.on('error', (err) => {
               clearTimeout(timer);
               cleanup();
-              reject(new Error(`TLS handshake failed with ${config.host}: ${err.message}`));
+              reject(new Error(`TLS handshake failed with ${cleanHost}: ${err.message}`));
             });
           } else if (stage === 'EHLO_POST_TLS') {
             if (code !== 250) throw new Error(`EHLO post-TLS rejected: ${responseLine}`);
@@ -243,14 +246,17 @@ export class EmailService {
           } else if (stage === 'AUTH_LOGIN') {
             if (code !== 334) throw new Error(`AUTH LOGIN initiation failed: ${responseLine}`);
             stage = 'AUTH_USER';
-            sendCommand(Buffer.from(config.auth.user).toString('base64'));
+            sendCommand(Buffer.from(cleanUser).toString('base64'));
           } else if (stage === 'AUTH_USER') {
             if (code !== 334) throw new Error(`AUTH username rejected: ${responseLine}`);
             stage = 'AUTH_PASS';
-            sendCommand(Buffer.from(config.auth.pass).toString('base64'));
+            sendCommand(Buffer.from(cleanPass).toString('base64'));
           } else if (stage === 'AUTH_PASS') {
             if (code !== 235 && code !== 250) {
-              throw new Error(`SMTP authentication failed: ${responseLine}. If using Gmail/Yahoo, ensure an App Password is used.`);
+              if (responseLine.includes('535') || responseLine.includes('BadCredentials')) {
+                throw new Error(`Google SMTP authentication rejected (535 5.7.8 BadCredentials). Standard Gmail passwords cannot be used for SMTP. Please generate a 16-character App Password at https://myaccount.google.com/apppasswords and paste it in SMTP Password.`);
+              }
+              throw new Error(`SMTP authentication failed: ${responseLine}. If using Gmail/Yahoo, ensure a dedicated 16-character App Password is used.`);
             }
             proceedToMailFrom();
           } else if (stage === 'MAIL_FROM') {
@@ -298,7 +304,7 @@ export class EmailService {
             sendCommand('QUIT');
             clearTimeout(timer);
             cleanup();
-            resolve({ delivered: true, info: `Delivered via ${config.host}:${config.port}` });
+            resolve({ delivered: true, info: `Delivered via ${cleanHost}:${config.port}` });
           }
         } catch (err: any) {
           clearTimeout(timer);
@@ -308,7 +314,7 @@ export class EmailService {
       };
 
       const proceedToAuth = () => {
-        if (config.auth && config.auth.user && config.auth.pass) {
+        if (cleanUser && cleanPass) {
           stage = 'AUTH_LOGIN';
           sendCommand('AUTH LOGIN');
         } else {
@@ -325,14 +331,14 @@ export class EmailService {
       try {
         if (config.secure || config.encryption === 'SSL/TLS' || config.port === 465) {
           socket = tls.connect({
-            host: config.host,
+            host: cleanHost,
             port: config.port,
-            servername: config.host,
+            servername: cleanHost,
             rejectUnauthorized: false
           });
         } else {
           socket = net.connect({
-            host: config.host,
+            host: cleanHost,
             port: config.port
           });
         }
@@ -341,7 +347,7 @@ export class EmailService {
         socket.on('error', (err) => {
           clearTimeout(timer);
           cleanup();
-          reject(new Error(`Failed connecting to ${config.host}:${config.port} (${err.message})`));
+          reject(new Error(`Failed connecting to ${cleanHost}:${config.port} (${err.message})`));
         });
       } catch (err: any) {
         clearTimeout(timer);
@@ -570,9 +576,11 @@ export class EmailService {
 
   /**
    * 5. Administrator SMTP Test Email
+   * Directly exercises the live SMTP handshake and returns verified delivery or real error diagnostics.
    */
-  public static async sendTestEmail(recipientEmail: string, testConfig?: SmtpConfig): Promise<{ success: boolean; info: string }> {
+  public static async sendTestEmail(recipientEmail: string, testConfig?: SmtpConfig): Promise<{ success: boolean; info: string; delivered: boolean }> {
     const config = testConfig || this.readConfig();
+    const startTime = Date.now();
     const subject = `EduBridge SMTP Integration Test - ${new Date().toLocaleTimeString()}`;
     const text = `Hello Administrator,\n\nThis is an automated test message from the EduBridge Central Administrator Cluster.\n\nSMTP Host: ${config.host}:${config.port}\nEncryption: ${config.encryption}\nSender: ${config.fromEmail}\nTimestamp: ${new Date().toISOString()}\n\nIf you received this email, your SMTP integration is correctly configured and operational.`;
 
@@ -591,14 +599,60 @@ export class EmailService {
       </div>
     `;
 
-    const res = await this.sendMail({
-      to: recipientEmail,
-      subject,
-      text,
-      html,
-      type: 'TEST_EMAIL'
-    });
+    const cleanConfig: SmtpConfig = {
+      ...config,
+      host: (config.host || '').trim(),
+      fromEmail: (config.fromEmail || '').trim(),
+      fromName: (config.fromName || '').trim(),
+      auth: {
+        user: (config.auth?.user || '').trim(),
+        pass: (config.auth?.pass || '').replace(/\s+/g, '') // Strip spaces copied with Google App Passwords
+      }
+    };
 
-    return { success: res.success, info: res.info };
+    try {
+      const res = await this.executeSmtpSend(cleanConfig, {
+        to: recipientEmail,
+        subject,
+        text,
+        html,
+        type: 'TEST_EMAIL'
+      });
+
+      this.appendLog({
+        id: `mail_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        recipient: recipientEmail,
+        type: 'TEST_EMAIL',
+        subject,
+        provider: `${cleanConfig.host}:${cleanConfig.port} (${cleanConfig.encryption})`,
+        status: 'DELIVERED',
+        durationMs: Date.now() - startTime
+      });
+
+      return {
+        success: true,
+        delivered: true,
+        info: `✓ Test verification email successfully delivered to ${recipientEmail} via ${cleanConfig.host}:${cleanConfig.port}`
+      };
+    } catch (err: any) {
+      this.appendLog({
+        id: `mail_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        recipient: recipientEmail,
+        type: 'TEST_EMAIL',
+        subject,
+        provider: `${cleanConfig.host}:${cleanConfig.port} (${cleanConfig.encryption})`,
+        status: 'FAILED',
+        error: err.message,
+        durationMs: Date.now() - startTime
+      });
+
+      return {
+        success: false,
+        delivered: false,
+        info: err.message
+      };
+    }
   }
 }

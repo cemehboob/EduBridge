@@ -700,7 +700,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     // Officially record verified practice test conduction in ledger
     StorageService.recordTestConduction({
       userEmail: currentUser?.email || profile?.email || 'alex.chen@edubridge.edu',
-      userName: currentUser?.name || profile?.name || 'Alex Chen',
+      userName: currentUser?.name || profile?.name || 'Educator',
       userRole: currentUser?.role || profile?.role || 'student',
       cohort: profile?.ageCohort || 'academy',
       testType: 'PRACTICE_TEST',
@@ -716,7 +716,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     // Record to User Activity Timeline (Chronological History & Dashboard)
     const actRecord = {
       userId: currentUser?.id || profile?.id || 'usr_student_01',
-      userName: currentUser?.name || profile?.name || 'Alex Rivera',
+      userName: currentUser?.name || profile?.name || 'Educator',
       type: 'mock_test' as const,
       title: titleDisplay,
       category: `${testItem.category} · ${testItem.module}`,
@@ -747,7 +747,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
         : !!(userAns && q.correctAnswer && userAns.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase());
       return {
         userId: currentUser?.id || profile?.id || 'usr_student_01',
-        userName: currentUser?.name || profile?.name || 'Alex Rivera',
+        userName: currentUser?.name || profile?.name || 'Educator',
         testId: testItem.id,
         testTitle: testItem.title,
         moduleOrSubject: `${selectedExam} ${testItem.module}`,
@@ -818,7 +818,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
 
     StorageService.recordTestConduction({
       userEmail: profile?.email || 'alex.chen@edubridge.edu',
-      userName: profile?.name || 'Alex Chen',
+      userName: profile?.name || 'Educator',
       userRole: profile?.role || 'student',
       cohort: profile?.ageCohort || 'academy',
       testType: 'PRACTICE_TEST',
@@ -835,7 +835,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     const practiceActivity = {
       id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       userId: currentUser?.id || profile?.id || 'usr_student_01',
-      userName: currentUser?.name || profile?.name || 'Alex Rivera',
+      userName: currentUser?.name || profile?.name || 'Educator',
       type: 'mock_test' as const,
       title: `Practice: ${testItem.title}`,
       category: `${testItem.category} · ${testItem.module}`,
@@ -861,7 +861,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     const currentPracticeTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
     StorageService.recordQuestionAttempt({
       userId: currentUser?.id || profile?.id || 'usr_student_01',
-      userName: currentUser?.name || profile?.name || 'Alex Rivera',
+      userName: currentUser?.name || profile?.name || 'Educator',
       testId: testItem.id,
       testTitle: testItem.title,
       moduleOrSubject: `${selectedExam} ${testItem.module}`,
@@ -974,7 +974,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     // Officially record verified mock exam conduction in ledger
     StorageService.recordTestConduction({
       userEmail: profile?.email || 'alex.chen@edubridge.edu',
-      userName: profile?.name || 'Alex Chen',
+      userName: profile?.name || 'Educator',
       userRole: profile?.role || 'student',
       cohort: profile?.ageCohort || 'academy',
       testType: 'MOCK_EXAM',
@@ -1017,7 +1017,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     const mockExamActivity = {
       id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       userId: currentUser?.id || profile?.id || 'usr_student_01',
-      userName: currentUser?.name || profile?.name || 'Alex Rivera',
+      userName: currentUser?.name || profile?.name || 'Educator',
       type: 'mock_test' as const,
       title: `${currentTest.title} Full Simulation`,
       category: selectedExam,
@@ -1053,7 +1053,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
         : true;
       return {
         userId: currentUser?.id || profile?.id || 'usr_student_01',
-        userName: currentUser?.name || profile?.name || 'Alex Rivera',
+        userName: currentUser?.name || profile?.name || 'Educator',
         testId: currentTest.id,
         testTitle: currentTest.title,
         moduleOrSubject: `${currentTest.exam} ${q.section}`,
@@ -1072,7 +1072,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
 
     // Record Complete Written Response to Centralized Server
     const currentUserId = currentUser?.id || profile?.id || 'usr_student_01';
-    const currentUserName = currentUser?.name || profile?.name || 'Alex Rivera';
+    const currentUserName = currentUser?.name || profile?.name || 'Educator';
     if (essayText.trim()) {
       const writingQ = currentTest.questions.find((q) => q.section === 'Writing');
       StorageService.recordWrittenResponse({

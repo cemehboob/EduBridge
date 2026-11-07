@@ -57,6 +57,10 @@ export interface UserProfile {
   targetExam?: string;
   targetExamDate?: string;
   targetBand?: string;
+  targetListeningBand?: string;
+  targetReadingBand?: string;
+  targetWritingBand?: string;
+  targetSpeakingBand?: string;
   targetCareer?: string;
   joinedDate: string;
   preferredLanguage: string;
@@ -67,6 +71,7 @@ export interface UserProfile {
   visibleModules?: VisibleModulesConfig;
   personaVoice?: VoicePersona;
   colorScheme?: ColorSchemeConfig;
+  enableQuickUserSwitch?: boolean;
 }
 
 export interface VisibleModulesConfig {
@@ -552,6 +557,10 @@ export interface UserAccount {
     targetExam?: string;
     targetExamDate?: string;
     targetBand?: string;
+    targetListeningBand?: string;
+    targetReadingBand?: string;
+    targetWritingBand?: string;
+    targetSpeakingBand?: string;
     targetCareer?: string;
     theme: 'light' | 'dark' | 'system';
     soundEnabled: boolean;
@@ -563,6 +572,7 @@ export interface UserAccount {
     visibleModules?: VisibleModulesConfig;
     personaVoice?: VoicePersona;
     colorScheme?: ColorSchemeConfig;
+    enableQuickUserSwitch?: boolean;
   };
   profileStats: {
     currentStreak: number;

@@ -152,7 +152,7 @@ export function generateOneHundredWordsBatch(batchNumber: number, timestamp?: st
     ['Irascible', '/ɪˈræs.ə.bəl/', 'adj', 'Irascible / irritable', 'Having or showing a tendency to be easily angered.', 'The irascible reviewer rejected the paper without constructive remediation.'],
     ['Juxtapose', '/ˌdʒʌk.stəˈpəʊz/', 'verb', 'Yuxtaponer', 'Place or deal with close together for contrasting effect.', 'The curriculum juxtaposes theoretical calculus proofs with applied machine learning.'],
     ['Laconic', '/ləˈkɒn.ɪk/', 'adj', 'Lacónico / escueto', 'Using very few words.', 'Phi-4 Mini delivers laconic, high-density grammar rules without extraneous banter.'],
-    ['Laudable', '/ˈlɔː.də.bəl/', 'adj', 'Laudable / encomiable', 'Deserving praise and commendation.', 'Alex’s 14-day study habit is a laudable demonstration of academic commitment.'],
+    ['Laudable', '/ˈlɔː.də.bəl/', 'adj', 'Laudable / encomiable', 'Deserving praise and commendation.', 'The educator’s 14-day study habit is a laudable demonstration of academic commitment.'],
     ['Loquacious', '/ləˈkweɪ.ʃəs/', 'adj', 'Locuaz / hablador', 'Tending to talk a great deal; talkative.', 'The candidate was encouraged to be concise rather than loquacious in the interview.'],
     ['Lucid', '/ˈluː.sɪd/', 'adj', 'Lúcido / claro', 'Expressed clearly; easy to understand.', 'Professor Vance provided a lucid geometric proof of the fundamental theorem.'],
     ['Magnanimous', '/mæɡˈnæn.ɪ.məs/', 'adj', 'Magnánimo / generoso', 'Generous or forgiving, especially toward a rival or less powerful person.', 'The senior architect was magnanimous in mentoring junior contributors.'],

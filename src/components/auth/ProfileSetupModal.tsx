@@ -78,11 +78,21 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const [prefLanguage, setPrefLanguage] = useState(user.preferences.preferredLanguage);
   const [targetExam, setTargetExam] = useState(user.preferences.targetExam || 'IELTS Academic');
   const [targetBand, setTargetBand] = useState(user.preferences.targetBand || '8.0 Band');
+  const [targetListeningBand, setTargetListeningBand] = useState(user.preferences.targetListeningBand || '');
+  const [targetReadingBand, setTargetReadingBand] = useState(user.preferences.targetReadingBand || '');
+  const [targetWritingBand, setTargetWritingBand] = useState(user.preferences.targetWritingBand || '');
+  const [targetSpeakingBand, setTargetSpeakingBand] = useState(user.preferences.targetSpeakingBand || '');
+  const [showModuleBandTargets, setShowModuleBandTargets] = useState(
+    Boolean(user.preferences.targetListeningBand || user.preferences.targetReadingBand || user.preferences.targetWritingBand || user.preferences.targetSpeakingBand)
+  );
   const [targetCareer, setTargetCareer] = useState(user.preferences.targetCareer || 'AI & Machine Learning Engineer');
   const [dailyGoalXp, setDailyGoalXp] = useState(user.preferences.dailyGoalXp);
   const [personaVoice, setPersonaVoice] = useState<VoicePersona>(user.preferences.personaVoice || 'woman');
   const [colorScheme, setColorScheme] = useState<ColorSchemeConfig>(
     user.preferences.colorScheme || StorageService.getColorScheme()
+  );
+  const [enableQuickUserSwitch, setEnableQuickUserSwitch] = useState<boolean>(
+    user.preferences.enableQuickUserSwitch ?? false
   );
   const [isSaved, setIsSaved] = useState(false);
 
@@ -118,6 +128,10 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
         preferredLanguage: prefLanguage,
         targetExam,
         targetBand,
+        targetListeningBand: targetListeningBand.trim() || undefined,
+        targetReadingBand: targetReadingBand.trim() || undefined,
+        targetWritingBand: targetWritingBand.trim() || undefined,
+        targetSpeakingBand: targetSpeakingBand.trim() || undefined,
         targetCareer,
         dailyGoalXp,
         ageCohort,
@@ -126,7 +140,8 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
         simplifiedInterface,
         visibleModules,
         personaVoice,
-        colorScheme
+        colorScheme,
+        enableQuickUserSwitch
       }
     };
 
@@ -540,13 +555,29 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Target Score / Band</label>
-                <input
-                  type="text"
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-700 block">Expected IELTS Band</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowModuleBandTargets(!showModuleBandTargets)}
+                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800"
+                  >
+                    {showModuleBandTargets ? 'Hide Modules' : 'Module Targets ▾'}
+                  </button>
+                </div>
+                <select
                   value={targetBand}
                   onChange={(e) => setTargetBand(e.target.value)}
-                  className="w-full p-2 rounded-xl border border-slate-300 text-xs"
-                />
+                  className="w-full p-2 rounded-xl border border-slate-300 text-xs font-bold"
+                >
+                  <option value="6.0 Band">Band 6.0 (Competent User)</option>
+                  <option value="6.5 Band">Band 6.5 (Competent / Good)</option>
+                  <option value="7.0 Band">Band 7.0 (Good User · C1)</option>
+                  <option value="7.5 Band">Band 7.5 (Good / Very Good)</option>
+                  <option value="8.0 Band">Band 8.0 (Very Good User · C1/C2)</option>
+                  <option value="8.5 Band">Band 8.5 (Very Good / Expert)</option>
+                  <option value="9.0 Band">Band 9.0 (Expert User · C2)</option>
+                </select>
               </div>
 
               <div>
@@ -563,6 +594,57 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
               </div>
             </div>
 
+            {/* Optional Individual Module Targets */}
+            {showModuleBandTargets && (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs">
+                <span className="font-black text-slate-800 text-[11px] block">
+                  Individual Module Target Bands (Optional - Defaults to Overall Target)
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Listening</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 8.5"
+                      value={targetListeningBand}
+                      onChange={(e) => setTargetListeningBand(e.target.value)}
+                      className="w-full p-1.5 rounded-lg border border-slate-300 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Reading</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 8.0"
+                      value={targetReadingBand}
+                      onChange={(e) => setTargetReadingBand(e.target.value)}
+                      className="w-full p-1.5 rounded-lg border border-slate-300 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Writing</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 7.5"
+                      value={targetWritingBand}
+                      onChange={(e) => setTargetWritingBand(e.target.value)}
+                      className="w-full p-1.5 rounded-lg border border-slate-300 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Speaking</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 8.0"
+                      value={targetSpeakingBand}
+                      onChange={(e) => setTargetSpeakingBand(e.target.value)}
+                      className="w-full p-1.5 rounded-lg border border-slate-300 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="font-bold text-slate-700 block mb-1">Career Aspiration Track</label>
               <input
@@ -572,6 +654,35 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
                 className="w-full p-2 rounded-xl border border-slate-300 text-xs"
               />
             </div>
+
+            {/* Admin-Only Quick User Switcher Preference */}
+            {user.role === 'admin' && (
+              <div className="p-3.5 rounded-2xl border border-indigo-200 bg-indigo-50/60 flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-indigo-600" />
+                    <span>Quick User Switcher Dropdown (Admin Access Only)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Enable fast account switching dropdown in the header menu. Recommended disabled for large user registries.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    setEnableQuickUserSwitch(!enableQuickUserSwitch);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border shrink-0 ${
+                    enableQuickUserSwitch
+                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                  }`}
+                >
+                  {enableQuickUserSwitch ? 'Enabled ✓' : 'Disabled ✕'}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">

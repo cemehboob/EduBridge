@@ -1145,6 +1145,10 @@ serverApp.put('/api/users/:id', authenticateToken, async (req: AuthenticatedRequ
       res.status(403).json({ success: false, error: 'Unauthorized to update this user profile.' });
       return;
     }
+    // Only administrators are permitted to toggle enableQuickUserSwitch
+    if (req.body.preferences && req.body.preferences.enableQuickUserSwitch !== undefined && req.user?.role !== 'admin') {
+      delete req.body.preferences.enableQuickUserSwitch;
+    }
     const updated = await DbStorage.updateUser(id, req.body);
     res.json({ success: true, user: updated });
   } catch (err: any) {
@@ -1477,8 +1481,18 @@ serverApp.post('/api/admin/smtp/test', authenticateToken, requireAdmin, async (r
     const { recipientEmail, ...smtpOverrides } = req.body;
     const targetEmail = recipientEmail || req.user?.email || 'admin@edubridge.io';
     const result = await EmailService.sendTestEmail(targetEmail, smtpOverrides);
+    if (!result.success || result.delivered === false) {
+      return res.status(400).json({
+        success: false,
+        delivered: false,
+        message: result.info,
+        error: result.info,
+        logs: EmailService.getLogs().slice(0, 5)
+      });
+    }
     res.json({
-      success: result.success,
+      success: true,
+      delivered: true,
       message: result.info,
       logs: EmailService.getLogs().slice(0, 5)
     });

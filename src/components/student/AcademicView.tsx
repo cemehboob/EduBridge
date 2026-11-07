@@ -69,7 +69,7 @@ export const AcademicView: React.FC<AcademicViewProps> = ({ topics, onConsultAI 
       const nowTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
       StorageService.recordQuestionAttempt({
         userId: 'usr_student_01',
-        userName: 'Alex Rivera',
+        userName: 'Educator Rivera',
         testId: activeTopic.id,
         testTitle: activeTopic.title,
         moduleOrSubject: activeTopic.subject,
@@ -87,7 +87,7 @@ export const AcademicView: React.FC<AcademicViewProps> = ({ topics, onConsultAI 
       StorageService.recordUserActivity({
         id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         userId: 'usr_student_01',
-        userName: 'Alex Rivera',
+        userName: 'Educator Rivera',
         type: 'stem_game',
         title: `${activeTopic.subject}: ${activeTopic.title}`,
         category: `${activeTopic.subject} Mastery`,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert,
+  AlertCircle,
   Activity,
   CheckCircle2,
   RefreshCw,
@@ -357,6 +358,33 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     } finally {
       setIsSyncingServer(false);
     }
+  };
+
+  // Active administrator account for quick user switch preference
+  const activeAdminAccount = users.find((u) => u.id === StorageService.getActiveUserId()) || users.find((u) => u.role === 'admin') || users[0];
+  const isQuickUserSwitchActive = Boolean(activeAdminAccount?.preferences?.enableQuickUserSwitch);
+
+  const handleToggleAdminQuickUserSwitch = () => {
+    sound.playClick();
+    if (!activeAdminAccount) return;
+    const nextVal = !isQuickUserSwitchActive;
+    const updatedAdmin: UserAccount = {
+      ...activeAdminAccount,
+      preferences: {
+        ...activeAdminAccount.preferences,
+        enableQuickUserSwitch: nextVal
+      }
+    };
+    if (onUpdateUser) {
+      onUpdateUser(updatedAdmin);
+    } else {
+      const updatedList = users.map((u) => (u.id === updatedAdmin.id ? updatedAdmin : u));
+      StorageService.saveUsers(updatedList);
+    }
+    setUserDashboardFetchFeedback({
+      type: 'success',
+      message: `Header Quick User Switcher is now ${nextVal ? 'ENABLED (Visible to Admins)' : 'DISABLED (Recommended for large user registries)'}.`
+    });
   };
 
   useEffect(() => {
@@ -1345,14 +1373,33 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     </p>
                   </div>
                 </div>
-                {selectedUserForDashboard && (
-                  <button
-                    onClick={() => { sound.playClick(); setSelectedUserForDashboard(null); }}
-                    className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 cursor-pointer self-start sm:self-auto"
-                  >
-                    ✕ Close User Inspector
-                  </button>
-                )}
+                <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                  {/* Quick User Switcher Policy Toggle */}
+                  <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs">
+                    <span className="text-[11px] font-bold text-slate-600 pl-1">Header Quick Switch:</span>
+                    <button
+                      type="button"
+                      onClick={handleToggleAdminQuickUserSwitch}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer border ${
+                        isQuickUserSwitchActive
+                          ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
+                          : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                      }`}
+                      title="Enable or disable quick user switcher dropdown in header menu"
+                    >
+                      {isQuickUserSwitchActive ? 'Enabled ✓' : 'Disabled ✕'}
+                    </button>
+                  </div>
+
+                  {selectedUserForDashboard && (
+                    <button
+                      onClick={() => { sound.playClick(); setSelectedUserForDashboard(null); }}
+                      className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 cursor-pointer"
+                    >
+                      ✕ Close User Inspector
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* User Selection, Role Filter & Fetch Controls */}
@@ -1518,112 +1565,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     </button>
                   </div>
                 )}
-
-                {/* 3. Scalable, Scrollable User Cards Grid */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 px-1">
-                    <span>
-                      User Directory ({filteredUserList.length} of {users.length} accounts):
-                    </span>
-                    <span>Click any user card or choose from dropdown to inspect</span>
-                  </div>
-
-                  {filteredUserList.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 max-h-56 overflow-y-auto p-1.5 border border-slate-200/80 rounded-2xl bg-slate-50/60">
-                      {filteredUserList.map((u) => {
-                        const isSelected = selectedUserForDashboard?.id === u.id;
-                        const roleColor =
-                          u.role === 'admin'
-                            ? 'bg-rose-100 text-rose-800 border-rose-300'
-                            : u.role === 'teacher'
-                            ? 'bg-blue-100 text-blue-800 border-blue-300'
-                            : u.role === 'parent'
-                            ? 'bg-amber-100 text-amber-800 border-amber-300'
-                            : 'bg-emerald-100 text-emerald-800 border-emerald-300';
-
-                        const avatarColor =
-                          u.role === 'admin'
-                            ? 'bg-rose-600 text-white'
-                            : u.role === 'teacher'
-                            ? 'bg-blue-600 text-white'
-                            : u.role === 'parent'
-                            ? 'bg-amber-600 text-white'
-                            : 'bg-emerald-600 text-white';
-
-                        return (
-                          <div
-                            key={u.id}
-                            onClick={() => {
-                              sound.playClick();
-                              setSelectedUserForDashboard(u);
-                              setUserDashboardFetchFeedback({
-                                type: 'success',
-                                message: `Loaded ${u.name} (${u.role.toUpperCase()})`
-                              });
-                            }}
-                            className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 cursor-pointer ${
-                              isSelected
-                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm ring-2 ring-indigo-300'
-                                : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
-                                  isSelected ? 'bg-white/20 text-white' : avatarColor
-                                }`}
-                              >
-                                {u.name.charAt(0).toUpperCase()}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-xs font-bold truncate">
-                                  {u.name}
-                                </div>
-                                <div
-                                  className={`text-[10px] truncate ${
-                                    isSelected ? 'text-indigo-100' : 'text-slate-400 font-mono'
-                                  }`}
-                                >
-                                  {u.email}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-1 shrink-0">
-                              <span
-                                className={`text-[9px] px-1.5 py-0.5 rounded border font-black uppercase ${
-                                  isSelected
-                                    ? 'bg-white/20 text-white border-white/30'
-                                    : roleColor
-                                }`}
-                              >
-                                {u.role}
-                              </span>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center space-y-2">
-                      <div className="text-xs text-slate-500">
-                        No users match "{userDashboardSearch}" with role filter "{userDashboardRoleFilter}".
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUserDashboardSearch('');
-                          setUserDashboardRoleFilter('all');
-                          setUserDashboardFetchFeedback(null);
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-indigo-600 hover:bg-indigo-50 cursor-pointer shadow-2xs"
-                      >
-                        Reset All Filters &amp; View All Users
-                      </button>
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* Inspected User Full Live Dashboard View */}
@@ -2169,6 +2110,39 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <UserPlus className="w-4 h-4" />
                 <span>Create New User</span>
               </button>
+            </div>
+
+            {/* Administrator-Controlled Setting: Quick User Switch */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div className="space-y-0.5">
+                <div className="font-extrabold text-slate-900 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-indigo-600" />
+                  <span>Quick User Switch – Enable/Disable</span>
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                    isQuickUserSwitchActive ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {isQuickUserSwitchActive ? 'Enabled' : 'Disabled (Default)'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 max-w-2xl leading-relaxed">
+                  Controls fast user switching in the top navigation header. Disabled by default so that scaling user registries remain clean, fast, and secure. Only administrators can modify this policy.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleToggleAdminQuickUserSwitch}
+                  className={`px-3.5 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer border flex items-center gap-1.5 ${
+                    isQuickUserSwitchActive
+                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                  }`}
+                >
+                  <Check className={`w-3.5 h-3.5 ${isQuickUserSwitchActive ? 'opacity-100' : 'opacity-0'}`} />
+                  <span>{isQuickUserSwitchActive ? 'Switch Enabled' : 'Switch Disabled'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Search filter */}
@@ -3471,6 +3445,28 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </button>
                 ))}
               </div>
+
+              {/* Gmail / Google Workspace Setup Instructions */}
+              {smtpConfig.host.includes('gmail.com') && (
+                <div className="mt-3 p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-xs text-amber-950 space-y-2">
+                  <div className="flex items-center gap-2 font-black text-amber-900">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Gmail / Google Workspace Notice: Dedicated 16-Character App Password Required</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-amber-900">
+                    Google permanently disabled standard account passwords for SMTP. Using your regular Google account password causes error <code className="bg-amber-100/90 text-amber-950 font-mono px-1 py-0.5 rounded font-bold">535 5.7.8 BadCredentials</code>.
+                  </p>
+                  <div className="bg-white/90 border border-amber-200 rounded-xl p-2.5 text-[11px] space-y-1">
+                    <div className="font-bold text-slate-800">How to configure Gmail SMTP in 60 seconds:</div>
+                    <ol className="list-decimal pl-4 space-y-1 text-slate-700">
+                      <li>Ensure <strong>2-Step Verification</strong> is ON in your Google Account (<a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold underline">myaccount.google.com/security</a>).</li>
+                      <li>Visit <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-indigo-600 font-black underline">myaccount.google.com/apppasswords</a> to generate an App Password.</li>
+                      <li>Type app name <strong>EduBridge</strong> and copy the generated 16-character code (e.g. <code className="font-mono text-indigo-700 bg-indigo-50 px-1 rounded">abcd efgh ijkl mnop</code>).</li>
+                      <li>Paste this code into <strong>SMTP Password / App Password</strong> below (spaces are stripped automatically), then click <strong>Save Configuration to Server Vault</strong>.</li>
+                    </ol>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* SMTP Configuration Form */}
@@ -3633,8 +3629,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       recipientEmail: smtpTestRecipient,
                       ...smtpConfig
                     });
-                    setSmtpTestResult(res);
-                    if (res.success) {
+                    const isSuccess = Boolean(res.success && (res as any).delivered !== false);
+                    setSmtpTestResult({
+                      success: isSuccess,
+                      message: res.message || (isSuccess ? 'Verification test delivered successfully.' : 'Diagnostic test could not deliver.')
+                    });
+                    if (isSuccess) {
                       sound.playSuccess();
                     } else {
                       sound.playError();
@@ -3643,7 +3643,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     setEmailLogs(freshLogs);
                   } catch (err: any) {
                     sound.playError();
-                    setSmtpTestResult({ success: false, message: err.message });
+                    setSmtpTestResult({ success: false, message: err.message || 'SMTP test failed.' });
+                    try {
+                      const freshLogs = await apiService.smtp.getLogs();
+                      setEmailLogs(freshLogs);
+                    } catch {}
                   } finally {
                     setSmtpTesting(false);
                   }
@@ -3656,16 +3660,48 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </div>
 
             {smtpTestResult && (
-              <div className={`p-4 rounded-2xl border text-xs leading-relaxed ${
+              <div className={`p-4 rounded-2xl border text-xs leading-relaxed space-y-2 ${
                 smtpTestResult.success
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                  : 'bg-rose-50 border-rose-200 text-rose-900'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                  : 'bg-rose-50 border-rose-300 text-rose-950'
               }`}>
-                <div className="font-bold flex items-center gap-2 mb-1">
-                  {smtpTestResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <ShieldAlert className="w-4 h-4 text-rose-600" />}
-                  <span>{smtpTestResult.success ? 'Diagnostic Test Passed' : 'Diagnostic Notice'}</span>
+                <div className="font-extrabold flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {smtpTestResult.success ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    ) : (
+                      <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0" />
+                    )}
+                    <span className="text-sm font-black">
+                      {smtpTestResult.success ? 'Diagnostic Test Passed (Delivered Live)' : 'Diagnostic Test Failed'}
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                    smtpTestResult.success ? 'bg-emerald-200 text-emerald-800' : 'bg-rose-200 text-rose-800'
+                  }`}>
+                    {smtpTestResult.success ? 'SMTP Verified' : 'Action Required'}
+                  </span>
                 </div>
-                <p className="font-mono text-[11px] whitespace-pre-wrap">{smtpTestResult.message}</p>
+
+                <p className="font-mono text-[11px] whitespace-pre-wrap bg-white/80 p-2.5 rounded-xl border border-slate-200/60 break-words">
+                  {smtpTestResult.message}
+                </p>
+
+                {!smtpTestResult.success && (smtpTestResult.message.includes('BadCredentials') || smtpTestResult.message.includes('535') || smtpConfig.host.includes('gmail.com')) && (
+                  <div className="bg-white rounded-xl p-3 border border-rose-200 text-slate-800 text-xs space-y-1.5 shadow-2xs">
+                    <div className="font-black text-rose-700 flex items-center gap-1.5">
+                      <Key className="w-4 h-4 text-rose-600" />
+                      <span>How to resolve Gmail BadCredentials (535 5.7.8):</span>
+                    </div>
+                    <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-700">
+                      <li>Go to your Google Account at <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold underline">myaccount.google.com/security</a> and make sure <strong>2-Step Verification</strong> is enabled.</li>
+                      <li>Visit <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-indigo-600 font-black underline">myaccount.google.com/apppasswords</a>.</li>
+                      <li>In the app name field, enter <strong>EduBridge</strong> and click <em>Create</em>.</li>
+                      <li>Google will display a 16-character code (e.g., <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-indigo-700">xxxx xxxx xxxx xxxx</code>).</li>
+                      <li>Paste this 16-character App Password into the <strong>SMTP Password / App Password</strong> field above, click <strong>Save Configuration to Server Vault</strong>, and click <strong>Send Test Verification Email</strong> again.</li>
+                    </ol>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -4368,7 +4404,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  placeholder="e.g. Alex Chen"
+                  placeholder="e.g. Educator"
                   className="w-full p-2.5 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-indigo-500"
                 />
               </div>

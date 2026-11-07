@@ -248,7 +248,7 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
         const question = cohortQuestions.find((q) => q.id === ans.questionId) || cohortQuestions[idx];
         return {
           userId: profile?.id || 'usr_student_01',
-          userName: profile?.name || 'Alex Rivera',
+          userName: profile?.name || 'Educator',
           testId: `vocab_quiz_${selectedCohort}`,
           testTitle: `Vocabulary Quiz: ${activeCategoryInfo.name}`,
           moduleOrSubject: 'Vocabulary',
@@ -269,7 +269,7 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
       StorageService.recordUserActivity({
         id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         userId: profile?.id || 'usr_student_01',
-        userName: profile?.name || 'Alex Rivera',
+        userName: profile?.name || 'Educator',
         type: 'vocab_quiz',
         title: `Vocabulary Quiz: ${activeCategoryInfo.name}`,
         category: 'Vocabulary Track',

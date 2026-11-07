@@ -22,7 +22,7 @@ export class ResumeEnhancementService {
    */
   public static initializeEnhancedResume(base: ResumeData): EnhancedResumeData {
     return {
-      fullName: base.fullName || 'Alex Rivera',
+      fullName: base.fullName || 'Educator Rivera',
       headline: base.headline || 'Full-Stack Software Engineer & AI Systems Specialist',
       email: 'alex.rivera@edubridge.org',
       phone: '+44 7700 900123',

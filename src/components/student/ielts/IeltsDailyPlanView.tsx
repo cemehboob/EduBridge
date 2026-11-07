@@ -147,13 +147,12 @@ export const IeltsDailyPlanView: React.FC<IeltsDailyPlanViewProps> = ({
           return (
             <div
               key={mission.id}
-              className={`p-6 rounded-3xl border transition-all flex flex-col justify-between ${
-                mission.completed
+              className={`p-6 rounded-3xl border transition-all flex flex-col justify-between ${mission.completed
                   ? 'bg-emerald-50/50 border-emerald-300 shadow-2xs'
                   : isWeakness
-                  ? 'bg-white border-rose-300 shadow-sm ring-1 ring-rose-200'
-                  : 'bg-white border-slate-200 shadow-2xs hover:border-indigo-300'
-              }`}
+                    ? 'bg-white border-rose-300 shadow-sm ring-1 ring-rose-200'
+                    : 'bg-white border-slate-200 shadow-2xs hover:border-indigo-300'
+                }`}
             >
               <div>
                 {/* Header Strip */}
@@ -223,11 +222,10 @@ export const IeltsDailyPlanView: React.FC<IeltsDailyPlanViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleLaunchMission(mission)}
-                    className={`w-full py-3 px-4 rounded-xl text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 ${
-                      isWeakness
+                    className={`w-full py-3 px-4 rounded-xl text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 ${isWeakness
                         ? 'bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-700 hover:to-indigo-700'
                         : 'bg-indigo-600 hover:bg-indigo-700'
-                    }`}
+                      }`}
                   >
                     <span>Start {mission.module} Mission</span>
                     <ArrowRight className="w-4 h-4" />

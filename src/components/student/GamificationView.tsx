@@ -20,7 +20,7 @@ export const GamificationView: React.FC<GamificationViewProps> = ({ profile }) =
   const leaderboardUsers = [
     { rank: 1, name: 'Elena Rostova', xp: 4890, streak: 34, league: 'Ruby', isCurrentUser: false },
     { rank: 2, name: 'Taro Takahashi', xp: 4210, streak: 22, league: 'Ruby', isCurrentUser: false },
-    { rank: 3, name: 'Alex Rivera (You)', xp: profile.xp, streak: profile.currentStreak, league: profile.league, isCurrentUser: true },
+    { rank: 3, name: `${profile.name || 'Educator'} (You)`, xp: profile.xp, streak: profile.currentStreak, league: profile.league, isCurrentUser: true },
     { rank: 4, name: 'Marcus Sterling', xp: 3250, streak: 12, league: 'Ruby', isCurrentUser: false },
     { rank: 5, name: 'Sofia Chen', xp: 3100, streak: 19, league: 'Ruby', isCurrentUser: false },
     { rank: 6, name: 'Devon Vance', xp: 2890, streak: 9, league: 'Ruby', isCurrentUser: false },

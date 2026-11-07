@@ -159,7 +159,7 @@ export const CareerPortfolioView: React.FC<CareerPortfolioViewProps> = ({
     sound.playClick();
     let sample = '';
     if (name === 'alex') {
-      sample = `Alex Rivera\nLondon, United Kingdom\nalex.rivera@edubridge.org | +44 7700 900123 | github.com/alexrivera-ai\n\nFull-Stack Software Engineer & AI Systems Specialist\nMotivated technologist specializing in high-performance web systems and open-source AI infrastructure. Demonstrated expertise in TypeScript, React, and Ollama model deployment.\n\nSkills: TypeScript, React, Node.js, Next.js, PostgreSQL, Docker, Ollama, DeepSeek, Python\n\nExperience:\nSenior AI Solutions Engineer at NovaTech Dynamics (2023 - Present)\n- Engineered decentralized multi-model Ollama pipelines, reducing inference latency by 45%\n- Orchestrated zero-downtime PostgreSQL migrations supporting 250,000+ daily active learners\nFull-Stack Web Architect at Global EduTech Solutions (2021 - 2023)\n- Spearheaded interactive assessment engines achieving 99.98% uptime`;
+      sample = `Educator Rivera\nLondon, United Kingdom\neducator.rivera@edubridge.org | +44 7700 900123 | github.com/educator-ai\n\nFull-Stack Software Engineer & AI Systems Specialist\nMotivated technologist specializing in high-performance web systems and open-source AI infrastructure. Demonstrated expertise in TypeScript, React, and Ollama model deployment.\n\nSkills: TypeScript, React, Node.js, Next.js, PostgreSQL, Docker, Ollama, DeepSeek, Python\n\nExperience:\nSenior AI Solutions Engineer at NovaTech Dynamics (2023 - Present)\n- Engineered decentralized multi-model Ollama pipelines, reducing inference latency by 45%\n- Orchestrated zero-downtime PostgreSQL migrations supporting 250,000+ daily active learners\nFull-Stack Web Architect at Global EduTech Solutions (2021 - 2023)\n- Spearheaded interactive assessment engines achieving 99.98% uptime`;
     } else if (name === 'sarah') {
       sample = `Sarah Jenkins\nNew York, United States\nsarah.jenkins@cloudbridge.io | +1 (212) 555-0199 | linkedin.com/in/sarahjenkins-cloud\n\nPrincipal DevOps & Cloud Infrastructure Architect\nHigh-impact cloud transformation leader with 7+ years orchestrating AWS, Kubernetes, and enterprise microservices. Passionate about automated CI/CD and cost efficiency.\n\nSkills: Kubernetes, Terraform, AWS, Docker, Python, Go, Prometheus, CI/CD, Helm, Linux\n\nExperience:\nLead Cloud Engineer at Enterprise Cloudworks (2022 - Present)\n- Architected multi-region Kubernetes clusters across US-East and EU-Central, lowering cloud spend by 38%\n- Automated zero-trust security postures and compliance audits across 60+ microservices\nDevOps Specialist at FinScale Systems (2019 - 2022)\n- Deployed automated GitOps pipelines processing 120+ microservice deployments daily`;
     } else {
@@ -857,7 +857,7 @@ Let's schedule a 10-minute discovery call to align on your hardware requirements
                       onClick={() => loadSampleProfile('alex')}
                       className="p-2.5 rounded-xl border border-slate-200 text-left hover:border-indigo-500 hover:bg-indigo-50/50 transition-all"
                     >
-                      <span className="text-xs font-bold text-slate-900 block">Alex Rivera</span>
+                      <span className="text-xs font-bold text-slate-900 block">Educator Rivera</span>
                       <span className="text-[10px] text-slate-500 block">Full-Stack &amp; AI Systems (London)</span>
                     </button>
                     <button

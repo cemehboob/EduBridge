@@ -20,7 +20,7 @@ import { shuffleOptions, shuffleIndexedOptions } from '../utils/questionShuffler
 
 export const initialProfile: UserProfile = {
   id: 'user_edubridge_01',
-  name: 'Alex Rivera',
+  name: 'Educator Rivera',
   email: 'alex.rivera@edubridge.org',
   role: 'student',
   currentStreak: 14,
@@ -575,7 +575,7 @@ export const careerRoadmaps: CareerRoadmap[] = [
 ];
 
 export const initialResume: ResumeData = {
-  fullName: 'Alex Rivera',
+  fullName: 'Educator Rivera',
   headline: 'Full-Stack & Applied AI Engineer | Top 5% EduBridge Scholar',
   summary: 'Motivated technologist and multilingual learner specializing in high-performance web systems and open-source AI infrastructure. Demonstrated expertise in TypeScript, React, PostgreSQL, and Ollama model deployment with a 14-day study streak and verified mastery certifications.',
   skills: [
@@ -638,7 +638,7 @@ export const sampleCertificates: CertificateItem[] = [
   {
     id: 'cert_1',
     title: 'EduBridge Certified AI Systems Engineer (Foundation)',
-    recipientName: 'Alex Rivera',
+    recipientName: 'Educator Rivera',
     issueDate: 'October 15, 2026',
     credentialId: 'EDU-AI-88392-VERIFIED',
     skillsDemonstrated: [
@@ -653,7 +653,7 @@ export const sampleCertificates: CertificateItem[] = [
   {
     id: 'cert_2',
     title: 'Advanced Calculus & Optimization for Machine Learning',
-    recipientName: 'Alex Rivera',
+    recipientName: 'Educator Rivera',
     issueDate: 'September 28, 2026',
     credentialId: 'EDU-MTH-44910-VERIFIED',
     skillsDemonstrated: [
@@ -668,7 +668,7 @@ export const sampleCertificates: CertificateItem[] = [
 ];
 
 export const sampleChildProgress: ChildProgress = {
-  childName: 'Alex Rivera',
+  childName: 'Educator Rivera',
   weeklyHours: 18.5,
   weeklyTargetHours: 20.0,
   xpEarnedThisWeek: 840,
@@ -687,7 +687,7 @@ export const sampleChildProgress: ChildProgress = {
     { timestamp: 'Yesterday, 07:15 PM', activity: 'IELTS Academic Reading Test #104', result: 'Band 7.5 Predicted' },
     { timestamp: 'Yesterday, 04:00 PM', activity: 'DeepSeek Math Problem Solving session', result: 'Mastery 78%' }
   ],
-  parentAdvice: 'Alex is showing great dedication to Spanish and AI engineering! Consider scheduling 20 minutes on Friday for untimed Bayesian statistics review to reinforce confidence.'
+  parentAdvice: 'Educator is showing great dedication to Spanish and AI engineering! Consider scheduling 20 minutes on Friday for untimed Bayesian statistics review to reinforce confidence.'
 };
 
 export const sampleAssignments: CourseAssignment[] = [

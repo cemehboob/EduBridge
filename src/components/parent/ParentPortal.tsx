@@ -275,7 +275,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ progress }) => {
               <h3 className="font-extrabold text-slate-900 text-base">Send Heartfelt Praise</h3>
             </div>
             <p className="text-xs text-slate-500">
-              Send a supportive message that appears directly on Alex's study dashboard:
+              Send a supportive message that appears directly on Educator's study dashboard:
             </p>
 
             <form onSubmit={handleSendNote} className="space-y-3">

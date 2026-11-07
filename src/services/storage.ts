@@ -107,8 +107,7 @@ const KEYS = {
   ATTEMPTED_QUIZ_IDS: 'edubridge_attempted_quiz_ids_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp',
   PENDING_ACTIVITIES: 'edubridge_pending_activities_queue_v1',
-  PENDING_QUESTIONS: 'edubridge_pending_questions_queue_v1',
-  IELTS_DAILY_PLAN: 'edubridge_ielts_daily_plan_v1'
+  PENDING_QUESTIONS: 'edubridge_pending_questions_queue_v1'
 };
 
 const inMemoryStore = new Map<string, string>();
@@ -154,8 +153,8 @@ export const initialTestConductionLogs: TestConductionRecord[] = [
   {
     id: 'tc_init_01',
     timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-    userEmail: 'alex.chen@edubridge.edu',
-    userName: 'Alex Chen',
+    userEmail: 'educator@edubridge.edu',
+    userName: 'Educator',
     userRole: 'student',
     cohort: 'academy',
     testType: 'LESSON_UNIT',
@@ -171,8 +170,8 @@ export const initialTestConductionLogs: TestConductionRecord[] = [
   {
     id: 'tc_init_02',
     timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
-    userEmail: 'alex.chen@edubridge.edu',
-    userName: 'Alex Chen',
+    userEmail: 'educator@edubridge.edu',
+    userName: 'Educator',
     userRole: 'student',
     cohort: 'academy',
     testType: 'LESSON_UNIT',
@@ -188,8 +187,8 @@ export const initialTestConductionLogs: TestConductionRecord[] = [
   {
     id: 'tc_init_03',
     timestamp: new Date(Date.now() - 3600000 * 12).toISOString(),
-    userEmail: 'alex.chen@edubridge.edu',
-    userName: 'Alex Chen',
+    userEmail: 'educator@edubridge.edu',
+    userName: 'Educator',
     userRole: 'student',
     cohort: 'academy',
     testType: 'LESSON_UNIT',
@@ -205,8 +204,8 @@ export const initialTestConductionLogs: TestConductionRecord[] = [
   {
     id: 'tc_init_04',
     timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
-    userEmail: 'alex.chen@edubridge.edu',
-    userName: 'Alex Chen',
+    userEmail: 'educator@edubridge.edu',
+    userName: 'Educator',
     userRole: 'student',
     cohort: 'academy',
     testType: 'PRACTICE_TEST',
@@ -260,16 +259,6 @@ export const StorageService = {
     });
   },
   saveIeltsUnits: (u: Unit[]): void => safeSet(KEYS.IELTS_UNITS, u),
-
-  getIeltsDailyPlan: (userId: string): IeltsDailyLearningPlan | null => {
-    const allPlans = safeGet<Record<string, IeltsDailyLearningPlan>>(KEYS.IELTS_DAILY_PLAN, {});
-    return allPlans[userId] || null;
-  },
-  saveIeltsDailyPlan: (userId: string, plan: IeltsDailyLearningPlan): void => {
-    const allPlans = safeGet<Record<string, IeltsDailyLearningPlan>>(KEYS.IELTS_DAILY_PLAN, {});
-    allPlans[userId] = plan;
-    safeSet(KEYS.IELTS_DAILY_PLAN, allPlans);
-  },
 
   getTestConductionLogs: (): TestConductionRecord[] => {
     return safeGet<TestConductionRecord[]>(KEYS.TEST_CONDUCTION_LOGS, initialTestConductionLogs);
@@ -406,7 +395,7 @@ export const StorageService = {
       sender: 'bridge',
       modelUsed: 'qwen-3-8b',
       mode: 'socratic',
-      content: `Hello Alex! I am Bridge, your personal AI mentor powered by self-hosted open-source models.\n\nWhether you need grammar drills with Phi-4, academic Socratic tutoring with Qwen 3, mathematical proofs with DeepSeek, or career strategy with Llama 3.3, I'm here to guide you step-by-step. What would you like to master today?`,
+      content: `Hello Educator! I am Bridge, your personal AI mentor powered by self-hosted open-source models.\n\nWhether you need grammar drills with Phi-4, academic Socratic tutoring with Qwen 3, mathematical proofs with DeepSeek, or career strategy with Llama 3.3, I'm here to guide you step-by-step. What would you like to master today?`,
       timestamp: 'Just now',
       suggestedFollowUps: [
         'Guide me through IELTS Task 2 writing structure',
@@ -529,6 +518,13 @@ export const StorageService = {
 
   getIngestedItemsLedger: (): IngestedItemRecord[] => safeGet<IngestedItemRecord[]>(KEYS.INGESTED_LEDGER, getInitialIngestedItemsLedger()),
   saveIngestedItemsLedger: (ledger: IngestedItemRecord[]): void => safeSet(KEYS.INGESTED_LEDGER, ledger),
+
+  getIeltsDailyPlan: (userId: string): IeltsDailyLearningPlan | null => {
+    return safeGet<IeltsDailyLearningPlan | null>(`edubridge_ielts_daily_plan_${userId}`, null);
+  },
+  saveIeltsDailyPlan: (userId: string, plan: IeltsDailyLearningPlan): void => {
+    safeSet(`edubridge_ielts_daily_plan_${userId}`, plan);
+  },
 
   getVoicePersona: (): VoicePersona => {
     const active = StorageService.getActiveUser();

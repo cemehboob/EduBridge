@@ -5,7 +5,7 @@ export const initialActivities: UserActivityRecord[] = [
   {
     id: 'act_alex_01',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     type: 'mock_test',
     title: 'IELTS Academic Reading Full Simulation',
     category: 'IELTS Academic',
@@ -27,7 +27,7 @@ export const initialActivities: UserActivityRecord[] = [
   {
     id: 'act_alex_02',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     type: 'solver',
     title: 'Solved Quadratic Equation: 2x² - 8 = 0',
     category: 'Mathematics (Algebra)',
@@ -49,7 +49,7 @@ export const initialActivities: UserActivityRecord[] = [
   {
     id: 'act_alex_03',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     type: 'lesson',
     title: 'IELTS Academic Writing Task 2: Advanced Cohesion',
     category: 'English Language Arts',
@@ -71,7 +71,7 @@ export const initialActivities: UserActivityRecord[] = [
   {
     id: 'act_alex_04',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     type: 'vocab_quiz',
     title: 'Vocabulary Vault Quiz: C1 Academic Lexicon',
     category: 'Lexicon Vault',
@@ -93,7 +93,7 @@ export const initialActivities: UserActivityRecord[] = [
   {
     id: 'act_alex_05',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     type: 'solver',
     title: 'Solved Physics Problem: Newton\'s 2nd Law (F = m · a)',
     category: 'Physics',
@@ -115,7 +115,7 @@ export const initialActivities: UserActivityRecord[] = [
   {
     id: 'act_alex_06',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     type: 'study_task',
     title: 'Completed Daily Spaced Repetition Flashcards',
     category: 'Study Habits',
@@ -136,7 +136,7 @@ export const initialActivities: UserActivityRecord[] = [
   {
     id: 'act_alex_07',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     type: 'career_cv',
     title: 'AI Career Audit & CV Regional Adaptation',
     category: 'Career Portfolio',
@@ -342,7 +342,7 @@ export const initialActivities: UserActivityRecord[] = [
     userId: 'usr_parent_02',
     userName: 'Eleanor Rivera',
     type: 'study_task',
-    title: 'Parental Growth & Oversight Review: Alex Rivera',
+    title: 'Parental Growth & Oversight Review: Educator Rivera',
     category: 'Parental Oversight',
     timestamp: '2026-11-02 09:15:00',
     relativeTime: '8 hours ago',
@@ -451,7 +451,7 @@ export const initialQuestionAttempts: QuestionAttemptRecord[] = [
   {
     id: 'q_att_01',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     testId: 'test_ielts_acad_01',
     testTitle: 'IELTS Academic Reading: Environmental Sustainability',
     moduleOrSubject: 'IELTS Reading',
@@ -474,7 +474,7 @@ export const initialQuestionAttempts: QuestionAttemptRecord[] = [
   {
     id: 'q_att_02',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     testId: 'test_ielts_acad_01',
     testTitle: 'IELTS Academic Reading: Environmental Sustainability',
     moduleOrSubject: 'IELTS Reading',
@@ -497,7 +497,7 @@ export const initialQuestionAttempts: QuestionAttemptRecord[] = [
   {
     id: 'q_att_03',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     testId: 'test_math_quad_01',
     testTitle: 'Quadratic Factorization & Roots',
     moduleOrSubject: 'Mathematics',
@@ -515,7 +515,7 @@ export const initialQuestionAttempts: QuestionAttemptRecord[] = [
   {
     id: 'q_att_04',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     testId: 'test_vocab_c1_01',
     testTitle: 'C1 Academic Vocabulary Mastery Quiz',
     moduleOrSubject: 'Vocabulary',
@@ -533,7 +533,7 @@ export const initialQuestionAttempts: QuestionAttemptRecord[] = [
   {
     id: 'q_att_05',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     testId: 'test_physics_newton_01',
     testTitle: 'Newtonian Classical Mechanics',
     moduleOrSubject: 'Physics',
@@ -551,7 +551,7 @@ export const initialQuestionAttempts: QuestionAttemptRecord[] = [
   {
     id: 'q_att_06',
     userId: 'usr_student_01',
-    userName: 'Alex Rivera',
+    userName: 'Educator Rivera',
     testId: 'practice_writing_task2_01',
     testTitle: 'IELTS Academic Writing Task 2: Artificial Intelligence in Higher Education',
     moduleOrSubject: 'IELTS Writing',

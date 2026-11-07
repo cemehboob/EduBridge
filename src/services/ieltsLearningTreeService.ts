@@ -295,24 +295,30 @@ export const IeltsLearningTreeService = {
     
     const missions: IeltsDailyMission[] = modules.map((mod, index) => {
       const isWeakness = mod === weakestModule;
-      const exercises = generateExercisesForModule(mod, targetBand, isWeakness);
+      let modTargetBand = targetBand;
+      if (mod === 'Listening' && profile.targetListeningBand) modTargetBand = parseTargetBand(profile.targetListeningBand);
+      else if (mod === 'Reading' && profile.targetReadingBand) modTargetBand = parseTargetBand(profile.targetReadingBand);
+      else if (mod === 'Writing' && profile.targetWritingBand) modTargetBand = parseTargetBand(profile.targetWritingBand);
+      else if (mod === 'Speaking' && profile.targetSpeakingBand) modTargetBand = parseTargetBand(profile.targetSpeakingBand);
+
+      const exercises = generateExercisesForModule(mod, modTargetBand, isWeakness);
 
       const titles: Record<IeltsModuleType, string> = {
-        Listening: `Band ${targetBand.toFixed(1)} Academic Lecture Synthesis & Signpost Tracking`,
-        Reading: `Band ${targetBand.toFixed(1)} Dense Research Analysis & True/False/Not Given Drill`,
-        Writing: `Band ${targetBand.toFixed(1)} Task 2 Complex Concessions & Cohesive Linking`,
-        Speaking: `Band ${targetBand.toFixed(1)} Part 3 Discourse Fluency & Academic Idioms`
+        Listening: `Band ${modTargetBand.toFixed(1)} Academic Lecture Synthesis & Signpost Tracking`,
+        Reading: `Band ${modTargetBand.toFixed(1)} Dense Research Analysis & True/False/Not Given Drill`,
+        Writing: `Band ${modTargetBand.toFixed(1)} Task 2 Complex Concessions & Cohesive Linking`,
+        Speaking: `Band ${modTargetBand.toFixed(1)} Part 3 Discourse Fluency & Academic Idioms`
       };
 
       const descriptions: Record<IeltsModuleType, string> = {
         Listening: isWeakness
-          ? `[PRIORITY WEAKNESS] Master subtle transitional cues and lecture structure to bridge your score to Band ${targetBand.toFixed(1)}.`
-          : `Sharpen multi-speaker academic dialogue tracking and tone deduction for Band ${targetBand.toFixed(1)}.`,
+          ? `[PRIORITY WEAKNESS] Master subtle transitional cues and lecture structure to bridge your score to Band ${modTargetBand.toFixed(1)}.`
+          : `Sharpen multi-speaker academic dialogue tracking and tone deduction for Band ${modTargetBand.toFixed(1)}.`,
         Reading: isWeakness
           ? `[PRIORITY WEAKNESS] Eliminate traps in True/False/Not Given and paragraph headings with high-speed scanning.`
           : `Analyze complex scientific research extracts and abstract conclusions.`,
         Writing: isWeakness
-          ? `[PRIORITY WEAKNESS] Build Band ${targetBand.toFixed(1)} concession clauses, data overviews, and cohesive signposts.`
+          ? `[PRIORITY WEAKNESS] Build Band ${modTargetBand.toFixed(1)} concession clauses, data overviews, and cohesive signposts.`
           : `Synthesize data trends in Task 1 and build cohesive Band 9 paragraph arguments in Task 2.`,
         Speaking: isWeakness
           ? `[PRIORITY WEAKNESS] Practice effortless Part 3 abstract discussion and topic-specific academic collocations.`
@@ -324,8 +330,8 @@ export const IeltsLearningTreeService = {
         module: mod,
         title: titles[mod],
         description: descriptions[mod],
-        targetBand,
-        targetBandText,
+        targetBand: modTargetBand,
+        targetBandText: `${modTargetBand.toFixed(1)} Band`,
         xpReward: isWeakness ? 45 : 35,
         completed: false,
         score: undefined,
@@ -471,7 +477,13 @@ export const IeltsLearningTreeService = {
       const avg = stats.count > 0 ? stats.totalScore / stats.count : defaultBaselines[mod];
       // Round to nearest 0.5
       const currentBand = Math.round(avg * 2) / 2;
-      const gap = Number(Math.max(0, targetBand - currentBand).toFixed(1));
+      let modTarget = targetBand;
+      if (mod === 'Listening' && profile.targetListeningBand) modTarget = parseTargetBand(profile.targetListeningBand);
+      else if (mod === 'Reading' && profile.targetReadingBand) modTarget = parseTargetBand(profile.targetReadingBand);
+      else if (mod === 'Writing' && profile.targetWritingBand) modTarget = parseTargetBand(profile.targetWritingBand);
+      else if (mod === 'Speaking' && profile.targetSpeakingBand) modTarget = parseTargetBand(profile.targetSpeakingBand);
+
+      const gap = Number(Math.max(0, modTarget - currentBand).toFixed(1));
 
       let status: 'on_track' | 'needs_work' | 'critical_focus' | 'mastered' = 'on_track';
       if (gap >= 1.5) status = 'critical_focus';
@@ -493,16 +505,16 @@ export const IeltsLearningTreeService = {
       };
 
       const recommendedActions: Record<IeltsModuleType, string> = {
-        Listening: `Practice Section 4 academic lecture tracking focusing on discourse signposts for Band ${targetBand}.`,
+        Listening: `Practice Section 4 academic lecture tracking focusing on discourse signposts for Band ${modTarget}.`,
         Reading: `Complete 1 timed academic reading passage daily with emphasis on implicit author attitude.`,
-        Writing: `Write daily Band ${targetBand} concession sentences and Task 1 synthesis overviews.`,
+        Writing: `Write daily Band ${modTarget} concession sentences and Task 1 synthesis overviews.`,
         Speaking: `Record 2-minute spontaneous Part 3 responses using academic topic collocations.`
       };
 
       moduleScores[mod] = {
         module: mod,
         currentBand,
-        targetBand,
+        targetBand: modTarget,
         gap,
         status,
         historicalAverage: Number(avg.toFixed(2)),

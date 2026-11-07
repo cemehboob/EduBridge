@@ -349,22 +349,23 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Mode Switcher (Visible After Login across All Screen Sizes) */}
+            {/* Full Mode Toggle (Always Visible After Login across All Screen Sizes & Roles) */}
             {currentUser && onToggleKidMode && (
               <button
+                type="button"
                 onClick={() => {
                   sound.playClick();
                   onToggleKidMode();
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black border transition-all cursor-pointer shadow-2xs ${
-                  isKidMode
-                    ? 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-xs ring-1 ring-amber-300'
-                    : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 shadow-2xs'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer shadow-2xs ${
+                  !isKidMode
+                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs ring-2 ring-indigo-300'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                 }`}
-                title={isKidMode ? 'Switch to Full Academic Suite (Full Mode)' : 'Switch to 5-Year-Old Kid Mode'}
+                title={!isKidMode ? 'Full Mode is Active (Click to switch to Kid Mode)' : 'Click to activate Full Mode'}
               >
-                <span className="text-sm">{isKidMode ? '🧸' : '⚙️'}</span>
-                <span className="inline font-extrabold">{isKidMode ? 'Kid Mode' : 'Full Mode'}</span>
+                <span className="text-sm">{!isKidMode ? '🎓' : '🧸'}</span>
+                <span className="inline font-extrabold">{!isKidMode ? 'Full Mode (Active)' : 'Switch to Full Mode'}</span>
               </button>
             )}
 
@@ -440,8 +441,8 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                   </div>
 
-                  {/* Quick User Switcher Section (Direct Switch between Registered Users) */}
-                  {availableUsers && availableUsers.length > 1 && (
+                  {/* Quick User Switcher Section - Admin-Only & Controlled by enableQuickUserSwitch Preference */}
+                  {currentUser?.role === 'admin' && Boolean(currentUser?.preferences?.enableQuickUserSwitch) && availableUsers && availableUsers.length > 1 && (
                     <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/70">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1.5">
                         Quick Switch User:
@@ -518,18 +519,18 @@ export const Header: React.FC<HeaderProps> = ({
                         className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-700 font-semibold cursor-pointer text-left transition-colors"
                       >
                         <div className="flex items-center gap-2.5">
-                          <span className="text-base">{isKidMode ? '🧸' : '⚙️'}</span>
+                          <span className="text-base">{!isKidMode ? '🎓' : '🧸'}</span>
                           <div>
-                            <div className="font-bold text-slate-900">Interface Mode</div>
-                            <div className="text-[10px] text-slate-400 font-normal">Switch between Full Mode &amp; Kid Mode</div>
+                            <div className="font-bold text-slate-900">Full Mode</div>
+                            <div className="text-[10px] text-slate-400 font-normal">Switch between Full Academic Suite &amp; Kid Mode</div>
                           </div>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[11px] font-black border ${
-                          isKidMode
-                            ? 'bg-amber-100 text-amber-800 border-amber-300'
-                            : 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                          !isKidMode
+                            ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                            : 'bg-amber-100 text-amber-800 border-amber-300'
                         }`}>
-                          {isKidMode ? 'Kid Mode' : 'Full Mode'}
+                          {!isKidMode ? 'Enabled' : 'Kid Mode'}
                         </span>
                       </button>
                     )}
