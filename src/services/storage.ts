@@ -38,7 +38,7 @@ import {
 import { initialActivities, initialQuestionAttempts } from '../data/activityData';
 import { apiService } from './apiService';
 import { ieltsAcademicUnits } from '../data/ieltsUnitsData';
-import { DEFAULT_COLOR_SCHEME } from '../utils/themeManager';
+import { DEFAULT_COLOR_SCHEME, applyThemeToDom } from '../utils/themeManager';
 import {
   initialProfile,
   initialUnits,
@@ -672,6 +672,12 @@ export const StorageService = {
       }
       if (configs.color_scheme) {
         safeSet(KEYS.COLOR_SCHEME, configs.color_scheme);
+        try {
+          applyThemeToDom(configs.color_scheme);
+        } catch {}
+      }
+      if (configs.system_setup) {
+        safeSet(KEYS.SYSTEM_SETUP, configs.system_setup);
       }
     } catch {
       // Offline fallback

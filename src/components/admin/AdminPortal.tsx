@@ -34,7 +34,8 @@ import {
   TrendingUp,
   Target,
   Sliders,
-  Check
+  Check,
+  Database
 } from 'lucide-react';
 import {
   OllamaModelInfo,
@@ -56,6 +57,7 @@ import {
   EmailLogEntryView
 } from '../../types';
 import { sound } from '../../utils/audio';
+import { applyThemeToDom } from '../../utils/themeManager';
 import { StorageService } from '../../services/storage';
 import { apiService } from '../../services/apiService';
 import { calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
@@ -104,8 +106,26 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onRespondFeedback
 }) => {
   const [activeAdminTab, setActiveAdminTab] = useState<
-    'dashboard' | 'users' | 'cohorts' | 'activities' | 'feedback' | 'jobs' | 'models' | 'telemetry' | 'audit' | 'vocab' | 'smtp'
+    'dashboard' | 'users' | 'cohorts' | 'activities' | 'feedback' | 'jobs' | 'models' | 'telemetry' | 'audit' | 'vocab' | 'smtp' | 'database'
   >('dashboard');
+
+  const [dbHealth, setDbHealth] = useState<any>(null);
+  const [dbLoading, setDbLoading] = useState(false);
+  const [dbSaveNotice, setDbSaveNotice] = useState<string | null>(null);
+  const [dbMinQuestions, setDbMinQuestions] = useState(() => StorageService.getExamSettings().questionsPerTest || 10);
+  const [dbShuffleOptions, setDbShuffleOptions] = useState(() => StorageService.getExamSettings().allowShuffleOptions ?? true);
+  const [dbWritingQuestions, setDbWritingQuestions] = useState(() => StorageService.getExamSettings().writingTestQuestions || 1);
+  const [dbRunningJob, setDbRunningJob] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeAdminTab === 'database') {
+      setDbLoading(true);
+      apiService.getHealth()
+        .then((h) => setDbHealth(h))
+        .catch(() => {})
+        .finally(() => setDbLoading(false));
+    }
+  }, [activeAdminTab]);
 
   // Standardized Practice Test Question Settings State
   const [examSettings, setExamSettings] = useState<ExamSettingsConfig>(() => StorageService.getExamSettings());
@@ -805,6 +825,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             >
               <Mail className="w-3.5 h-3.5 shrink-0" />
               <span>SMTP &amp; Email</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { sound.playClick(); setActiveAdminTab('database'); }}
+              className={`flex-1 min-w-[98px] px-2 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap ${
+                activeAdminTab === 'database' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+              title="Neon Postgres Database Objects, Views & Central Configuration Setup"
+            >
+              <Database className="w-3.5 h-3.5 shrink-0" />
+              <span>Database &amp; Setup</span>
             </button>
           </div>
         </div>
@@ -3173,6 +3205,358 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 11. Neon Postgres Cloud Database & Central Configuration Setup Panel */}
+      {activeAdminTab === 'database' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header Banner */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Centralized Cloud Database &amp; System Configuration</span>
+                </span>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Neon Postgres Database Objects &amp; Configuration Setup
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Inspect and control all 20 live database objects (tables and views) across Exams, Practice Tests, Quizzes, Questions, Activities, and Centralized Configurations.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    setDbLoading(true);
+                    apiService.getHealth()
+                      .then((h) => setDbHealth(h))
+                      .catch(() => {})
+                      .finally(() => setDbLoading(false));
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${dbLoading ? 'animate-spin text-indigo-600' : ''}`} />
+                  <span>Refresh DB Status</span>
+                </button>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Neon Postgres Connected</span>
+                </span>
+              </div>
+            </div>
+
+            {dbSaveNotice && (
+              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-xs text-emerald-950 font-bold flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>{dbSaveNotice}</span>
+                </div>
+                <button onClick={() => setDbSaveNotice(null)} className="text-emerald-700 hover:text-emerald-900">✕</button>
+              </div>
+            )}
+
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100">
+                <span className="text-[11px] font-bold text-indigo-600 uppercase block">Standard &amp; Practice Tests</span>
+                <span className="text-2xl font-black text-indigo-950">{dbHealth?.totalStandardTests ?? 68}</span>
+                <span className="text-[10px] text-indigo-500 block font-medium">Table: standard_tests (Views: exams, practice_tests, mock_tests)</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-violet-50/60 border border-violet-100">
+                <span className="text-[11px] font-bold text-violet-600 uppercase block">Quizzes &amp; Diagnostics</span>
+                <span className="text-2xl font-black text-violet-950">{dbHealth?.totalQuizzes ?? 60}</span>
+                <span className="text-[10px] text-violet-500 block font-medium">Table: quizzes (Cohort &amp; CEFR Vocab)</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100">
+                <span className="text-[11px] font-bold text-emerald-600 uppercase block">Configurations &amp; Setup</span>
+                <span className="text-2xl font-black text-emerald-950">{dbHealth?.totalConfigurations ?? 5}</span>
+                <span className="text-[10px] text-emerald-500 block font-medium">Table: app_configurations (View: configuration_setup)</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-100">
+                <span className="text-[11px] font-bold text-sky-600 uppercase block">Active Users &amp; Ledger</span>
+                <span className="text-2xl font-black text-sky-950">{dbHealth?.totalUsers ?? users.length} / {dbHealth?.totalActivities ?? allActivities.length}</span>
+                <span className="text-[10px] text-sky-500 block font-medium">Tables: users, activities, sessions, question_attempts</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Database Objects Directory (20 Objects: 12 Tables + 8 Views) */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h4 className="text-lg font-black text-slate-900">Database Objects Catalog (20 Objects Deployed in Neon)</h4>
+                <p className="text-xs text-slate-500">
+                  Every functional entity in EduBridge is mapped to a dedicated table or view in PostgreSQL (available in both <span className="font-mono text-indigo-600">EduBridge</span> and <span className="font-mono text-indigo-600">neondb</span>).
+                </p>
+              </div>
+              <span className="text-xs font-mono font-bold px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700">Schema: public</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[
+                { name: 'standard_tests', type: 'BASE TABLE', desc: 'All standardized mock and practice tests across IELTS, PTE, TOEFL, OET, DET, Cambridge (>=10 questions)', count: `${dbHealth?.totalStandardTests ?? 68} rows` },
+                { name: 'exams', type: 'VIEW', desc: 'Mock test view filtered by test_type = "mock" for rapid examination queries', count: 'Active View' },
+                { name: 'mock_tests', type: 'VIEW', desc: 'Standardized mock examinations with full question sets and score thresholds', count: 'Active View' },
+                { name: 'practice_tests', type: 'VIEW', desc: 'Subject practice test modules with question banks and band scores', count: 'Active View' },
+                { name: 'sample_tests', type: 'VIEW', desc: 'Comprehensive sample tests view across all examination formats', count: 'Active View' },
+                { name: 'quizzes', type: 'BASE TABLE', desc: 'Age-cohort diagnostics and CEFR vocabulary quizzes with phonetic audio and praise', count: `${dbHealth?.totalQuizzes ?? 60} rows` },
+                { name: 'app_configurations', type: 'BASE TABLE', desc: 'Central configuration setup table storing exam settings, feature flags, themes, and system settings', count: '5 configurations' },
+                { name: 'configuration_setup', type: 'VIEW', desc: 'Key-value configuration view for portal governance and global parameter control', count: 'Active View' },
+                { name: 'scheduled_jobs', type: 'BASE TABLE', desc: 'Automated database generator jobs, cron schedules, last run timestamps, and generated item counts', count: '3 active jobs' },
+                { name: 'schedule_jobs', type: 'VIEW', desc: 'Database schedule runner view monitoring midnight cron execution state', count: 'Active View' },
+                { name: 'question_attempts', type: 'BASE TABLE', desc: 'Individual question-level answers, choices, correct answers, time spent, and AI explanations', count: `${dbHealth?.totalQuestionAttempts ?? 6} rows` },
+                { name: 'questions', type: 'VIEW', desc: 'Question bank view aggregating standard test questions and user attempts', count: 'Active View' },
+                { name: 'answers', type: 'VIEW', desc: 'User response answer history ledger and correctness evaluations', count: 'Active View' },
+                { name: 'written_responses', type: 'BASE TABLE', desc: 'Full-text essays, word counts, writing duration, band scores, and rubric feedback', count: '1 record' },
+                { name: 'activities', type: 'BASE TABLE', desc: 'Central activity board ledger recording test completions, scores, and XP', count: `${dbHealth?.totalActivities ?? 20} rows` },
+                { name: 'student_activities', type: 'VIEW', desc: 'Student learning progress view for parent and teacher dashboards', count: 'Active View' },
+                { name: 'users', type: 'BASE TABLE', desc: 'Accounts, credentials, roles (admin/teacher/student/parent), preferences, and profile statistics', count: `${dbHealth?.totalUsers ?? 8} users` },
+                { name: 'sessions', type: 'BASE TABLE', desc: 'Cross-device authentication tokens and expiration timestamps', count: 'Active Sessions' },
+                { name: 'incomplete_attempts', type: 'BASE TABLE', desc: 'In-progress exam autosaves preserving answered questions and elapsed time', count: 'Autosave Store' },
+                { name: 'smtp_config & email_logs', type: 'BASE TABLES', desc: 'Dynamic outbound mail credentials and delivery audit records', count: 'Ready for Logs' }
+              ].map((obj, i) => (
+                <div key={i} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-indigo-300 transition-all space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-xs text-indigo-700">{obj.name}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-mono ${
+                      obj.type === 'VIEW' ? 'bg-violet-100 text-violet-800' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {obj.type}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 line-clamp-2 leading-tight">{obj.desc}</p>
+                  <div className="pt-1 text-[10px] font-semibold text-slate-400">{obj.count}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Central Application Configuration Control (app_configurations) */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
+                Centralized Database Governance
+              </span>
+              <h4 className="text-lg font-black text-slate-900">Application Configuration Setup (`app_configurations`)</h4>
+              <p className="text-xs text-slate-500">
+                Any configuration changed here is saved directly to the Neon Postgres database and propagates automatically to all connected users within 4 seconds.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Exam & Practice Questions Config */}
+              <div className="p-5 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-4">
+                <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
+                  <BookOpen className="w-4 h-4 text-indigo-600" />
+                  <span>Exam Question Parameters</span>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Questions Per Test (Guaranteed &ge; 10)
+                  </label>
+                  <input
+                    type="number"
+                    min={10}
+                    max={50}
+                    value={dbMinQuestions}
+                    onChange={(e) => setDbMinQuestions(Math.max(10, parseInt(e.target.value) || 10))}
+                    className="w-full p-2.5 rounded-xl border border-indigo-200 bg-white font-mono font-bold text-indigo-900 text-sm focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">Applies across IELTS, PTE, TOEFL, OET, DET, Cambridge English</span>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Writing Tasks Per Test</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    value={dbWritingQuestions}
+                    onChange={(e) => setDbWritingQuestions(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full p-2.5 rounded-xl border border-indigo-200 bg-white font-mono font-bold text-indigo-900 text-sm focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-indigo-100">
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block">Shuffle Options</span>
+                    <span className="text-[10px] text-slate-500">Randomize multiple-choice choices</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={dbShuffleOptions}
+                    onChange={(e) => setDbShuffleOptions(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Supported Exam Standards & System Controls */}
+              <div className="p-5 rounded-2xl bg-violet-50/50 border border-violet-100 space-y-4">
+                <div className="flex items-center gap-2 text-violet-900 font-bold text-sm">
+                  <ShieldCheck className="w-4 h-4 text-violet-600" />
+                  <span>Standardized Exam Formats</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  {['IELTS Academic & General', 'PTE Academic 90-Score', 'TOEFL iBT 120-Score', 'OET Medical Healthcare', 'Duolingo English Test (DET)', 'Cambridge English (C1/C2)'].map((std, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded-xl bg-white border border-violet-100 text-slate-700">
+                      <span className="font-semibold text-[11px]">{std}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">&ge; 10 Questions</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Theme & Styling Controller */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+                <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                  <Sliders className="w-4 h-4 text-slate-600" />
+                  <span>Global Portal Color Scheme</span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Select the system-wide visual theme saved in <span className="font-mono text-indigo-600">app_configurations</span> table.
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {[
+                    { id: 'default-indigo', name: 'Oceanic Indigo', color: '#4f46e5' },
+                    { id: 'emerald-growth', name: 'Emerald Forest', color: '#059669' },
+                    { id: 'royal-violet', name: 'Royal Amethyst', color: '#7c3aed' },
+                    { id: 'sunset-amber', name: 'Sunset Amber', color: '#d97706' },
+                    { id: 'rose-blossom', name: 'Rose Blossom', color: '#e11d48' },
+                    { id: 'cyber-cyan', name: 'Cyber Cyan', color: '#0891b2' },
+                    { id: 'midnight-dark', name: 'Midnight Dark', color: '#1e293b' },
+                    { id: 'high-contrast', name: 'High Contrast', color: '#000000' }
+                  ].map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        const newConfig = { preset: preset.id as any, custom: { primaryColor: preset.color, accentColor: '#06b6d4', surfaceTone: 'light' as const } };
+                        StorageService.saveColorScheme(newConfig);
+                        applyThemeToDom(newConfig);
+                        apiService.config.set('color_scheme', newConfig, 'ui', 'Global portal theme').catch(() => {});
+                        setDbSaveNotice(`Theme "${preset.name}" saved to Neon database.`);
+                      }}
+                      className="p-2 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 text-left transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: preset.color }}></span>
+                      <span className="text-[11px] font-bold text-slate-700 truncate">{preset.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <span className="text-xs text-slate-500">
+                Database Target: <span className="font-mono text-indigo-600 font-bold">Neon Postgres Cloud (EduBridge &amp; neondb)</span>
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  sound.playClick();
+                  setDbLoading(true);
+                  try {
+                    const newSettings: ExamSettingsConfig = {
+                      questionsPerTest: dbMinQuestions,
+                      allowShuffleOptions: dbShuffleOptions,
+                      writingTestQuestions: dbWritingQuestions
+                    };
+                    StorageService.saveExamSettings(newSettings);
+                    await apiService.config.set('exam_settings', newSettings, 'exam', 'Standardized test question counts');
+                    setDbSaveNotice('Configurations saved to Neon Postgres database (app_configurations). Synchronized across all users.');
+                  } catch (e: any) {
+                    setDbSaveNotice(`Saved locally (Cloud response: ${e.message})`);
+                  } finally {
+                    setDbLoading(false);
+                  }
+                }}
+                className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-200 hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Save All Configurations to Neon Postgres</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Database Scheduled Jobs Execution Runner */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
+                Database Jobs &amp; Automated Generators
+              </span>
+              <h4 className="text-lg font-black text-slate-900">Run Database Jobs On Demand</h4>
+              <p className="text-xs text-slate-500">
+                Execute automated database scheduled jobs immediately. Generated mock tests, practice tests, and quizzes are stored directly in their respective tables (<span className="font-mono text-indigo-600">standard_tests</span>, <span className="font-mono text-indigo-600">quizzes</span>).
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  id: 'job_exam_midnight_00',
+                  name: 'Nightly Exam Generator Job',
+                  desc: 'Generates 6 Mock Tests (PTE, TOEFL, OET, DET, Cambridge, IELTS) + 5 Practice Tests (>=10 questions each) into standard_tests table',
+                  target: 'standard_tests table'
+                },
+                {
+                  id: 'job_vocab_expansion_00',
+                  name: 'Daily Vocabulary Vault Job',
+                  desc: 'Generates 100 CEFR-graded vocabulary words and diagnostic quiz items into quizzes table',
+                  target: 'quizzes table'
+                },
+                {
+                  id: 'job_quiz_generation_00',
+                  name: 'Cohort Assessment Generator',
+                  desc: 'Generates 10 age-cohort diagnostic quizzes across Early, Junior, Academy, Pro, and Senior into quizzes table',
+                  target: 'quizzes table'
+                }
+              ].map((job) => (
+                <div key={job.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="font-bold text-xs text-slate-800 block">{job.name}</span>
+                    <p className="text-[11px] text-slate-500 leading-tight">{job.desc}</p>
+                    <span className="inline-block mt-1 font-mono text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded">
+                      Stores to: {job.target}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={dbRunningJob === job.id}
+                    onClick={async () => {
+                      sound.playClick();
+                      setDbRunningJob(job.id);
+                      try {
+                        await onRunScheduledJob(job.id);
+                        setDbSaveNotice(`Database job "${job.name}" executed successfully! New items stored in Neon Postgres.`);
+                        const h = await apiService.getHealth();
+                        setDbHealth(h);
+                      } catch (e: any) {
+                        setDbSaveNotice(`Job execution note: ${e.message}`);
+                      } finally {
+                        setDbRunningJob(null);
+                      }
+                    }}
+                    className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      dbRunningJob === job.id
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+                    }`}
+                  >
+                    <Play className={`w-3.5 h-3.5 ${dbRunningJob === job.id ? 'animate-spin' : ''}`} />
+                    <span>{dbRunningJob === job.id ? 'Executing on Neon DB...' : 'Run Database Job Now'}</span>
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>

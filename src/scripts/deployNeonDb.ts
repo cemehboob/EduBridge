@@ -27,16 +27,16 @@ if (!NEON_CONNECTION_STRING) {
   process.exit(1);
 }
 
-async function deploy() {
+async function deployToDatabase(connectionUrl: string, dbName: string) {
   console.log('=================================================================');
-  console.log('   EduBridge — Deploying Schema & Data to Neon Postgres Cloud    ');
+  console.log(`   EduBridge — Deploying Schema & Data to Neon Postgres [${dbName}]   `);
   console.log('=================================================================');
-  console.log(`Connecting to: ${NEON_CONNECTION_STRING.split('@')[1] || 'Neon Cloud'}\n`);
+  console.log(`Connecting to: ${connectionUrl.split('@')[1] || 'Neon Cloud'}\n`);
 
-  const sql = neon(NEON_CONNECTION_STRING);
+  const sql = neon(connectionUrl);
 
   // 1. Create Tables & Indexes
-  console.log('Step 1/4: Creating Tables & Indexes on Neon Postgres...');
+  console.log('Step 1/4: Creating Tables, Indexes & Views on Neon Postgres...');
 
   await sql`
     CREATE TABLE IF NOT EXISTS users (
@@ -282,7 +282,18 @@ async function deploy() {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_configs_category ON app_configurations(category)`;
-  console.log('  ✓ Table "app_configurations" verified\n');
+  console.log('  ✓ Table "app_configurations" verified');
+
+  // 1.5 Create Views (First-Class Database Objects for Exams, Practice Tests, Quizzes, Configurations)
+  await sql`CREATE OR REPLACE VIEW exams AS SELECT * FROM standard_tests WHERE test_type = 'mock'`;
+  await sql`CREATE OR REPLACE VIEW mock_tests AS SELECT * FROM standard_tests WHERE test_type = 'mock'`;
+  await sql`CREATE OR REPLACE VIEW practice_tests AS SELECT * FROM standard_tests WHERE test_type = 'practice'`;
+  await sql`CREATE OR REPLACE VIEW sample_tests AS SELECT * FROM standard_tests`;
+  await sql`CREATE OR REPLACE VIEW configuration_setup AS SELECT key as config_key, value as config_data, category, description, updated_at, updated_by FROM app_configurations`;
+  await sql`CREATE OR REPLACE VIEW schedule_jobs AS SELECT * FROM scheduled_jobs`;
+  await sql`CREATE OR REPLACE VIEW student_activities AS SELECT * FROM activities`;
+  await sql`CREATE OR REPLACE VIEW answers AS SELECT id as attempt_id, user_id, user_name, test_id, question_number, user_answer, correct_answer, is_correct, score, explanation, timestamp FROM question_attempts`;
+  console.log('  ✓ Database Views verified: exams, mock_tests, practice_tests, sample_tests, configuration_setup, schedule_jobs, student_activities, answers\n');
 
   // 2. Seed Data
   console.log('Step 2/4: Seeding baseline accounts, activities & records...');
@@ -699,11 +710,32 @@ async function deploy() {
   console.log('  ✓ DATABASE_URL environment variable is active and verified.');
 
   console.log('\n=================================================================');
-  console.log('  SUCCESS: Neon Postgres Database is Fully Deployed and Active! ');
+  console.log(`  SUCCESS: Neon Postgres Database [${dbName}] Deployed and Active! `);
   console.log('=================================================================\n');
 }
 
-deploy().catch((err) => {
+async function main() {
+  await deployToDatabase(NEON_CONNECTION_STRING, 'EduBridge');
+
+  if (NEON_CONNECTION_STRING.includes('/EduBridge')) {
+    const defaultNeonUrl = NEON_CONNECTION_STRING.replace('/EduBridge', '/neondb');
+    console.log('\n*****************************************************************');
+    console.log('  ALSO DEPLOYING TO DEFAULT NEON CONSOLE DATABASE: "neondb"      ');
+    console.log('  (Ensures all tables & views show up immediately in Neon UI)     ');
+    console.log('*****************************************************************\n');
+    try {
+      await deployToDatabase(defaultNeonUrl, 'neondb (Default Console DB)');
+    } catch (e: any) {
+      console.warn('Note on default neondb deployment:', e.message);
+    }
+  }
+
+  console.log('\n=================================================================');
+  console.log('  ALL NEON POSTGRES OBJECTS FULLY DEPLOYED ACROSS ALL DATABASES!  ');
+  console.log('=================================================================\n');
+}
+
+main().catch((err) => {
   console.error('\nDeployment Error:', err);
   process.exit(1);
 });

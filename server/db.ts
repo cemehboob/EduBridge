@@ -328,7 +328,17 @@ export async function initializeDatabase(): Promise<void> {
 
   await sql`CREATE INDEX IF NOT EXISTS idx_configs_category ON app_configurations(category)`;
 
-  console.log('[EduBridge DB] Neon Postgres tables created and verified successfully.');
+  // ─── Views (First-Class Database Objects for Exams, Tests, Practice, Quizzes, Configs) ───
+  await sql`CREATE OR REPLACE VIEW exams AS SELECT * FROM standard_tests WHERE test_type = 'mock'`;
+  await sql`CREATE OR REPLACE VIEW mock_tests AS SELECT * FROM standard_tests WHERE test_type = 'mock'`;
+  await sql`CREATE OR REPLACE VIEW practice_tests AS SELECT * FROM standard_tests WHERE test_type = 'practice'`;
+  await sql`CREATE OR REPLACE VIEW sample_tests AS SELECT * FROM standard_tests`;
+  await sql`CREATE OR REPLACE VIEW configuration_setup AS SELECT key as config_key, value as config_data, category, description, updated_at, updated_by FROM app_configurations`;
+  await sql`CREATE OR REPLACE VIEW schedule_jobs AS SELECT * FROM scheduled_jobs`;
+  await sql`CREATE OR REPLACE VIEW student_activities AS SELECT * FROM activities`;
+  await sql`CREATE OR REPLACE VIEW answers AS SELECT id as attempt_id, user_id, user_name, test_id, question_number, user_answer, correct_answer, is_correct, score, explanation, timestamp FROM question_attempts`;
+
+  console.log('[EduBridge DB] Neon Postgres tables and views created and verified successfully.');
 }
 
 // ─── Seed Data ───────────────────────────────────────────────────────────────

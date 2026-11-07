@@ -112,6 +112,10 @@ export default function App() {
         }
         await StorageService.syncConfigurationsFromCloud();
         await StorageService.syncTestsFromCloud();
+        if (isMounted) {
+          setFeatureFlags(StorageService.getFeatureFlags());
+          setMockTests(StorageService.getMockTests());
+        }
       } catch {
         // Background sync
       }
