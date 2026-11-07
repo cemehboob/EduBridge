@@ -349,22 +349,22 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Mode Switcher (Only for Signed-In Users) */}
+            {/* Mode Switcher (Visible After Login across All Screen Sizes) */}
             {currentUser && onToggleKidMode && (
               <button
                 onClick={() => {
                   sound.playClick();
                   onToggleKidMode();
                 }}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-black border transition-all cursor-pointer shadow-2xs ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black border transition-all cursor-pointer shadow-2xs ${
                   isKidMode
                     ? 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-xs ring-1 ring-amber-300'
-                    : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                    : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 shadow-2xs'
                 }`}
-                title={isKidMode ? 'Switch to Full Academic Suite' : 'Switch to 5-Year-Old Kid Mode'}
+                title={isKidMode ? 'Switch to Full Academic Suite (Full Mode)' : 'Switch to 5-Year-Old Kid Mode'}
               >
                 <span className="text-sm">{isKidMode ? '🧸' : '⚙️'}</span>
-                <span className="hidden sm:inline">{isKidMode ? 'Kid Mode' : 'Full Mode'}</span>
+                <span className="inline font-extrabold">{isKidMode ? 'Kid Mode' : 'Full Mode'}</span>
               </button>
             )}
 
@@ -506,6 +506,33 @@ export const Header: React.FC<HeaderProps> = ({
                         <div className="text-[10px] text-slate-400 font-normal">Switch between Learner, Parent, Teacher, Admin</div>
                       </div>
                     </button>
+
+                    {/* Mode Toggle Option inside User Menu */}
+                    {onToggleKidMode && (
+                      <button
+                        onClick={() => {
+                          sound.playClick();
+                          setIsUserMenuOpen(false);
+                          onToggleKidMode();
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-700 font-semibold cursor-pointer text-left transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-base">{isKidMode ? '🧸' : '⚙️'}</span>
+                          <div>
+                            <div className="font-bold text-slate-900">Interface Mode</div>
+                            <div className="text-[10px] text-slate-400 font-normal">Switch between Full Mode &amp; Kid Mode</div>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-black border ${
+                          isKidMode
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                        }`}>
+                          {isKidMode ? 'Kid Mode' : 'Full Mode'}
+                        </span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Sign Out Action */}

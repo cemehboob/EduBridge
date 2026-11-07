@@ -1349,5 +1349,62 @@
         "recommendedAction": "Keep"
       }
     ]
+  },
+  {
+    "id": "audit_ielts_daily_learning_tree",
+    "role": "Student",
+    "module": "IELTS Academic Learning Tree",
+    "title": "IELTS Academic Learning Tree – Daily Reset, Target Score Practice & Achievement Pathway",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/student_ielts_daily_learning_tree.png",
+    "objects": [
+      {
+        "name": "Daily Reset & Timezone Synchronizer",
+        "type": "Local Timezone Session Engine",
+        "purpose": "Automatically renews daily practice missions at 00:00 midnight in the learner's local timezone.",
+        "functionality": "Generates fresh daily plan while preserving all historical test scores, question attempts, and long-term units.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Target Band Parameterized Practice Generator",
+        "type": "Adaptive Question Generator",
+        "purpose": "Calibrates questions and tasks across Listening, Reading, Writing, and Speaking to expected band score (Band 6.5 to 9.0).",
+        "functionality": "Adapts academic vocabulary, syntax complexity, True/False/Not Given traps, and Task 2 concessions.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Interactive Band Score Progress Graph",
+        "type": "SVG Trajectory & Analytics Graph",
+        "purpose": "Plots verified historical scores against golden target benchmark and projects AI estimated completion trajectory.",
+        "functionality": "Provides module-by-module breakdown (L, R, W, S) and calculates official IELTS composite half-band scores.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "4-Phase Step-by-Step Achievement Pathway",
+        "type": "Roadmap & Milestone Engine",
+        "purpose": "Guides learners through sequential phases from baseline to target band mastery with study hours and mock test requirements.",
+        "functionality": "Dynamically updates milestone completion status based on actual verified assessment results.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "8 Core Guidance Questions Panel",
+        "type": "Interactive FAQ & Analytics Cards",
+        "purpose": "Directly answers the 8 essential student guidance questions with personalized real-time data.",
+        "functionality": "Answers current level, target band, gap, today's practice, weakest module, overall progress, next milestone, and pathway.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Full Mode / Kid Mode Dual Switcher",
+        "type": "Interface Mode Controller",
+        "purpose": "Provides clear visibility and instant switching between Full Mode (Academic Suite) and Kid Mode across header and user menu.",
+        "functionality": "Allows one-click toggle with active mode badge displayed across all screen sizes.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
   }
 ]

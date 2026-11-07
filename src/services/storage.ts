@@ -33,7 +33,8 @@ import {
   QuestionAttemptRecord,
   WrittenResponseRecord,
   IncompleteAttemptRecord,
-  AttemptDetailResponse
+  AttemptDetailResponse,
+  IeltsDailyLearningPlan
 } from '../types';
 import { initialActivities, initialQuestionAttempts } from '../data/activityData';
 import { apiService } from './apiService';
@@ -106,7 +107,8 @@ const KEYS = {
   ATTEMPTED_QUIZ_IDS: 'edubridge_attempted_quiz_ids_v1',
   LAST_SYNC: 'edubridge_last_sync_timestamp',
   PENDING_ACTIVITIES: 'edubridge_pending_activities_queue_v1',
-  PENDING_QUESTIONS: 'edubridge_pending_questions_queue_v1'
+  PENDING_QUESTIONS: 'edubridge_pending_questions_queue_v1',
+  IELTS_DAILY_PLAN: 'edubridge_ielts_daily_plan_v1'
 };
 
 const inMemoryStore = new Map<string, string>();
@@ -258,6 +260,16 @@ export const StorageService = {
     });
   },
   saveIeltsUnits: (u: Unit[]): void => safeSet(KEYS.IELTS_UNITS, u),
+
+  getIeltsDailyPlan: (userId: string): IeltsDailyLearningPlan | null => {
+    const allPlans = safeGet<Record<string, IeltsDailyLearningPlan>>(KEYS.IELTS_DAILY_PLAN, {});
+    return allPlans[userId] || null;
+  },
+  saveIeltsDailyPlan: (userId: string, plan: IeltsDailyLearningPlan): void => {
+    const allPlans = safeGet<Record<string, IeltsDailyLearningPlan>>(KEYS.IELTS_DAILY_PLAN, {});
+    allPlans[userId] = plan;
+    safeSet(KEYS.IELTS_DAILY_PLAN, allPlans);
+  },
 
   getTestConductionLogs: (): TestConductionRecord[] => {
     return safeGet<TestConductionRecord[]>(KEYS.TEST_CONDUCTION_LOGS, initialTestConductionLogs);

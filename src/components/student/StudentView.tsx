@@ -96,6 +96,7 @@ interface StudentViewProps {
   onMarkLessonCompleted?: (lesson: Lesson, score?: number) => void;
   onRecordActivity?: (activity: Omit<UserActivityRecord, 'id' | 'timestamp'> & { timestamp?: string }) => void;
   onUpdateMockTests?: (tests: MockTest[]) => void;
+  onUpdateTargetBand?: (band: string) => void;
   activeTab?: StudentTab;
   onTabChange?: (tab: StudentTab) => void;
   resetTrigger?: number;
@@ -129,6 +130,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
   onMarkLessonCompleted,
   onRecordActivity,
   onUpdateMockTests,
+  onUpdateTargetBand,
   activeTab: propActiveTab,
   onTabChange,
   resetTrigger
@@ -881,6 +883,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
             onStartLesson={onStartLesson}
             onCelebrate={onCelebrate}
             onMarkLessonCompleted={onMarkLessonCompleted}
+            onUpdateTargetBand={onUpdateTargetBand}
           />
         )}
 

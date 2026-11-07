@@ -1602,6 +1602,69 @@ var initialUserGuideArticles = [
 				tip: "Administrators can access the Offline Storage & Backup Console directly from the Admin Directorate or via the Admin-scoped Header status pill."
 			}
 		]
+	},
+	{
+		id: "guide_ielts_daily_learning_tree",
+		title: "IELTS Academic Learning Tree – Daily Reset, Target Score Practice & Achievement Pathway",
+		category: "Exam Prep & Security",
+		icon: "Award",
+		minRole: "student",
+		summary: "Comprehensive IELTS Academic Learning Tree featuring automatic midnight daily reset in local timezone, target score-based practice calibrated to expected band scores (Band 6.5 to 9.0), personalized daily missions across Listening, Reading, Writing, and Speaking with weak area prioritization, interactive visual band progress graph, 4-phase step-by-step achievement pathway, and direct answers to 8 core guidance questions.",
+		keywords: [
+			"ielts learning tree",
+			"daily reset",
+			"target band score",
+			"personalized daily plan",
+			"achievement pathway",
+			"progress graph",
+			"predictive trajectory",
+			"weakness priority",
+			"full mode switcher"
+		],
+		screenshotUrl: "/assets/guide/ielts_daily_learning_tree.jpg",
+		screenshotCaption: "IELTS Academic Learning Tree: Daily Reset missions, target score-based practice, visual band progress graph, and 4-phase achievement pathway.",
+		contentSections: [
+			{
+				heading: "1. Daily IELTS Academic Learning Tree Reset & Local Timezone Synchronization",
+				text: "The IELTS Academic learning tree resets automatically at 00:00 midnight according to the learner's local device timezone. Each new day commences with 4 fresh, personalized practice missions across Listening, Reading, Writing, and Speaking tailored specifically to the learner's expected band score.",
+				steps: [
+					"Access the IELTS Academic Track within the Lesson Journey or Student Navigation Bar.",
+					"Review today's 4 focus missions (Listening, Reading, Writing, Speaking) dynamically generated for your target band.",
+					"Notice that all historical test scores, question attempts, completed units, XP, and streak records are 100% permanently preserved in long-term databases.",
+					"Complete today's missions to advance your daily progress meter and trigger celebratory confetti rewards."
+				],
+				tip: "Daily reset maintains active study habits without wiping cumulative progress: historical test results and long-term Unit 1 to Unit 4 curriculums remain permanently accessible."
+			},
+			{
+				heading: "2. Expected IELTS Band Score Parameterization & Target Score Adaptation",
+				text: "The system uses the learner's expected IELTS band score (e.g. Band 8.5) as the primary parameter governing question generation, vocabulary density, syntactic complexity, and task rigor.",
+				steps: [
+					"Configure or adjust your expected band score directly from your user profile or the 1-click Target Score pill on the IELTS dashboard.",
+					"Band 8.0 - 8.5+ candidates receive high-density academic lectures, subtle transitional tracking, True/False/Not Given traps, and complex concession argumentation.",
+					"Band 6.5 - 7.5 candidates receive structured Academic Word List (AWL) drills, clear overview synthesis, and discourse signpost tracking.",
+					"Target band changes immediately regenerate future daily practice missions and recalibrate the achievement pathway."
+				]
+			},
+			{
+				heading: "3. Interactive Visual Band Score Progress Graph & Predictive Trajectory",
+				text: "A dedicated visual dashboard plots actual verified assessment results against expected target benchmarks and provides an AI-estimated progression trajectory.",
+				steps: [
+					"Inspect the interactive SVG chart displaying verified scores from Day -14 to Today alongside the golden target band reference line.",
+					"Toggle between All Modules (Composite) and individual Listening, Reading, Writing, or Speaking performance lines.",
+					"Review the AI-predicted trajectory line mapping estimated milestones over the next 2 to 4 weeks (flagged clearly as an estimate based on study velocity).",
+					"Inspect module score cards detailing current band, band gap, status (On Track, Critical Focus, Mastered), and recommended corrective drills."
+				]
+			},
+			{
+				heading: "4. 4-Phase Personalized Achievement Pathway & Answers to 8 Core Guidance Questions",
+				text: "A structured 4-phase achievement roadmap visually breaks down the journey from current baseline to target mastery: Phase 1 (Foundation 6.5), Phase 2 (Nuanced Cohesion 7.5), Phase 3 (Precision Speed 8.0), and Phase 4 (Executive Mastery 8.5+).",
+				steps: [
+					"Track milestone completion percentages, recommended study hours per week, and practice test requirements for each phase.",
+					"Review the 8 Core Questions panel answering: What is my current IELTS level? What band do I want to achieve? How far am I from my target? What should I practice today? Which module needs the most improvement? How much progress have I made? What is the next milestone? and What is my estimated pathway?",
+					"Switch between \"Full Mode\" (comprehensive academic suite) and \"Kid Mode\" via the top header bar or the user account dropdown menu."
+				]
+			}
+		]
 	}
 ];
 // src/data/activityData.ts
@@ -10727,7 +10790,8 @@ var KEYS = {
 	ATTEMPTED_QUIZ_IDS: "edubridge_attempted_quiz_ids_v1",
 	LAST_SYNC: "edubridge_last_sync_timestamp",
 	PENDING_ACTIVITIES: "edubridge_pending_activities_queue_v1",
-	PENDING_QUESTIONS: "edubridge_pending_questions_queue_v1"
+	PENDING_QUESTIONS: "edubridge_pending_questions_queue_v1",
+	IELTS_DAILY_PLAN: "edubridge_ielts_daily_plan_v1"
 };
 var inMemoryStore = /* @__PURE__ */ new Map();
 function safeGet(key, fallback) {
@@ -10859,6 +10923,14 @@ var StorageService = {
 		});
 	},
 	saveIeltsUnits: (u) => safeSet(KEYS.IELTS_UNITS, u),
+	getIeltsDailyPlan: (userId) => {
+		return safeGet(KEYS.IELTS_DAILY_PLAN, {})[userId] || null;
+	},
+	saveIeltsDailyPlan: (userId, plan) => {
+		const allPlans = safeGet(KEYS.IELTS_DAILY_PLAN, {});
+		allPlans[userId] = plan;
+		safeSet(KEYS.IELTS_DAILY_PLAN, allPlans);
+	},
 	getTestConductionLogs: () => {
 		return safeGet(KEYS.TEST_CONDUCTION_LOGS, initialTestConductionLogs);
 	},

@@ -20,6 +20,8 @@ import { sound } from '../../utils/audio';
 import { ieltsAcademicUnits } from '../../data/ieltsUnitsData';
 import { StorageService } from '../../services/storage';
 import { VerifiedTestConductionModal } from '../common/VerifiedTestConductionModal';
+import { IeltsAchievementDashboard } from './ielts/IeltsAchievementDashboard';
+import { IeltsDailyPlanView } from './ielts/IeltsDailyPlanView';
 
 interface LanguageTreeProps {
   units: Unit[];
@@ -28,6 +30,7 @@ interface LanguageTreeProps {
   onStartLesson: (lesson: Lesson) => void;
   onCelebrate?: (type: 'daily_goal' | 'streak') => void;
   onMarkLessonCompleted?: (lesson: Lesson, score?: number) => void;
+  onUpdateTargetBand?: (band: string) => void;
 }
 
 export const LanguageTree: React.FC<LanguageTreeProps> = ({
@@ -36,9 +39,11 @@ export const LanguageTree: React.FC<LanguageTreeProps> = ({
   profile,
   onStartLesson,
   onCelebrate,
-  onMarkLessonCompleted
+  onMarkLessonCompleted,
+  onUpdateTargetBand
 }) => {
   const [isConductionModalOpen, setIsConductionModalOpen] = useState(false);
+  const [ieltsSubTab, setIeltsSubTab] = useState<'daily' | 'analytics' | 'units'>('daily');
   const isGoalReached = profile.todayXp >= profile.dailyGoalXp;
   const dailyProgress = Math.min(100, Math.round((profile.todayXp / profile.dailyGoalXp) * 100));
 
@@ -229,9 +234,73 @@ export const LanguageTree: React.FC<LanguageTreeProps> = ({
             </div>
           </div>
         </div>
+
+        {/* IELTS Track Navigation Sub-Pills */}
+        {activeTrack === 'ielts' && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
+            <button
+              type="button"
+              onClick={() => { sound.playClick(); setIeltsSubTab('daily'); }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                ieltsSubTab === 'daily'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span>🎯 Today's Daily Practice Plan</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/20 font-bold">Daily Reset</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { sound.playClick(); setIeltsSubTab('analytics'); }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                ieltsSubTab === 'analytics'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span>📈 Target Achievement Pathway &amp; Progress Graph</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-white font-bold">
+                {profile.targetBand || '8.0 Band'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { sound.playClick(); setIeltsSubTab('units'); }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                ieltsSubTab === 'units'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span>📚 Full Academic Syllabus (Units 1-4)</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold">
+                {displayedUnits.length} Units
+              </span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Units Stack */}
+      {/* View Branching for IELTS Daily Plan / Analytics Graph vs Units Stack */}
+      {activeTrack === 'ielts' && ieltsSubTab === 'daily' && (
+        <IeltsDailyPlanView
+          profile={profile}
+          onStartLesson={onStartLesson}
+        />
+      )}
+
+      {activeTrack === 'ielts' && ieltsSubTab === 'analytics' && (
+        <IeltsAchievementDashboard
+          profile={profile}
+          onUpdateTargetBand={onUpdateTargetBand}
+          onNavigateToDailyPlan={() => setIeltsSubTab('daily')}
+        />
+      )}
+
+      {(activeTrack === 'spanish' || (activeTrack === 'ielts' && ieltsSubTab === 'units')) && (
       <div className="space-y-8">
         {displayedUnits.map((unit) => {
           const completedCount = unit.lessons.filter((l) => l.completed).length;
@@ -381,6 +450,7 @@ export const LanguageTree: React.FC<LanguageTreeProps> = ({
           );
         })}
       </div>
+      )}
 
       {/* Verified Conduction Ledger Modal */}
       <VerifiedTestConductionModal

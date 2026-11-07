@@ -122,6 +122,84 @@ export interface Unit {
   locked: boolean;
 }
 
+// ==================== IELTS ACADEMIC DAILY RESET & LEARNING TREE ====================
+export type IeltsModuleType = 'Listening' | 'Reading' | 'Writing' | 'Speaking';
+
+export interface IeltsDailyMission {
+  id: string;
+  module: IeltsModuleType;
+  title: string;
+  description: string;
+  targetBand: number; // e.g. 7.5, 8.0, 8.5
+  targetBandText: string;
+  xpReward: number;
+  completed: boolean;
+  score?: number;
+  estimatedMinutes: number;
+  exercises: ExerciseItem[];
+}
+
+export interface IeltsDailyLearningPlan {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD (local timezone)
+  targetBand: number; // e.g. 8.5
+  targetBandText: string; // e.g. "8.5 Band"
+  currentEstimatedBand: number;
+  weakestModule: IeltsModuleType;
+  strongestModule: IeltsModuleType;
+  missions: IeltsDailyMission[];
+  dailyCompletedMissions: number;
+  totalDailyMissions: number;
+  allDailyCompleted: boolean;
+  lastUpdated: string;
+}
+
+export interface IeltsModuleScore {
+  module: IeltsModuleType;
+  currentBand: number;
+  targetBand: number;
+  gap: number;
+  status: 'on_track' | 'needs_work' | 'critical_focus' | 'mastered';
+  historicalAverage: number;
+  testCount: number;
+  strengths: string[];
+  weaknesses: string[];
+  recommendedAction: string;
+}
+
+export interface IeltsPathwayMilestone {
+  id: string;
+  milestoneNumber: number;
+  title: string;
+  targetBand: number;
+  description: string;
+  status: 'completed' | 'in_progress' | 'upcoming';
+  completionPercentage: number;
+  learningObjectives: string[];
+  recommendedHoursPerWeek: number;
+  practiceTestRequirement: string;
+  estimatedTargetDate: string;
+}
+
+export interface IeltsBandAnalytics {
+  currentBand: number;
+  targetBand: number;
+  targetBandText: string;
+  gap: number;
+  completionPercentage: number;
+  overallDescriptor: string;
+  targetDescriptor: string;
+  moduleScores: Record<IeltsModuleType, IeltsModuleScore>;
+  weakestModule: IeltsModuleType;
+  strongestModule: IeltsModuleType;
+  historicalTrend: { date: string; overallBand: number; listening: number; reading: number; writing: number; speaking: number }[];
+  predictedProgression: { milestone: string; predictedWeeks: number; predictedBand: number }[];
+  pathwayMilestones: IeltsPathwayMilestone[];
+  nextRecommendedActivity: string;
+  remainingDaysEstimated: number;
+}
+
 // Exam Preparation Module (E2Language style)
 export type VoicePersona = 'man' | 'woman' | 'boy' | 'girl';
 

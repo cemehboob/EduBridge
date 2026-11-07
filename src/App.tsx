@@ -52,6 +52,7 @@ import { triggerCelebration } from './utils/celebration';
 import { generateFivePracticeTestsBatch, generateOneHundredWordsBatch, generatePracticeTestsBatch } from './services/scheduleJobService';
 import { IngestedItemRecord } from './types';
 import { applyThemeToDom } from './utils/themeManager';
+import { IeltsLearningTreeService } from './services/ieltsLearningTreeService';
 
 export default function App() {
   // Global ecosystem state with offline persistence
@@ -258,6 +259,15 @@ export default function App() {
       ieltsUnits.some((u) => u.lessons.some((l) => l.id === activeLesson.id));
 
     if (isIelts) {
+      if (activeLesson.id.startsWith('ielts_daily_')) {
+        IeltsLearningTreeService.completeDailyMission(
+          currentUser?.email || currentUser?.id || profile.email || 'default_student',
+          activeLesson.id,
+          score,
+          profile
+        );
+      }
+
       const updatedIelts = ieltsUnits.map((u) => {
         const hasLesson = u.lessons.some((l) => l.id === activeLesson.id);
         if (!hasLesson) return u;
@@ -888,6 +898,23 @@ export default function App() {
     }
   };
 
+  const handleUpdateTargetBand = (newBand: string) => {
+    const updatedProfile = { ...profile, targetBand: newBand };
+    setProfile(updatedProfile);
+    StorageService.saveProfile(updatedProfile);
+
+    if (currentUser) {
+      const updatedUser: UserAccount = {
+        ...currentUser,
+        preferences: {
+          ...currentUser.preferences,
+          targetBand: newBand
+        }
+      };
+      handleUpdateCurrentUser(updatedUser);
+    }
+  };
+
   const handleToggleUserStatus = (userId: string) => {
     const updated = users.map((u) => {
       if (u.id === userId) {
@@ -1184,6 +1211,7 @@ export default function App() {
                 onMarkLessonCompleted={handleMarkLessonCompleted}
                 onRecordActivity={handleRecordActivity}
                 onUpdateMockTests={setMockTests}
+                onUpdateTargetBand={handleUpdateTargetBand}
                 onCelebrate={(type) => {
                   if (type === 'daily_goal') {
                     const todayKey = 'edubridge_daily_goal_celebrated_' + new Date().toISOString().slice(0, 10);
