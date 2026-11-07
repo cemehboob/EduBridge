@@ -42,13 +42,20 @@ export interface SendEmailOptions {
   type: EmailLogEntry['type'];
 }
 
-const VAULT_DIR = path.resolve(process.cwd(), 'data', 'server_vault');
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const VAULT_DIR = isServerless
+  ? path.resolve('/tmp', 'server_vault')
+  : path.resolve(process.cwd(), 'data', 'server_vault');
 const SMTP_CONFIG_FILE = path.join(VAULT_DIR, 'smtp_config.json');
 const EMAIL_LOGS_FILE = path.join(VAULT_DIR, 'email_logs.json');
 
-// Ensure vault directory exists
-if (!fs.existsSync(VAULT_DIR)) {
-  fs.mkdirSync(VAULT_DIR, { recursive: true });
+// Ensure vault directory exists without crashing on read-only environments
+try {
+  if (!fs.existsSync(VAULT_DIR)) {
+    fs.mkdirSync(VAULT_DIR, { recursive: true });
+  }
+} catch (e: any) {
+  console.warn('[EmailService] Directory initialization note:', e.message);
 }
 
 // Default SMTP Configuration (Free Microsoft Outlook / Exchange or environment-driven)
@@ -114,7 +121,11 @@ export class EmailService {
       isConfigured: true
     };
 
-    fs.writeFileSync(SMTP_CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf-8');
+    try {
+      fs.writeFileSync(SMTP_CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf-8');
+    } catch (err: any) {
+      console.warn('[EmailService] Config write note:', err.message);
+    }
     return this.getConfig();
   }
 

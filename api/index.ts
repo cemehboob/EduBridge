@@ -1,5 +1,5 @@
-import { serverApp, ensureDbInitialized } from '../server/app';
-
+let cachedServerApp: any = null;
+let cachedEnsureDbInitialized: any = null;
 let dbInitPromise: Promise<void> | null = null;
 
 function sendJson(res: any, status: number, data: any) {
@@ -13,9 +13,14 @@ function sendJson(res: any, status: number, data: any) {
 
 export default async function handler(req: any, res: any) {
   try {
-    // 1. One-time cold start DB initialization
-    if (!dbInitPromise && process.env.DATABASE_URL) {
-      dbInitPromise = ensureDbInitialized().catch((e: any) => {
+    if (!cachedServerApp) {
+      const appModule = await import('../server/app');
+      cachedServerApp = appModule.serverApp;
+      cachedEnsureDbInitialized = appModule.ensureDbInitialized;
+    }
+
+    if (!dbInitPromise && process.env.DATABASE_URL && cachedEnsureDbInitialized) {
+      dbInitPromise = cachedEnsureDbInitialized().catch((e: any) => {
         console.warn('[Vercel Serverless DB Note]', e.message);
       });
     }
@@ -23,7 +28,7 @@ export default async function handler(req: any, res: any) {
       await dbInitPromise;
     }
 
-    // 2. Restore user's real requested route URL
+    // Restore user's real requested route URL
     const originalPath =
       (req.headers && (req.headers['x-matched-path'] as string || req.headers['x-forwarded-uri'] as string || req.headers['x-invoke-path'] as string)) ||
       req.url;
@@ -34,17 +39,15 @@ export default async function handler(req: any, res: any) {
       req.url = originalPath.split('?')[0] + (originalPath.includes('?') ? '' : queryString);
     }
 
-    // Ensure route begins with /api
     if (req.url && !req.url.startsWith('/api')) {
       req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
     }
 
-    // 3. Delegate to Express and await completion so Vercel Serverless function does not terminate prematurely
     return new Promise<void>((resolve, reject) => {
       res.on('finish', resolve);
       res.on('close', resolve);
       res.on('error', reject);
-      serverApp(req, res);
+      cachedServerApp(req, res);
     });
   } catch (err: any) {
     console.error('[Vercel Handler Exception]:', err);
@@ -52,6 +55,7 @@ export default async function handler(req: any, res: any) {
       sendJson(res, 500, {
         success: false,
         error: err.message || 'Internal Serverless Handler Error',
+        stack: err.stack,
         timestamp: new Date().toISOString()
       });
     }
