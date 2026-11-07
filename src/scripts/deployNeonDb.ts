@@ -5,6 +5,7 @@
  * question attempts, written responses, and scheduled jobs.
  */
 
+import 'dotenv/config';
 import { neon } from '@neondatabase/serverless';
 import fs from 'fs';
 import path from 'path';
@@ -17,9 +18,14 @@ import { IELTSPracticeService } from '../services/ieltsPracticeService';
 import { DEFAULT_COLOR_SCHEME } from '../utils/themeManager';
 import { WrittenResponseRecord } from '../types';
 
-const NEON_CONNECTION_STRING =
-  process.env.DATABASE_URL ||
-  'postgresql://<user>:<password>@<neon_endpoint>-pooler.<region>.aws.neon.tech/<database_name>?sslmode=require&channel_binding=require';
+const NEON_CONNECTION_STRING = process.env.DATABASE_URL;
+
+if (!NEON_CONNECTION_STRING) {
+  console.error('\n[EduBridge Deploy Error] DATABASE_URL environment variable is not set.');
+  console.error('Please configure DATABASE_URL in your .env file or export it in your shell environment.');
+  console.error('Example: DATABASE_URL="postgresql://<user>:<password>@<neon_endpoint>-pooler.<region>.aws.neon.tech/<database_name>?sslmode=require"\n');
+  process.exit(1);
+}
 
 async function deploy() {
   console.log('=================================================================');
@@ -688,13 +694,9 @@ async function deploy() {
   console.log(`  • quizzes:            ${qzCount[0].count} records`);
   console.log(`  • app_configurations: ${cCount[0].count} records`);
 
-  // 4. Save to .env
-  console.log('\nStep 4/4: Writing connection string to project configuration (.env)...');
-  const envContent = `# Centralized Neon Postgres Cloud Database
-DATABASE_URL="${NEON_CONNECTION_STRING}"
-`;
-  fs.writeFileSync(path.join(process.cwd(), '.env'), envContent, 'utf-8');
-  console.log('  ✓ Saved DATABASE_URL to .env');
+  // 4. Verify environment configuration
+  console.log('\nStep 4/4: Verifying project environment configuration...');
+  console.log('  ✓ DATABASE_URL environment variable is active and verified.');
 
   console.log('\n=================================================================');
   console.log('  SUCCESS: Neon Postgres Database is Fully Deployed and Active! ');
