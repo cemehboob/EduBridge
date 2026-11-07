@@ -7,7 +7,7 @@
     "dev": "vite --port=3000 --host=0.0.0.0",
     "server": "tsx server/index.ts",
     "start": "tsx server/index.ts",
-    "build": "vite build && vite build --ssr server/app.ts --outDir api --emptyOutDir=false && node -e \"if (fs.existsSync('api/app.js')) fs.renameSync('api/app.js', 'api/_app.js')\"",
+    "build": "vite build && vite build --ssr server/app.ts --outDir dist-server && node -e \"fs.copyFileSync('dist-server/app.js', 'api/_app.js'); fs.rmSync('dist-server', { recursive: true, force: true });\"",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"

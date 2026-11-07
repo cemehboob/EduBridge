@@ -95,6 +95,7 @@ const KEYS = {
   IELTS_UNITS: 'edubridge_ielts_units_v1',
   TEST_CONDUCTION_LOGS: 'edubridge_test_conduction_logs_v1',
   COLOR_SCHEME: 'edubridge_color_scheme_v1',
+  SYSTEM_SETUP: 'edubridge_system_setup_v1',
   ACTIVITIES: 'edubridge_user_activities_v1',
   QUESTION_ATTEMPTS: 'edubridge_question_attempts_v1',
   WRITTEN_RESPONSES: 'edubridge_written_responses_v1',

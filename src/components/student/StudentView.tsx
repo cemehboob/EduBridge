@@ -291,8 +291,8 @@ export const StudentView: React.FC<StudentViewProps> = ({
         ...units.flatMap((u) => u.lessons),
         ...(ieltsUnits ? ieltsUnits.flatMap((u) => u.lessons) : [])
       ];
-      const match = activity.replayPayload.subId
-        ? allLessons.find((l) => l.id === activity.replayPayload.subId)
+      const match = activity.replayPayload?.subId
+        ? allLessons.find((l) => l.id === activity.replayPayload?.subId)
         : allLessons[0];
       if (match) {
         onStartLesson(match);
@@ -300,7 +300,7 @@ export const StudentView: React.FC<StudentViewProps> = ({
       }
       setActiveTab('language');
     } else if (activity.type === 'solver') {
-      if (activity.replayPayload.query) {
+      if (activity.replayPayload?.query) {
         setSolverInitialQuery(activity.replayPayload.query);
       }
       setActiveTab('solver');

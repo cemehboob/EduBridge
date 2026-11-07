@@ -715,6 +715,10 @@ async function deployToDatabase(connectionUrl: string, dbName: string) {
 }
 
 async function main() {
+  if (!NEON_CONNECTION_STRING) {
+    console.error('DATABASE_URL or NEON_CONNECTION_STRING is required.');
+    process.exit(1);
+  }
   await deployToDatabase(NEON_CONNECTION_STRING, 'EduBridge');
 
   if (NEON_CONNECTION_STRING.includes('/EduBridge')) {

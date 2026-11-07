@@ -31,8 +31,8 @@ export default async function handler(req: any, res: any) {
 
   let appLoadError: any = null;
   try {
-    const appModule = await import('../server/app.js');
-    appLoadError = 'loaded successfully, serverApp is ' + typeof appModule.serverApp;
+    const appModule = await import('./_app.js');
+    appLoadError = 'loaded ./_app.js successfully, serverApp is ' + typeof appModule.serverApp;
   } catch (e: any) {
     appLoadError = { message: e.message, stack: e.stack };
   }

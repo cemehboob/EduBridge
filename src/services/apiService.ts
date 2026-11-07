@@ -143,6 +143,10 @@ class ApiService {
     }
   };
 
+  public async getHealth(customUrl?: string) {
+    return this.health.check(customUrl);
+  }
+
   // --- Auth APIs ---
   public auth = {
     ensureSession: async (user: UserAccount): Promise<string | null> => {

@@ -3,7 +3,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { DbStorage, initializeDatabase, seedInitialData } from './db';
 import { executeJobOnDatabase, executeAllDatabaseScheduledJobs } from './scheduler';
-import { UserAccount } from '../src/types';
+import { UserAccount, UserActivityRecord } from '../src/types';
 import { EmailService } from './emailService';
 
 // Lazy / background initialization of Neon Postgres database on server startup

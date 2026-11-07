@@ -463,6 +463,7 @@ export interface UserAccount {
   dateOfBirth: string; // e.g. "2002-05-14"
   role: UserRole;
   status: 'active' | 'disabled';
+  cohort?: string;
   emailVerified?: boolean;
   emailVerificationStatus?: 'verified' | 'pending_verification' | 'verification_expired';
   createdAt: string;
@@ -518,7 +519,8 @@ export type ActivityType =
   | 'daily_schedule'
   | 'practice_test'
   | 'quiz'
-  | 'admin_action';
+  | 'admin_action'
+  | 'auth';
 
 export interface SmtpConfigView {
   host: string;
@@ -564,6 +566,9 @@ export interface UserActivityRecord {
   id: string;
   userId: string;
   userName: string;
+  userRole?: string;
+  cohort?: string;
+  action?: string;
   type: ActivityType;
   title: string;
   category: string;
@@ -588,7 +593,7 @@ export interface UserActivityRecord {
   percentage?: number;
   evaluation?: string;
   feedback?: string;
-  replayPayload: {
+  replayPayload?: {
     tab: string;
     subId?: string;
     query?: string;

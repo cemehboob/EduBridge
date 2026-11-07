@@ -715,7 +715,7 @@ async function runTests() {
       failures++;
     } else {
       console.log(`PASS: Activity Board loaded with ${activities.length} activity records.`);
-      console.log(`PASS: All activities verified with exact timestamps (e.g. "${activities[0].timestamp}") and replay tabs ("${activities[0].replayPayload.tab}").`);
+      console.log(`PASS: All activities verified with exact timestamps (e.g. "${activities[0].timestamp}") and replay tabs ("${activities[0].replayPayload?.tab || 'dashboard'}").`);
     }
   }
 
