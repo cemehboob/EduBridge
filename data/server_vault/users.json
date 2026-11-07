@@ -1,5 +1,106 @@
 [
   {
+    "id": "usr_otp_verified_1794044452670",
+    "name": "Elena Rostova 1794044452670",
+    "username": "elena.rostova.1794044452670",
+    "email": "elena.rostova.1794044452670@edubridge.org",
+    "password": "NewStrongPassword789!",
+    "dateOfBirth": "2001-08-25",
+    "role": "student",
+    "status": "active",
+    "emailVerified": true,
+    "emailVerificationStatus": "verified",
+    "createdAt": "2026-11-03",
+    "lastLoginAt": "2026-11-03 22:30:00",
+    "preferences": {
+      "preferredLanguage": "Academic English",
+      "dailyGoalXp": 100,
+      "targetExam": "TOEFL iBT",
+      "theme": "system",
+      "soundEnabled": true,
+      "emailNotifications": true
+    },
+    "profileStats": {
+      "currentStreak": 1,
+      "highestStreak": 1,
+      "xp": 100,
+      "level": 1,
+      "league": "Bronze",
+      "hearts": 5,
+      "maxHearts": 5,
+      "todayXp": 50
+    }
+  },
+  {
+    "id": "usr_machine_a_1794044452665",
+    "name": "Sofia Martinez 1794044452665",
+    "username": "sofia.martinez.1794044452665",
+    "email": "sofia.martinez.1794044452665@edubridge.org",
+    "password": "SecurePassword123!",
+    "dateOfBirth": "2003-04-12",
+    "role": "student",
+    "status": "active",
+    "emailVerified": true,
+    "emailVerificationStatus": "verified",
+    "createdAt": "2026-11-03",
+    "lastLoginAt": "2026-11-03 22:00:00",
+    "preferences": {
+      "preferredLanguage": "Spanish",
+      "dailyGoalXp": 100,
+      "targetExam": "IELTS Academic",
+      "theme": "system",
+      "soundEnabled": true,
+      "emailNotifications": true
+    },
+    "profileStats": {
+      "currentStreak": 4,
+      "highestStreak": 4,
+      "xp": 450,
+      "level": 2,
+      "league": "Silver",
+      "hearts": 5,
+      "maxHearts": 5,
+      "todayXp": 80
+    }
+  },
+  {
+    "id": "usr_cross_1794044452656",
+    "name": "Elena Rostova 1794044452656",
+    "username": "learner_1794044452656",
+    "email": "learner_1794044452656@edubridge.org",
+    "password": "SecurePass987!",
+    "dateOfBirth": "2001-06-15",
+    "role": "student",
+    "status": "active",
+    "emailVerified": true,
+    "emailVerificationStatus": "verified",
+    "createdAt": "2026-11-07",
+    "lastLoginAt": "2026-11-07 09:40:52",
+    "preferences": {
+      "preferredLanguage": "Academic English (IELTS Band 8.0)",
+      "dailyGoalXp": 100,
+      "targetExam": "IELTS Academic",
+      "targetExamDate": "2026-12-01",
+      "targetBand": "8.5 Band",
+      "targetCareer": "Robotics Software Architect",
+      "theme": "system",
+      "soundEnabled": true,
+      "emailNotifications": true,
+      "fontScale": "standard",
+      "simplifiedInterface": false
+    },
+    "profileStats": {
+      "currentStreak": 1,
+      "highestStreak": 1,
+      "xp": 50,
+      "level": 1,
+      "league": "Bronze",
+      "hearts": 5,
+      "maxHearts": 5,
+      "todayXp": 50
+    }
+  },
+  {
     "id": "usr_otp_verified_1794000669982",
     "name": "Elena Rostova 1794000669982",
     "username": "elena.rostova.1794000669982",

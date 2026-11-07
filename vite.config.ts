@@ -1,28 +1,36 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
-import {serverApp} from './server/app';
+import { defineConfig } from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ command }) => {
+  const isBuild = command === 'build';
+
   return {
     base: './',
     plugins: [
       react(),
       tailwindcss(),
-      {
-        name: 'edubridge-api-server',
-        configureServer(server) {
-          server.middlewares.use(serverApp);
-        },
-        configurePreviewServer(server) {
-          server.middlewares.use(serverApp);
-        }
-      }
+      // Attach local API server middleware ONLY for dev and preview servers, never during static build
+      ...(!isBuild
+        ? [
+            {
+              name: 'edubridge-api-server',
+              async configureServer(server: any) {
+                const { serverApp } = await import('./server/app');
+                server.middlewares.use(serverApp);
+              },
+              async configurePreviewServer(server: any) {
+                const { serverApp } = await import('./server/app');
+                server.middlewares.use(serverApp);
+              }
+            }
+          ]
+        : [])
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve('.'),
       },
     },
     server: {
@@ -38,3 +46,4 @@ export default defineConfig(() => {
     },
   };
 });
+

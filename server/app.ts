@@ -20,7 +20,7 @@ export async function ensureDbInitialized(): Promise<void> {
 }
 
 // Trigger background initialization at runtime (avoid network calls during static build bundling)
-if (!process.env.npm_lifecycle_event?.includes('build')) {
+if (!process.env.npm_lifecycle_event?.includes('build') && !process.argv.some((a) => a.includes('build'))) {
   ensureDbInitialized().catch(() => {});
 }
 
@@ -127,8 +127,11 @@ async function seedTestTokens() {
     } catch {}
   }
 }
-// Seed test tokens after DB is initialized
-setTimeout(() => seedTestTokens().catch(() => {}), 3000);
+// Seed test tokens after DB is initialized (unref so timer does not block process exit)
+if (!process.env.npm_lifecycle_event?.includes('build') && !process.argv.some((a) => a.includes('build'))) {
+  const tokenTimer = setTimeout(() => seedTestTokens().catch(() => {}), 3000);
+  if (tokenTimer.unref) tokenTimer.unref();
+}
 
 async function createSessionToken(user: UserAccount): Promise<string> {
   const token = `eb_tok_${crypto.randomUUID().replace(/-/g, '')}`;
@@ -1407,11 +1410,18 @@ serverApp.all('/api/cron', async (_req: Request, res: Response) => {
   }
 });
 
-// Server background interval check (runs automatically every 60 seconds on server / daemons)
-setInterval(() => {
-  const today = new Date().toISOString().slice(0, 10);
-  if (lastServerCronDate !== today) {
-    executeServerScheduledJobs().catch((e) => console.warn('[Server Scheduler] Auto-run note:', e.message));
-  }
-}, 60000);
+// Server background interval check (runs automatically every 60 seconds on server / daemons, unref to avoid blocking build/exit)
+if (
+  process.env.NODE_ENV !== 'test' &&
+  !process.env.npm_lifecycle_event?.includes('build') &&
+  !process.argv.some((a) => a.includes('build'))
+) {
+  const schedulerTimer = setInterval(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (lastServerCronDate !== today) {
+      executeServerScheduledJobs().catch((e) => console.warn('[Server Scheduler] Auto-run note:', e.message));
+    }
+  }, 60000);
+  if (schedulerTimer.unref) schedulerTimer.unref();
+}
 
