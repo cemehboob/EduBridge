@@ -28,6 +28,7 @@ import {
 } from './types';
 import { StorageService } from './services/storage';
 import { systemMetrics } from './data/initialData';
+import { cohortQuizQuestions } from './data/cohortQuizzesData';
 import { sound } from './utils/audio';
 import { userAccountToProfile, calculateCohortFromDob, calculateEducationLevel } from './utils/userProfile';
 
@@ -646,18 +647,23 @@ export default function App() {
       StorageService.saveAuditLogs(updatedLogs);
     } else if (jobId === 'job_quiz_generation_00') {
       const cohorts: AgeCohortId[] = ['early', 'junior', 'academy', 'pro', 'senior'];
-      const newQuizzes = cohorts.map((c, idx) => ({
-        id: `quiz_daily_${c}_${Date.now()}_${idx}`,
-        cohort: c,
-        educationLevel: c === 'early' ? 'Early Primary' : c === 'junior' ? 'Middle School' : c === 'academy' ? 'High School & Prep' : c === 'pro' ? 'College & Career' : 'Lifelong Scholar',
-        category: 'Diagnostic Assessment',
-        prompt: `Cohort diagnostic inquiry for ${c} level students.`,
-        options: ['Verified Standard Answer', 'Distractor B', 'Distractor C', 'Distractor D'],
-        correctAnswer: 'Verified Standard Answer',
-        explanation: `Comprehensive pedagogical rationale for ${c} inquiry.`,
-        audioPrompt: `Diagnostic inquiry for ${c}`,
-        praise: 'Superb problem-solving mastery!'
-      }));
+      const newQuizzes: any[] = [];
+      for (const c of cohorts) {
+        const pool = cohortQuizQuestions.filter((q) => q.cohort === c);
+        const chosen = pool.slice(0, 2);
+        for (const baseQ of chosen) {
+          const shuffled = [...baseQ.options];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          newQuizzes.push({
+            ...baseQ,
+            id: `quiz_daily_${c}_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+            options: shuffled
+          });
+        }
+      }
       apiService.quizzes.saveBatch(newQuizzes).catch(() => {});
 
       const updatedJobs = scheduledJobs.map((j) =>

@@ -4,6 +4,7 @@ import {
   generatePracticeTestsBatch,
   generateOneHundredWordsBatch
 } from '../src/services/scheduleJobService';
+import { cohortQuizQuestions } from '../src/data/cohortQuizzesData';
 
 /**
  * EduBridge Centralized Database Job Execution Engine
@@ -114,26 +115,30 @@ export async function executeJobOnDatabase(jobId: string, customTimestamp?: stri
     jobName = 'Daily Cohort Quiz & Diagnostic Assessment Generator';
     const cohorts: ('early' | 'junior' | 'academy' | 'pro' | 'senior')[] = ['early', 'junior', 'academy', 'pro', 'senior'];
     
+    // Select authentic, curriculum-grounded questions across each developmental cohort
     for (const c of cohorts) {
-      const q = {
-        id: `quiz_cohort_${c}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-        cohort: c,
-        educationLevel: c === 'early' ? 'Early Primary' : c === 'junior' ? 'Middle School' : c === 'academy' ? 'High School & Prep' : c === 'pro' ? 'College & Career' : 'Lifelong Scholar',
-        category: 'Diagnostic Assessment',
-        prompt: `Cohort diagnostic inquiry for ${c} level students.`,
-        options: ['Standard Solution (Verified)', 'Distractor B', 'Distractor C', 'Distractor D'],
-        correctAnswer: 'Standard Solution (Verified)',
-        explanation: `Comprehensive pedagogical rationale for ${c} cohort inquiry.`,
-        audioPrompt: `Diagnostic inquiry for ${c}`,
-        praise: 'Superb problem-solving mastery!',
-        metadata: { generatedAt: timestamp }
-      };
-      await DbStorage.saveQuiz(q);
-      quizzesCount++;
+      const cohortPool = cohortQuizQuestions.filter((q) => q.cohort === c);
+      const chosen = cohortPool.slice(0, 2); // 2 authentic questions per cohort = 10 total
+      for (const baseQ of chosen) {
+        // Randomly shuffle options so the correct answer is not always in the top position
+        const shuffled = [...baseQ.options];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        const q = {
+          ...baseQ,
+          id: `quiz_cohort_${c}_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+          options: shuffled,
+          metadata: { generatedAt: timestamp }
+        };
+        await DbStorage.saveQuiz(q);
+        quizzesCount++;
+      }
     }
 
     itemsGenerated = quizzesCount;
-    details = `Generated and stored ${quizzesCount} cohort diagnostic quizzes in quizzes table.`;
+    details = `Generated and stored ${quizzesCount} authentic cohort curriculum quizzes in quizzes table with randomized option order.`;
 
     // Update scheduled_jobs table in database
     await DbStorage.updateScheduledJob(jobId, {

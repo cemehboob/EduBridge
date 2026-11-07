@@ -79,6 +79,20 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
   const [starsEarned, setStarsEarned] = useState<number>(0);
   const [isQuizFinished, setIsQuizFinished] = useState<boolean>(false);
   const [cloudQuizPool, setCloudQuizPool] = useState<CohortQuizQuestion[]>(cohortQuizQuestions);
+  const [quizBatchLimit, setQuizBatchLimit] = useState<number>(10);
+  const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
+
+  // Randomly shuffle options for the active question (guarantees correct answer is not always at the top)
+  useEffect(() => {
+    if (cohortQuestions[currentIndex]) {
+      const raw = [...(cohortQuestions[currentIndex].options || [])];
+      for (let i = raw.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [raw[i], raw[j]] = [raw[j], raw[i]];
+      }
+      setShuffledOptions(raw);
+    }
+  }, [currentIndex, cohortQuestions]);
 
   // Sync cohort quizzes from Neon Postgres database on mount
   useEffect(() => {
@@ -117,7 +131,9 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
       .sort((a, b) => attemptedIds.indexOf(a.id) - attemptedIds.indexOf(b.id));
 
     const orderedPool = [...unattempted, ...attempted];
-    const finalSelection = orderedPool.length > 0 ? orderedPool : pool;
+    const basePool = orderedPool.length > 0 ? orderedPool : pool;
+    // Calibrated session size (default 10 questions) ensures quiz stops cleanly at the end
+    const finalSelection = quizBatchLimit > 0 ? basePool.slice(0, quizBatchLimit) : basePool;
 
     setCohortQuestions(finalSelection);
     setCurrentIndex(0);
@@ -372,35 +388,69 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
               })}
             </div>
 
-            {/* Selected Level Summary & Start CTA */}
-            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{activeCategoryInfo.icon}</span>
-                  <span className="text-xs font-black uppercase text-indigo-600">
-                    {activeCategoryInfo.defaultModeName}
-                  </span>
+            {/* Selected Level Summary, Batch Sizing & Start CTA */}
+            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{activeCategoryInfo.icon}</span>
+                    <span className="text-xs font-black uppercase text-indigo-600">
+                      {activeCategoryInfo.defaultModeName}
+                    </span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-extrabold text-slate-900">
+                    Ready to test: {activeCategoryInfo.name} ({activeCategoryInfo.ageRange})
+                  </h4>
+                  <p className="text-xs text-slate-600">
+                    {selectedCohort === 'early' && 'Includes picture sight words, phonics sounds, cheerful voice, and stars.'}
+                    {selectedCohort === 'junior' && 'Includes middle-school science, bioluminescence, photosynthesis, and physics velocity.'}
+                    {selectedCohort === 'academy' && 'Includes IELTS Academic Band 8.5+ lexicon, Task 2 collocations, and formal register.'}
+                    {selectedCohort === 'pro' && 'Includes corporate diplomacy, de-escalation tactics, scope creep, and executive cadence.'}
+                    {selectedCohort === 'senior' && 'Includes digital scam spotting, neuroplasticity facts, and calm 0.82x voice narration.'}
+                  </p>
                 </div>
-                <h4 className="text-sm sm:text-base font-extrabold text-slate-900">
-                  Ready to test: {activeCategoryInfo.name} ({activeCategoryInfo.ageRange})
-                </h4>
-                <p className="text-xs text-slate-600">
-                  {selectedCohort === 'early' && 'Includes picture sight words, phonics sounds, cheerful voice, and stars.'}
-                  {selectedCohort === 'junior' && 'Includes middle-school science, bioluminescence, photosynthesis, and physics velocity.'}
-                  {selectedCohort === 'academy' && 'Includes IELTS Academic Band 8.5+ lexicon, Task 2 collocations, and formal register.'}
-                  {selectedCohort === 'pro' && 'Includes corporate diplomacy, de-escalation tactics, scope creep, and executive cadence.'}
-                  {selectedCohort === 'senior' && 'Includes digital scam spotting, neuroplasticity facts, and calm 0.82x voice narration.'}
-                </p>
+
+                <button
+                  onClick={handleStartQuiz}
+                  className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 text-amber-300" />
+                  <span>Start Calibrated Quiz</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
 
-              <button
-                onClick={handleStartQuiz}
-                className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 shrink-0"
-              >
-                <Zap className="w-4 h-4 text-amber-300" />
-                <span>Start Calibrated Quiz Now</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {/* Session Question Limit Selector */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/80">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-700">
+                  <Target className="w-4 h-4 text-indigo-600" />
+                  <span>Questions per Quiz Session:</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { count: 5, label: '5 Quick' },
+                    { count: 10, label: '10 Standard (Recommended)' },
+                    { count: 15, label: '15 Challenge' },
+                    { count: 0, label: 'All Available' }
+                  ].map((b) => (
+                    <button
+                      key={b.count}
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setQuizBatchLimit(b.count);
+                      }}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        quizBatchLimit === b.count
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -482,9 +532,9 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
             </p>
           </div>
 
-          {/* Options Grid */}
+          {/* Options Grid (Randomized shuffle ensures correct answer is never always top option) */}
           <div className="grid grid-cols-1 gap-3">
-            {currentQ.options.map((option, idx) => {
+            {(shuffledOptions.length > 0 ? shuffledOptions : currentQ.options).map((option, idx) => {
               const isSelected = selectedOption === option;
               const isCorrectAnswer = option.trim() === currentQ.correctAnswer.trim();
 
@@ -507,9 +557,14 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
                   key={idx}
                   disabled={isSubmitted}
                   onClick={() => handleSelectOption(option)}
-                  className={`p-4 rounded-2xl border text-xs sm:text-sm text-left transition-all flex items-center justify-between gap-3 ${btnClass}`}
+                  className={`p-4 rounded-2xl border text-xs sm:text-sm text-left transition-all flex items-center justify-between gap-3 cursor-pointer ${btnClass}`}
                 >
-                  <span className="leading-relaxed">{option}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 font-black text-xs flex items-center justify-center shrink-0">
+                      {String.fromCharCode(65 + idx)}
+                    </span>
+                    <span className="leading-relaxed">{option}</span>
+                  </div>
                   {isSubmitted && isCorrectAnswer && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
                   {isSubmitted && isSelected && !isCorrectAnswer && <XCircle className="w-5 h-5 text-rose-600 shrink-0" />}
                 </button>
@@ -566,16 +621,20 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
               <button
                 disabled={!selectedOption}
                 onClick={handleSubmitAnswer}
-                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs disabled:opacity-40 shadow-xs"
+                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs disabled:opacity-40 shadow-xs cursor-pointer"
               >
                 Submit Answer
               </button>
             ) : (
               <button
                 onClick={handleNextQuestion}
-                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs flex items-center gap-2"
+                className={`px-6 py-2.5 rounded-xl text-white font-black text-xs shadow-xs flex items-center gap-2 cursor-pointer transition-all ${
+                  currentIndex < totalQuestions - 1
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-emerald-700 hover:bg-emerald-800 ring-2 ring-emerald-400'
+                }`}
               >
-                <span>{currentIndex < totalQuestions - 1 ? 'Next Question' : 'View Final Results'}</span>
+                <span>{currentIndex < totalQuestions - 1 ? 'Next Question →' : 'Complete Quiz & View Final Results ✓'}</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             )}
@@ -585,7 +644,7 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
 
       {/* VIEW 3: Final Results & Celebration */}
       {isQuizFinished && (
-        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm text-center space-y-6 max-w-xl mx-auto">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm text-center space-y-6 max-w-2xl mx-auto animate-fade-in">
           <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
             <Trophy className="w-8 h-8" />
           </div>
@@ -596,7 +655,7 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
             </span>
             <h3 className="text-2xl font-black text-slate-900">Quiz Completed!</h3>
             <p className="text-xs text-slate-500">
-              Great job practicing concepts calibrated for {activeCategoryInfo.badge}.
+              Session complete! You completed all {totalQuestions} questions calibrated for {activeCategoryInfo.badge}.
             </p>
           </div>
 
@@ -607,7 +666,9 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
             </div>
             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
               <span className="text-[10px] font-black uppercase text-slate-400 block">Accuracy</span>
-              <span className="text-xl font-black text-emerald-600">{accuracyPercent}%</span>
+              <span className={`text-xl font-black ${accuracyPercent >= 80 ? 'text-emerald-600' : accuracyPercent >= 60 ? 'text-amber-600' : 'text-slate-800'}`}>
+                {accuracyPercent}%
+              </span>
             </div>
             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
               <span className="text-[10px] font-black uppercase text-slate-400 block">XP Earned</span>
@@ -615,13 +676,41 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center justify-center gap-3 pt-2">
+          {/* Session Questions Review */}
+          <div className="space-y-2 text-left pt-2 border-t border-slate-100">
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-500">Question-by-Question Review</h4>
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {cohortQuestions.map((q, idx) => {
+                const ans = userAnswers.find((a) => a.questionId === q.id) || userAnswers[idx];
+                const isCorrect = ans?.isCorrect ?? false;
+                return (
+                  <div key={q.id || idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-slate-800">Q{idx + 1}: {q.word || q.category}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black ${isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                        {isCorrect ? 'Correct' : 'Needs Review'}
+                      </span>
+                    </div>
+                    <p className="text-slate-600 text-[11px]">{q.prompt}</p>
+                    <div className="text-[11px] text-slate-500 flex flex-wrap gap-2 pt-1 border-t border-slate-100">
+                      <span>Your Answer: <strong className={isCorrect ? 'text-emerald-700' : 'text-rose-700'}>{ans?.selected || 'None'}</strong></span>
+                      {!isCorrect && (
+                        <span>• Correct: <strong className="text-emerald-700">{q.correctAnswer}</strong></span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
             <button
               onClick={handleStartQuiz}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-xs flex items-center gap-2"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
-              <span>Retry This Level</span>
+              <span>Take Next 10 Questions</span>
             </button>
             <button
               onClick={() => {
@@ -629,9 +718,9 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
                 setIsQuizFinished(false);
                 setIsQuizActive(false);
               }}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs"
+              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs cursor-pointer"
             >
-              Change Level
+              Change Level / Cohort
             </button>
           </div>
         </div>
