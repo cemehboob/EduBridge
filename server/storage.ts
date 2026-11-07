@@ -562,6 +562,65 @@ export const ServerStorage = {
       writtenResponses,
       incompleteAttempt
     };
+  },
+
+  createOtp: async (record: any): Promise<any> => {
+    return mutex.dispatch(() => {
+      const list = readJsonFile<any[]>('auth_otps.json', []);
+      const updated = [record, ...list.filter((o) => !(o.email.toLowerCase() === record.email.toLowerCase() && o.type === record.type && o.status === 'active'))];
+      writeJsonFileSync('auth_otps.json', updated);
+      return record;
+    });
+  },
+
+  getOtp: async (email: string, type: string): Promise<any | null> => {
+    return mutex.dispatch(() => {
+      const list = readJsonFile<any[]>('auth_otps.json', []);
+      const cleanEmail = email.toLowerCase().trim();
+      return list.find((o) => o.email.toLowerCase() === cleanEmail && o.type === type && o.status === 'active') || null;
+    });
+  },
+
+  incrementOtpAttempts: async (id: string): Promise<number> => {
+    return mutex.dispatch(() => {
+      const list = readJsonFile<any[]>('auth_otps.json', []);
+      const item = list.find((o) => o.id === id);
+      if (item) {
+        item.attempts = (item.attempts || 0) + 1;
+        writeJsonFileSync('auth_otps.json', list);
+        return item.attempts;
+      }
+      return 1;
+    });
+  },
+
+  markOtpVerified: async (id: string): Promise<void> => {
+    return mutex.dispatch(() => {
+      const list = readJsonFile<any[]>('auth_otps.json', []);
+      const item = list.find((o) => o.id === id);
+      if (item) {
+        item.status = 'verified';
+        writeJsonFileSync('auth_otps.json', list);
+      }
+    });
+  },
+
+  invalidateOtp: async (id: string): Promise<void> => {
+    return mutex.dispatch(() => {
+      const list = readJsonFile<any[]>('auth_otps.json', []);
+      const item = list.find((o) => o.id === id);
+      if (item) {
+        item.status = 'invalidated';
+        writeJsonFileSync('auth_otps.json', list);
+      }
+    });
+  },
+
+  getOtpLogs: async (limit: number = 50): Promise<any[]> => {
+    return mutex.dispatch(() => {
+      const list = readJsonFile<any[]>('auth_otps.json', []);
+      return list.slice(0, limit);
+    });
   }
 };
 

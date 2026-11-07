@@ -265,6 +265,14 @@ class ApiService {
       return res.items;
     },
 
+    create: async (user: UserAccount): Promise<UserAccount> => {
+      const res = await this.request<{ success: boolean; user: UserAccount }>('/users', {
+        method: 'POST',
+        body: JSON.stringify(user)
+      });
+      return res.user;
+    },
+
     getById: async (id: string): Promise<UserAccount> => {
       const res = await this.request<{ success: boolean; user: UserAccount }>(`/users/${id}`);
       return res.user;
@@ -293,6 +301,18 @@ class ApiService {
       return this.request<{ success: boolean; user: UserAccount; message: string }>(`/admin/users/${userId}/verify-email`, {
         method: 'POST'
       });
+    }
+  };
+
+  // --- Database OTP Audit APIs ---
+  public otps = {
+    getAll: async (limit: number = 50): Promise<any[]> => {
+      try {
+        const res = await this.request<{ success: boolean; items: any[] }>(`/admin/otps?limit=${limit}`);
+        return res.items || [];
+      } catch {
+        return [];
+      }
     }
   };
 

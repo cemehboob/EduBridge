@@ -208,6 +208,26 @@ async function deployToDatabase(connectionUrl: string, dbName: string) {
   console.log('  ✓ Table "email_logs" verified');
 
   await sql`
+    CREATE TABLE IF NOT EXISTS auth_otps (
+      id               TEXT PRIMARY KEY,
+      email            TEXT NOT NULL,
+      type             TEXT NOT NULL,
+      otp_code         TEXT NOT NULL,
+      otp_hash         TEXT NOT NULL,
+      attempts         INTEGER DEFAULT 0,
+      max_attempts     INTEGER DEFAULT 5,
+      expires_at       BIGINT NOT NULL,
+      created_at       BIGINT NOT NULL,
+      last_sent_at     BIGINT NOT NULL,
+      status           TEXT DEFAULT 'active',
+      metadata         JSONB DEFAULT '{}'
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_auth_otps_email_type ON auth_otps(email, type)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_auth_otps_status ON auth_otps(status)`;
+  console.log('  ✓ Table "auth_otps" verified');
+
+  await sql`
     CREATE TABLE IF NOT EXISTS scheduled_jobs (
       id                   TEXT PRIMARY KEY,
       name                 TEXT,
@@ -293,7 +313,9 @@ async function deployToDatabase(connectionUrl: string, dbName: string) {
   await sql`CREATE OR REPLACE VIEW schedule_jobs AS SELECT * FROM scheduled_jobs`;
   await sql`CREATE OR REPLACE VIEW student_activities AS SELECT * FROM activities`;
   await sql`CREATE OR REPLACE VIEW answers AS SELECT id as attempt_id, user_id, user_name, test_id, question_number, user_answer, correct_answer, is_correct, score, explanation, timestamp FROM question_attempts`;
-  console.log('  ✓ Database Views verified: exams, mock_tests, practice_tests, sample_tests, configuration_setup, schedule_jobs, student_activities, answers\n');
+  await sql`CREATE OR REPLACE VIEW password_resets AS SELECT * FROM auth_otps WHERE type = 'PASSWORD_RESET'`;
+  await sql`CREATE OR REPLACE VIEW user_creation_otps AS SELECT * FROM auth_otps WHERE type = 'REGISTRATION'`;
+  console.log('  ✓ Database Views verified: exams, mock_tests, practice_tests, sample_tests, configuration_setup, schedule_jobs, student_activities, answers, password_resets, user_creation_otps\n');
 
   // 2. Seed Data
   console.log('Step 2/4: Seeding baseline accounts, activities & records...');

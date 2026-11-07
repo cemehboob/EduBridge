@@ -63,6 +63,11 @@ export default async function handler(req: any, res: any) {
     `;
     const usersCount = await sql`SELECT count(*) FROM users`;
     const activitiesCount = await sql`SELECT count(*) FROM activities`;
+    let otpsCount = 0;
+    try {
+      const otpsRes = await sql`SELECT count(*) FROM auth_otps`;
+      otpsCount = parseInt(otpsRes[0]?.count || '0', 10);
+    } catch {}
 
     return sendJson(res, 200, {
       success: true,
@@ -72,6 +77,7 @@ export default async function handler(req: any, res: any) {
       tables: tables.map((t: any) => t.table_name),
       userCount: parseInt(usersCount[0]?.count || '0', 10),
       activityCount: parseInt(activitiesCount[0]?.count || '0', 10),
+      otpsCount,
       appLoadError,
       filesInTask,
       filesInServer,

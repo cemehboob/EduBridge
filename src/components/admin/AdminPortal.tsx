@@ -445,7 +445,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [replyTicketId, setReplyTicketId] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
   const [replyStatus, setReplyStatus] = useState<'Resolved' | 'Investigating'>('Resolved');
-  const [auditSubTab, setAuditSubTab] = useState<'conduction' | 'system'>('conduction');
+  const [auditSubTab, setAuditSubTab] = useState<'conduction' | 'system' | 'otps'>('conduction');
+  const [dbOtps, setDbOtps] = useState<any[]>([]);
+  const [loadingDbOtps, setLoadingDbOtps] = useState(false);
+
+  // Load database-level OTP audit logs when audit subtab is active
+  useEffect(() => {
+    if (activeAdminTab === 'audit' && auditSubTab === 'otps') {
+      setLoadingDbOtps(true);
+      apiService.otps.getAll(100)
+        .then((items) => setDbOtps(items))
+        .catch(() => {})
+        .finally(() => setLoadingDbOtps(false));
+    }
+  }, [activeAdminTab, auditSubTab]);
 
   // Vocab Explorer state
   const [vocabSearch, setVocabSearch] = useState('');
@@ -3199,6 +3212,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <Activity className="w-4 h-4" />
                 <span>Security Events ({auditLogs.length})</span>
               </button>
+
+              <button
+                onClick={() => setAuditSubTab('otps')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                  auditSubTab === 'otps'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Key className="w-4 h-4" />
+                <span>Database OTPs ({dbOtps.length})</span>
+              </button>
             </div>
           </div>
 
@@ -3268,6 +3293,82 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </div>
                 ))}
               </div>
+            </div>
+          ) : auditSubTab === 'otps' ? (
+            <div className="space-y-3">
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl flex items-center justify-between text-xs text-indigo-900 font-bold">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-indigo-600" />
+                  <span>Central Neon Postgres OTP Security Ledger (persisted in <code>auth_otps</code> table).</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider bg-indigo-200/70 px-2 py-0.5 rounded text-indigo-950 font-black">
+                  Postgres Live Ledger
+                </span>
+              </div>
+
+              {loadingDbOtps ? (
+                <div className="p-8 text-center text-slate-400 text-xs">
+                  <RefreshCw className="w-5 h-5 mx-auto mb-2 animate-spin text-indigo-600" />
+                  Loading database OTP security logs...
+                </div>
+              ) : dbOtps.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 text-xs">
+                  No database OTP records logged yet. New user creations and password resets will appear here directly from Neon Postgres.
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-slate-200 rounded-2xl bg-white">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold uppercase text-[10px] tracking-wider">
+                      <tr>
+                        <th className="p-3">Recipient</th>
+                        <th className="p-3">Type</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Attempts</th>
+                        <th className="p-3">Created</th>
+                        <th className="p-3">Expires</th>
+                        <th className="p-3">Verified</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-mono">
+                      {dbOtps.map((otp: any) => {
+                        const isExpired = new Date(otp.expires_at || otp.expiresAt).getTime() < Date.now();
+                        const status = otp.verified ? 'VERIFIED' : isExpired ? 'EXPIRED' : 'PENDING';
+                        return (
+                          <tr key={otp.id || `${otp.email}-${otp.created_at}`} className="hover:bg-slate-50 transition-colors">
+                            <td className="p-3 font-sans font-bold text-slate-900">{otp.email}</td>
+                            <td className="p-3 font-sans">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                {otp.type || 'AUTH'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                status === 'VERIFIED'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : status === 'EXPIRED'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {status}
+                              </span>
+                            </td>
+                            <td className="p-3 text-slate-600">{otp.attempts || 0}</td>
+                            <td className="p-3 text-slate-500 text-[11px]">
+                              {otp.created_at ? new Date(otp.created_at).toLocaleTimeString() : '—'}
+                            </td>
+                            <td className="p-3 text-slate-500 text-[11px]">
+                              {otp.expires_at ? new Date(otp.expires_at).toLocaleTimeString() : '—'}
+                            </td>
+                            <td className="p-3 text-slate-500 text-[11px]">
+                              {otp.verified_at ? new Date(otp.verified_at).toLocaleTimeString() : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">

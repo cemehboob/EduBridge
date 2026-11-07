@@ -55,7 +55,7 @@ export async function initializeDatabase(): Promise<void> {
 
   try {
     // Quick existence check: if core tables exist, skip full DDL execution for rapid cold starts
-    const existing = await sql`SELECT 1 FROM users, standard_tests, quizzes, app_configurations LIMIT 1`;
+    const existing = await sql`SELECT 1 FROM users, standard_tests, quizzes, app_configurations, auth_otps LIMIT 1`;
     if (existing && existing.length > 0) {
       return;
     }
@@ -251,6 +251,28 @@ export async function initializeDatabase(): Promise<void> {
   await sql`
     CREATE INDEX IF NOT EXISTS idx_email_logs_ts ON email_logs(timestamp DESC)
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS auth_otps (
+      id               TEXT PRIMARY KEY,
+      email            TEXT NOT NULL,
+      type             TEXT NOT NULL,
+      otp_code         TEXT NOT NULL,
+      otp_hash         TEXT NOT NULL,
+      attempts         INTEGER DEFAULT 0,
+      max_attempts     INTEGER DEFAULT 5,
+      expires_at       BIGINT NOT NULL,
+      created_at       BIGINT NOT NULL,
+      last_sent_at     BIGINT NOT NULL,
+      status           TEXT DEFAULT 'active',
+      metadata         JSONB DEFAULT '{}'
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_auth_otps_email_type ON auth_otps(email, type)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_auth_otps_status ON auth_otps(status)`;
+  await sql`CREATE OR REPLACE VIEW password_resets AS SELECT * FROM auth_otps WHERE type = 'PASSWORD_RESET'`;
+  await sql`CREATE OR REPLACE VIEW user_creation_otps AS SELECT * FROM auth_otps WHERE type = 'REGISTRATION'`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS scheduled_jobs (
@@ -2050,5 +2072,161 @@ export const DbStorage = {
         updated_by = EXCLUDED.updated_by
     `;
     return value;
+  },
+
+  createOtp: async (record: {
+    id: string;
+    email: string;
+    type: 'REGISTRATION' | 'PASSWORD_RESET';
+    otpCode: string;
+    otpHash: string;
+    attempts: number;
+    maxAttempts: number;
+    expiresAt: number;
+    createdAt: number;
+    lastSentAt: number;
+    status: 'active' | 'verified' | 'expired' | 'invalidated';
+    metadata?: Record<string, any>;
+  }): Promise<any> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.createOtp(record);
+    }
+    const sql = getSql();
+    try {
+      await sql`
+        UPDATE auth_otps
+        SET status = 'invalidated'
+        WHERE LOWER(email) = ${record.email.toLowerCase()} AND type = ${record.type} AND status = 'active'
+      `;
+      await sql`
+        INSERT INTO auth_otps (
+          id, email, type, otp_code, otp_hash,
+          attempts, max_attempts, expires_at, created_at,
+          last_sent_at, status, metadata
+        )
+        VALUES (
+          ${record.id}, ${record.email.toLowerCase()}, ${record.type},
+          ${record.otpCode}, ${record.otpHash},
+          ${record.attempts}, ${record.maxAttempts}, ${record.expiresAt},
+          ${record.createdAt}, ${record.lastSentAt}, ${record.status},
+          ${JSON.stringify(record.metadata || {})}
+        )
+      `;
+      return record;
+    } catch (err: any) {
+      console.warn('[DbStorage createOtp Note]', err.message);
+      return ServerStorage.createOtp(record);
+    }
+  },
+
+  getOtp: async (email: string, type: 'REGISTRATION' | 'PASSWORD_RESET'): Promise<any | null> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getOtp(email, type);
+    }
+    try {
+      const sql = getSql();
+      const rows = await sql`
+        SELECT * FROM auth_otps
+        WHERE LOWER(email) = ${email.toLowerCase()} AND type = ${type} AND status = 'active'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+      if (rows.length === 0) return null;
+      const r = rows[0];
+      return {
+        id: r.id,
+        email: r.email,
+        type: r.type,
+        otpCode: r.otp_code,
+        otpHash: r.otp_hash,
+        attempts: parseInt(String(r.attempts), 10),
+        maxAttempts: parseInt(String(r.max_attempts), 10),
+        expiresAt: Number(r.expires_at),
+        createdAt: Number(r.created_at),
+        lastSentAt: Number(r.last_sent_at),
+        status: r.status,
+        metadata: typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata || {}
+      };
+    } catch {
+      return ServerStorage.getOtp(email, type);
+    }
+  },
+
+  incrementOtpAttempts: async (id: string): Promise<number> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.incrementOtpAttempts(id);
+    }
+    try {
+      const sql = getSql();
+      const rows = await sql`
+        UPDATE auth_otps
+        SET attempts = attempts + 1
+        WHERE id = ${id}
+        RETURNING attempts
+      `;
+      return rows.length > 0 ? parseInt(String(rows[0].attempts), 10) : 1;
+    } catch {
+      return ServerStorage.incrementOtpAttempts(id);
+    }
+  },
+
+  markOtpVerified: async (id: string): Promise<void> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.markOtpVerified(id);
+    }
+    try {
+      const sql = getSql();
+      await sql`
+        UPDATE auth_otps
+        SET status = 'verified'
+        WHERE id = ${id}
+      `;
+    } catch {
+      ServerStorage.markOtpVerified(id);
+    }
+  },
+
+  invalidateOtp: async (id: string): Promise<void> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.invalidateOtp(id);
+    }
+    try {
+      const sql = getSql();
+      await sql`
+        UPDATE auth_otps
+        SET status = 'invalidated'
+        WHERE id = ${id}
+      `;
+    } catch {
+      ServerStorage.invalidateOtp(id);
+    }
+  },
+
+  getOtpLogs: async (limit: number = 50): Promise<any[]> => {
+    if (!process.env.DATABASE_URL) {
+      return ServerStorage.getOtpLogs(limit);
+    }
+    try {
+      const sql = getSql();
+      const rows = await sql`
+        SELECT id, email, type, attempts, max_attempts, expires_at, created_at, last_sent_at, status, metadata
+        FROM auth_otps
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `;
+      return rows.map((r: any) => ({
+        id: r.id,
+        email: r.email,
+        type: r.type,
+        attempts: parseInt(String(r.attempts), 10),
+        maxAttempts: parseInt(String(r.max_attempts), 10),
+        expiresAt: new Date(Number(r.expires_at)).toISOString(),
+        createdAt: new Date(Number(r.created_at)).toISOString(),
+        status: r.status,
+        metadata: typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata || {}
+      }));
+    } catch {
+      return ServerStorage.getOtpLogs(limit);
+    }
   }
 };

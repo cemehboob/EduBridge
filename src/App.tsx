@@ -112,6 +112,16 @@ export default function App() {
         }
         await StorageService.syncConfigurationsFromCloud();
         await StorageService.syncTestsFromCloud();
+
+        // 3. Sync users from central database across all connected machines
+        try {
+          const remoteUsers = await apiService.users.getAll();
+          if (isMounted && remoteUsers && remoteUsers.length > 0) {
+            setUsers(remoteUsers);
+            StorageService.saveUsers(remoteUsers);
+          }
+        } catch {}
+
         if (isMounted) {
           setFeatureFlags(StorageService.getFeatureFlags());
           setMockTests(StorageService.getMockTests());
@@ -873,8 +883,16 @@ export default function App() {
     StorageService.saveAuditLogs(updatedLogs);
   };
 
-  const handleAddUser = (newUser: UserAccount) => {
-    const updated = [newUser, ...users];
+  const handleAddUser = async (newUser: UserAccount) => {
+    let savedUser = newUser;
+    try {
+      // Create user directly at the Neon Postgres database level
+      savedUser = await apiService.users.create(newUser);
+    } catch (err: any) {
+      console.warn('[User DB Creation Fallback]', err.message);
+    }
+
+    const updated = [savedUser, ...users.filter((u) => u.id !== newUser.id)];
     setUsers(updated);
     StorageService.saveUsers(updated);
 
@@ -882,7 +900,7 @@ export default function App() {
       id: `log_${Date.now()}`,
       timestamp: new Date().toLocaleTimeString(),
       user: currentUser?.email || 'admin@edubridge.org',
-      action: `USER_PROVISIONED: Admin created user account ${newUser.email} with role '${newUser.role}'`,
+      action: `USER_PROVISIONED: Admin created user account ${savedUser.email} with role '${savedUser.role}' in database`,
       category: 'RBAC_CHANGE',
       status: 'SUCCESS'
     };
@@ -891,7 +909,14 @@ export default function App() {
     StorageService.saveAuditLogs(updatedLogs);
   };
 
-  const handleAdminUpdateUser = (updatedUser: UserAccount) => {
+  const handleAdminUpdateUser = async (updatedUser: UserAccount) => {
+    try {
+      // Update user directly at the Neon Postgres database level
+      await apiService.users.update(updatedUser.id, updatedUser);
+    } catch (err: any) {
+      console.warn('[User DB Update Fallback]', err.message);
+    }
+
     const updatedUsers = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
     setUsers(updatedUsers);
     StorageService.saveUsers(updatedUsers);

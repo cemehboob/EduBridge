@@ -6330,6 +6330,12 @@ var ApiService = class {
 			getAll: async () => {
 				return (await this.request("/users")).items;
 			},
+			create: async (user) => {
+				return (await this.request("/users", {
+					method: "POST",
+					body: JSON.stringify(user)
+				})).user;
+			},
 			getById: async (id) => {
 				return (await this.request(`/users/${id}`)).user;
 			},
@@ -6349,6 +6355,13 @@ var ApiService = class {
 				return this.request(`/admin/users/${userId}/verify-email`, { method: "POST" });
 			}
 		};
+		this.otps = { getAll: async (limit = 50) => {
+			try {
+				return (await this.request(`/admin/otps?limit=${limit}`)).items || [];
+			} catch {
+				return [];
+			}
+		} };
 		this.activities = {
 			getAll: async (filter) => {
 				const params = new URLSearchParams();
@@ -12382,6 +12395,56 @@ var ServerStorage$1 = {
 			writtenResponses,
 			incompleteAttempt
 		};
+	},
+	createOtp: async (record) => {
+		return mutex.dispatch(() => {
+			writeJsonFileSync("auth_otps.json", [record, ...readJsonFile("auth_otps.json", []).filter((o) => !(o.email.toLowerCase() === record.email.toLowerCase() && o.type === record.type && o.status === "active"))]);
+			return record;
+		});
+	},
+	getOtp: async (email, type) => {
+		return mutex.dispatch(() => {
+			const list = readJsonFile("auth_otps.json", []);
+			const cleanEmail = email.toLowerCase().trim();
+			return list.find((o) => o.email.toLowerCase() === cleanEmail && o.type === type && o.status === "active") || null;
+		});
+	},
+	incrementOtpAttempts: async (id) => {
+		return mutex.dispatch(() => {
+			const list = readJsonFile("auth_otps.json", []);
+			const item = list.find((o) => o.id === id);
+			if (item) {
+				item.attempts = (item.attempts || 0) + 1;
+				writeJsonFileSync("auth_otps.json", list);
+				return item.attempts;
+			}
+			return 1;
+		});
+	},
+	markOtpVerified: async (id) => {
+		return mutex.dispatch(() => {
+			const list = readJsonFile("auth_otps.json", []);
+			const item = list.find((o) => o.id === id);
+			if (item) {
+				item.status = "verified";
+				writeJsonFileSync("auth_otps.json", list);
+			}
+		});
+	},
+	invalidateOtp: async (id) => {
+		return mutex.dispatch(() => {
+			const list = readJsonFile("auth_otps.json", []);
+			const item = list.find((o) => o.id === id);
+			if (item) {
+				item.status = "invalidated";
+				writeJsonFileSync("auth_otps.json", list);
+			}
+		});
+	},
+	getOtpLogs: async (limit = 50) => {
+		return mutex.dispatch(() => {
+			return readJsonFile("auth_otps.json", []).slice(0, limit);
+		});
 	}
 };
 try {
@@ -12403,7 +12466,7 @@ async function initializeDatabase() {
 	}
 	const sql = getSql();
 	try {
-		const existing = await sql`SELECT 1 FROM users, standard_tests, quizzes, app_configurations LIMIT 1`;
+		const existing = await sql`SELECT 1 FROM users, standard_tests, quizzes, app_configurations, auth_otps LIMIT 1`;
 		if (existing && existing.length > 0) return;
 	} catch {}
 	await sql`
@@ -12577,6 +12640,26 @@ async function initializeDatabase() {
 	await sql`
     CREATE INDEX IF NOT EXISTS idx_email_logs_ts ON email_logs(timestamp DESC)
   `;
+	await sql`
+    CREATE TABLE IF NOT EXISTS auth_otps (
+      id               TEXT PRIMARY KEY,
+      email            TEXT NOT NULL,
+      type             TEXT NOT NULL,
+      otp_code         TEXT NOT NULL,
+      otp_hash         TEXT NOT NULL,
+      attempts         INTEGER DEFAULT 0,
+      max_attempts     INTEGER DEFAULT 5,
+      expires_at       BIGINT NOT NULL,
+      created_at       BIGINT NOT NULL,
+      last_sent_at     BIGINT NOT NULL,
+      status           TEXT DEFAULT 'active',
+      metadata         JSONB DEFAULT '{}'
+    )
+  `;
+	await sql`CREATE INDEX IF NOT EXISTS idx_auth_otps_email_type ON auth_otps(email, type)`;
+	await sql`CREATE INDEX IF NOT EXISTS idx_auth_otps_status ON auth_otps(status)`;
+	await sql`CREATE OR REPLACE VIEW password_resets AS SELECT * FROM auth_otps WHERE type = 'PASSWORD_RESET'`;
+	await sql`CREATE OR REPLACE VIEW user_creation_otps AS SELECT * FROM auth_otps WHERE type = 'REGISTRATION'`;
 	await sql`
     CREATE TABLE IF NOT EXISTS scheduled_jobs (
       id                   TEXT PRIMARY KEY,
@@ -14091,6 +14174,125 @@ var DbStorage = {
         updated_by = EXCLUDED.updated_by
     `;
 		return value;
+	},
+	createOtp: async (record) => {
+		if (!process.env.DATABASE_URL) return ServerStorage$1.createOtp(record);
+		const sql = getSql();
+		try {
+			await sql`
+        UPDATE auth_otps
+        SET status = 'invalidated'
+        WHERE LOWER(email) = ${record.email.toLowerCase()} AND type = ${record.type} AND status = 'active'
+      `;
+			await sql`
+        INSERT INTO auth_otps (
+          id, email, type, otp_code, otp_hash,
+          attempts, max_attempts, expires_at, created_at,
+          last_sent_at, status, metadata
+        )
+        VALUES (
+          ${record.id}, ${record.email.toLowerCase()}, ${record.type},
+          ${record.otpCode}, ${record.otpHash},
+          ${record.attempts}, ${record.maxAttempts}, ${record.expiresAt},
+          ${record.createdAt}, ${record.lastSentAt}, ${record.status},
+          ${JSON.stringify(record.metadata || {})}
+        )
+      `;
+			return record;
+		} catch (err) {
+			console.warn("[DbStorage createOtp Note]", err.message);
+			return ServerStorage$1.createOtp(record);
+		}
+	},
+	getOtp: async (email, type) => {
+		if (!process.env.DATABASE_URL) return ServerStorage$1.getOtp(email, type);
+		try {
+			const rows = await getSql()`
+        SELECT * FROM auth_otps
+        WHERE LOWER(email) = ${email.toLowerCase()} AND type = ${type} AND status = 'active'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+			if (rows.length === 0) return null;
+			const r = rows[0];
+			return {
+				id: r.id,
+				email: r.email,
+				type: r.type,
+				otpCode: r.otp_code,
+				otpHash: r.otp_hash,
+				attempts: parseInt(String(r.attempts), 10),
+				maxAttempts: parseInt(String(r.max_attempts), 10),
+				expiresAt: Number(r.expires_at),
+				createdAt: Number(r.created_at),
+				lastSentAt: Number(r.last_sent_at),
+				status: r.status,
+				metadata: typeof r.metadata === "string" ? JSON.parse(r.metadata) : r.metadata || {}
+			};
+		} catch {
+			return ServerStorage$1.getOtp(email, type);
+		}
+	},
+	incrementOtpAttempts: async (id) => {
+		if (!process.env.DATABASE_URL) return ServerStorage$1.incrementOtpAttempts(id);
+		try {
+			const rows = await getSql()`
+        UPDATE auth_otps
+        SET attempts = attempts + 1
+        WHERE id = ${id}
+        RETURNING attempts
+      `;
+			return rows.length > 0 ? parseInt(String(rows[0].attempts), 10) : 1;
+		} catch {
+			return ServerStorage$1.incrementOtpAttempts(id);
+		}
+	},
+	markOtpVerified: async (id) => {
+		if (!process.env.DATABASE_URL) return ServerStorage$1.markOtpVerified(id);
+		try {
+			await getSql()`
+        UPDATE auth_otps
+        SET status = 'verified'
+        WHERE id = ${id}
+      `;
+		} catch {
+			ServerStorage$1.markOtpVerified(id);
+		}
+	},
+	invalidateOtp: async (id) => {
+		if (!process.env.DATABASE_URL) return ServerStorage$1.invalidateOtp(id);
+		try {
+			await getSql()`
+        UPDATE auth_otps
+        SET status = 'invalidated'
+        WHERE id = ${id}
+      `;
+		} catch {
+			ServerStorage$1.invalidateOtp(id);
+		}
+	},
+	getOtpLogs: async (limit = 50) => {
+		if (!process.env.DATABASE_URL) return ServerStorage$1.getOtpLogs(limit);
+		try {
+			return (await getSql()`
+        SELECT id, email, type, attempts, max_attempts, expires_at, created_at, last_sent_at, status, metadata
+        FROM auth_otps
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `).map((r) => ({
+				id: r.id,
+				email: r.email,
+				type: r.type,
+				attempts: parseInt(String(r.attempts), 10),
+				maxAttempts: parseInt(String(r.max_attempts), 10),
+				expiresAt: new Date(Number(r.expires_at)).toISOString(),
+				createdAt: new Date(Number(r.created_at)).toISOString(),
+				status: r.status,
+				metadata: typeof r.metadata === "string" ? JSON.parse(r.metadata) : r.metadata || {}
+			}));
+		} catch {
+			return ServerStorage$1.getOtpLogs(limit);
+		}
 	}
 };
 // server/scheduler.ts
@@ -14818,7 +15020,13 @@ var ServerStorage = {
 	getConfiguration: (k) => DbStorage.getConfiguration(k),
 	setConfiguration: (k, v, cat, desc, by) => DbStorage.setConfiguration(k, v, cat, desc, by),
 	getScheduledJobs: () => DbStorage.getScheduledJobs(),
-	updateScheduledJob: (id, updates) => DbStorage.updateScheduledJob(id, updates)
+	updateScheduledJob: (id, updates) => DbStorage.updateScheduledJob(id, updates),
+	createOtp: (r) => DbStorage.createOtp(r),
+	getOtp: (e, t) => DbStorage.getOtp(e, t),
+	incrementOtpAttempts: (id) => DbStorage.incrementOtpAttempts(id),
+	markOtpVerified: (id) => DbStorage.markOtpVerified(id),
+	invalidateOtp: (id) => DbStorage.invalidateOtp(id),
+	getOtpLogs: (l) => DbStorage.getOtpLogs(l)
 };
 var serverApp = express();
 serverApp.use((req, res, next) => {
@@ -14888,7 +15096,6 @@ async function createSessionToken(user) {
 	}
 	return token;
 }
-var activeOtps = /* @__PURE__ */ new Map();
 function hashOtp(otp) {
 	return crypto.createHash("sha256").update(otp.trim()).digest("hex");
 }
@@ -15273,8 +15480,7 @@ serverApp.post("/api/auth/register/request-otp", async (req, res) => {
 		}
 		const cleanName = name.trim();
 		const cleanUsername = (username || cleanName.toLowerCase().replace(/\s+/g, ".")).trim().toLowerCase();
-		const otpKey = `reg:${cleanEmail}`;
-		const existingOtp = activeOtps.get(otpKey);
+		const existingOtp = await DbStorage.getOtp(cleanEmail, "REGISTRATION");
 		if (existingOtp && Date.now() - existingOtp.lastSentAt < 6e4) {
 			const waitSecs = Math.ceil((6e4 - (Date.now() - existingOtp.lastSentAt)) / 1e3);
 			res.status(429).json({
@@ -15285,19 +15491,19 @@ serverApp.post("/api/auth/register/request-otp", async (req, res) => {
 		}
 		const otp = Math.floor(1e5 + crypto.randomInt(0, 9e5)).toString();
 		const now = Date.now();
-		activeOtps.set(otpKey, {
-			id: `otp_${now}_${Math.random().toString(36).slice(2, 6)}`,
+		await DbStorage.createOtp({
+			id: `otp_${now}_${crypto.randomBytes(3).toString("hex")}`,
 			email: cleanEmail,
+			type: "REGISTRATION",
+			otpCode: otp,
 			otpHash: hashOtp(otp),
-			purpose: "REGISTRATION",
-			createdAt: now,
-			expiresAt: now + 6e5,
 			attempts: 0,
 			maxAttempts: 5,
+			expiresAt: now + 6e5,
+			createdAt: now,
 			lastSentAt: now,
-			resendAvailableAt: now + 6e4,
-			consumed: false,
-			registrationData: {
+			status: "active",
+			metadata: {
 				name: cleanName,
 				username: cleanUsername,
 				email: cleanEmail,
@@ -15334,8 +15540,7 @@ serverApp.post("/api/auth/register/verify-otp", async (req, res) => {
 		}
 		const cleanEmail = email.trim().toLowerCase();
 		const cleanOtp = String(otp).trim();
-		const otpKey = `reg:${cleanEmail}`;
-		const record = activeOtps.get(otpKey);
+		const record = await DbStorage.getOtp(cleanEmail, "REGISTRATION");
 		if (!record) {
 			res.status(400).json({
 				success: false,
@@ -15344,16 +15549,15 @@ serverApp.post("/api/auth/register/verify-otp", async (req, res) => {
 			return;
 		}
 		if (Date.now() > record.expiresAt) {
-			activeOtps.delete(otpKey);
+			await DbStorage.invalidateOtp(record.id);
 			res.status(400).json({
 				success: false,
 				error: "Verification code has expired. Please request a new code."
 			});
 			return;
 		}
-		record.attempts += 1;
-		if (record.attempts > record.maxAttempts) {
-			activeOtps.delete(otpKey);
+		if (record.attempts >= record.maxAttempts) {
+			await DbStorage.invalidateOtp(record.id);
 			res.status(429).json({
 				success: false,
 				error: "Too many incorrect attempts. For security, this verification code has been invalidated. Please request a new one."
@@ -15361,17 +15565,18 @@ serverApp.post("/api/auth/register/verify-otp", async (req, res) => {
 			return;
 		}
 		if (hashOtp(cleanOtp) !== record.otpHash) {
-			const remaining = record.maxAttempts - record.attempts;
+			const newAttempts = await DbStorage.incrementOtpAttempts(record.id);
+			const remaining = Math.max(0, record.maxAttempts - newAttempts);
 			res.status(400).json({
 				success: false,
 				error: `Incorrect verification code. ${remaining} attempts remaining.`
 			});
 			return;
 		}
-		activeOtps.delete(otpKey);
-		const regData = record.registrationData;
+		await DbStorage.markOtpVerified(record.id);
+		const regData = record.metadata;
 		const newUser = {
-			id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+			id: `usr_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`,
 			name: regData.name,
 			username: regData.username,
 			email: regData.email,
@@ -15443,8 +15648,7 @@ serverApp.post("/api/auth/password-reset/request-otp", async (req, res) => {
 			});
 			return;
 		}
-		const otpKey = `reset:${cleanEmail}`;
-		const existingOtp = activeOtps.get(otpKey);
+		const existingOtp = await DbStorage.getOtp(cleanEmail, "PASSWORD_RESET");
 		if (existingOtp && Date.now() - existingOtp.lastSentAt < 6e4) {
 			const waitSecs = Math.ceil((6e4 - (Date.now() - existingOtp.lastSentAt)) / 1e3);
 			res.status(429).json({
@@ -15455,18 +15659,22 @@ serverApp.post("/api/auth/password-reset/request-otp", async (req, res) => {
 		}
 		const otp = Math.floor(1e5 + crypto.randomInt(0, 9e5)).toString();
 		const now = Date.now();
-		activeOtps.set(otpKey, {
-			id: `otp_${now}_${Math.random().toString(36).slice(2, 6)}`,
+		await DbStorage.createOtp({
+			id: `otp_${now}_${crypto.randomBytes(3).toString("hex")}`,
 			email: cleanEmail,
+			type: "PASSWORD_RESET",
+			otpCode: otp,
 			otpHash: hashOtp(otp),
-			purpose: "PASSWORD_RESET",
-			createdAt: now,
-			expiresAt: now + 6e5,
 			attempts: 0,
 			maxAttempts: 5,
+			expiresAt: now + 6e5,
+			createdAt: now,
 			lastSentAt: now,
-			resendAvailableAt: now + 6e4,
-			consumed: false
+			status: "active",
+			metadata: {
+				userId: user.id,
+				userName: user.name
+			}
 		});
 		const emailSent = await EmailService.sendPasswordResetOtp(cleanEmail, user.name, otp);
 		res.json({
@@ -15501,8 +15709,7 @@ serverApp.post("/api/auth/password-reset/verify-otp", async (req, res) => {
 		}
 		const cleanEmail = email.trim().toLowerCase();
 		const cleanOtp = String(otp).trim();
-		const otpKey = `reset:${cleanEmail}`;
-		const record = activeOtps.get(otpKey);
+		const record = await DbStorage.getOtp(cleanEmail, "PASSWORD_RESET");
 		if (!record) {
 			res.status(400).json({
 				success: false,
@@ -15511,16 +15718,15 @@ serverApp.post("/api/auth/password-reset/verify-otp", async (req, res) => {
 			return;
 		}
 		if (Date.now() > record.expiresAt) {
-			activeOtps.delete(otpKey);
+			await DbStorage.invalidateOtp(record.id);
 			res.status(400).json({
 				success: false,
 				error: "Password reset code has expired. Please request a new code."
 			});
 			return;
 		}
-		record.attempts += 1;
-		if (record.attempts > record.maxAttempts) {
-			activeOtps.delete(otpKey);
+		if (record.attempts >= record.maxAttempts) {
+			await DbStorage.invalidateOtp(record.id);
 			res.status(429).json({
 				success: false,
 				error: "Too many incorrect attempts. For security, this reset code has been invalidated."
@@ -15528,14 +15734,15 @@ serverApp.post("/api/auth/password-reset/verify-otp", async (req, res) => {
 			return;
 		}
 		if (hashOtp(cleanOtp) !== record.otpHash) {
-			const remaining = record.maxAttempts - record.attempts;
+			const newAttempts = await DbStorage.incrementOtpAttempts(record.id);
+			const remaining = Math.max(0, record.maxAttempts - newAttempts);
 			res.status(400).json({
 				success: false,
 				error: `Incorrect reset code. ${remaining} attempts remaining.`
 			});
 			return;
 		}
-		activeOtps.delete(otpKey);
+		await DbStorage.markOtpVerified(record.id);
 		const user = await DbStorage.getUserByIdentifier(cleanEmail);
 		if (!user) {
 			res.status(404).json({
@@ -15544,7 +15751,7 @@ serverApp.post("/api/auth/password-reset/verify-otp", async (req, res) => {
 			});
 			return;
 		}
-		await ServerStorage.updateUser(user.id, {
+		await DbStorage.updateUser(user.id, {
 			password: newPassword.trim(),
 			emailVerified: true,
 			emailVerificationStatus: "verified"
@@ -15583,6 +15790,105 @@ serverApp.get("/api/users", authenticateToken, requireAdmin, async (_req, res) =
 			success: true,
 			items: decorated,
 			total: decorated.length
+		});
+	} catch (err) {
+		res.status(500).json({
+			success: false,
+			error: err.message
+		});
+	}
+});
+serverApp.post("/api/users", authenticateTokenOptional, async (req, res) => {
+	try {
+		const { name, username, email, password, dateOfBirth, role, status, preferences, profileStats } = req.body;
+		if (!name || !email || !password) {
+			res.status(400).json({
+				success: false,
+				error: "Name, email, and password are required."
+			});
+			return;
+		}
+		const cleanName = name.trim();
+		const cleanEmail = email.trim().toLowerCase();
+		const cleanUsername = (username || cleanName.toLowerCase().replace(/\s+/g, ".")).trim().toLowerCase();
+		if (await DbStorage.getUserByIdentifier(cleanEmail)) {
+			res.status(409).json({
+				success: false,
+				error: `An account with email "${cleanEmail}" already exists.`
+			});
+			return;
+		}
+		const newUser = {
+			id: req.body.id || `usr_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`,
+			name: cleanName,
+			username: cleanUsername,
+			email: cleanEmail,
+			password: password.trim(),
+			dateOfBirth: dateOfBirth || "2004-01-01",
+			role: role || "student",
+			status: status || "active",
+			emailVerified: true,
+			emailVerificationStatus: "verified",
+			createdAt: req.body.createdAt || (/* @__PURE__ */ new Date()).toISOString().slice(0, 10),
+			lastLoginAt: req.body.lastLoginAt || "Never logged in",
+			preferences: {
+				preferredLanguage: "Academic English",
+				dailyGoalXp: 100,
+				targetExam: "IELTS Academic",
+				theme: "system",
+				soundEnabled: true,
+				emailNotifications: true,
+				...preferences || {}
+			},
+			profileStats: {
+				currentStreak: 1,
+				highestStreak: 1,
+				xp: 50,
+				level: 1,
+				league: "Bronze",
+				hearts: 5,
+				maxHearts: 5,
+				todayXp: 0,
+				...profileStats || {}
+			}
+		};
+		const created = await DbStorage.createUser(newUser);
+		try {
+			await DbStorage.saveActivity({
+				id: `act_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`,
+				userId: req.user?.id || "usr_root_admin",
+				userName: req.user?.name || "System Administrator",
+				userRole: "admin",
+				type: "admin_action",
+				title: `Admin Created User Account: ${created.name}`,
+				category: "RBAC_CHANGE",
+				timestamp: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19),
+				status: "completed",
+				details: `Created user account ${created.email} (${created.role.toUpperCase()}) directly in Neon Postgres database table users.`,
+				replayPayload: {
+					tab: "admin",
+					subId: "users"
+				}
+			});
+		} catch {}
+		res.status(201).json({
+			success: true,
+			user: created
+		});
+	} catch (err) {
+		res.status(500).json({
+			success: false,
+			error: err.message
+		});
+	}
+});
+serverApp.get("/api/admin/otps", authenticateTokenOptional, async (_req, res) => {
+	try {
+		const otps = await DbStorage.getOtpLogs(100);
+		res.json({
+			success: true,
+			items: otps,
+			total: otps.length
 		});
 	} catch (err) {
 		res.status(500).json({
@@ -15943,20 +16249,24 @@ serverApp.post("/api/admin/users/:id/initiate-reset", authenticateToken, require
 		}
 		const cleanEmail = user.email.toLowerCase();
 		const otp = Math.floor(1e5 + crypto.randomInt(0, 9e5)).toString();
-		const otpKey = `reset:${cleanEmail}`;
 		const now = Date.now();
-		activeOtps.set(otpKey, {
-			id: `otp_${now}_${Math.random().toString(36).slice(2, 6)}`,
+		await DbStorage.createOtp({
+			id: `otp_${now}_${crypto.randomBytes(3).toString("hex")}`,
 			email: cleanEmail,
+			type: "PASSWORD_RESET",
+			otpCode: otp,
 			otpHash: hashOtp(otp),
-			purpose: "PASSWORD_RESET",
-			createdAt: now,
-			expiresAt: now + 9e5,
 			attempts: 0,
 			maxAttempts: 5,
+			expiresAt: now + 9e5,
+			createdAt: now,
 			lastSentAt: now,
-			resendAvailableAt: now + 6e4,
-			consumed: false
+			status: "active",
+			metadata: {
+				userId: user.id,
+				userName: user.name,
+				initiatedBy: "admin"
+			}
 		});
 		await EmailService.sendPasswordResetOtp(cleanEmail, user.name, otp);
 		res.json({
