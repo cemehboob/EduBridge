@@ -18,6 +18,7 @@ import { AIService } from '../../services/aiService';
 import { sound } from '../../utils/audio';
 import { VoicePersonaSelector } from './VoicePersonaSelector';
 import { AudioListeningPlayer } from './AudioListeningPlayer';
+import { shuffleOptions } from '../../utils/questionShuffler';
 
 interface ExerciseModalProps {
   lesson: Lesson;
@@ -45,10 +46,20 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
   const [speechRecordedText, setSpeechRecordedText] = useState<string | null>(null);
   const [speechAccuracy, setSpeechAccuracy] = useState<number | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
 
   const exercises = lesson.exercises;
   const currentEx: ExerciseItem | undefined = exercises[currentIndex];
   const progressPercent = Math.round(((currentIndex) / exercises.length) * 100);
+
+  // Shuffle options for the current question so correct answer position is randomized
+  useEffect(() => {
+    if (currentEx?.options && currentEx.options.length > 0) {
+      setShuffledOptions(shuffleOptions(currentEx.options, currentEx.correctAnswer));
+    } else {
+      setShuffledOptions([]);
+    }
+  }, [currentIndex, currentEx?.prompt]);
 
   const handlePlayAudio = (text: string) => {
     setIsPlayingAudio(true);
@@ -295,7 +306,7 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
                 {/* Options List */}
                 {currentEx.options && currentEx.options.length > 0 && (
                   <div className="grid grid-cols-1 gap-2.5 pt-2">
-                    {currentEx.options.map((opt, i) => {
+                    {(shuffledOptions.length > 0 ? shuffledOptions : currentEx.options).map((opt, i) => {
                       const isSelected = selectedAnswer === opt;
                       let btnStyle = 'border-slate-200 hover:border-indigo-400 bg-white text-slate-800';
 

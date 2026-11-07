@@ -587,21 +587,45 @@ export default function App() {
       setVocabularyWords(updatedWords);
       StorageService.saveVocabularyWords(updatedWords);
 
-      // Convert vocabulary words into interactive cohort quizzes and persist into quizzes database table
-      const newQuizzes = newWords.slice(0, 10).map((w, idx) => ({
-        id: `quiz_vocab_${w.id}_${Date.now()}_${idx}`,
-        cohort: (w.cefrLevel === 'C2' ? 'senior' : w.cefrLevel === 'C1' ? 'pro' : w.cefrLevel === 'B2' ? 'academy' : 'junior') as AgeCohortId,
-        educationLevel: w.cefrLevel === 'C2' ? 'Graduate & Professional' : w.cefrLevel === 'C1' ? 'College & University' : 'High School',
-        category: w.category,
-        word: w.word,
-        phonetic: w.phonetic,
-        prompt: `Select the precise definition of "${w.word}" (${w.phonetic}):`,
-        options: [w.definition, `An unverified hypothesis opposite to ${w.word.toLowerCase()}`, `A generic laboratory artifact`, `Passive sensory perception`],
-        correctAnswer: w.definition,
-        explanation: `"${w.word}" (${w.partOfSpeech}): ${w.definition} Example: "${w.exampleSentence}"`,
-        audioPrompt: `Define ${w.word}`,
-        praise: `Great job mastering "${w.word}"!`
-      }));
+      // Convert vocabulary words into interactive cohort quizzes with authentic distractors and randomized options
+      const newQuizzes = newWords.slice(0, 10).map((w, idx) => {
+        const otherWords = newWords.filter((ow) => ow.word !== w.word && ow.definition !== w.definition);
+        const distractorPool = otherWords.map((ow) => ow.definition);
+        const chosenDistractors = distractorPool.slice(0, 3);
+        if (chosenDistractors.length < 3) {
+          chosenDistractors.push(
+            `A provisional methodology distinct from ${w.word.toLowerCase()}`,
+            `An unverified computational simulation parameter`,
+            `A non-standard linguistic deviation`
+          );
+        }
+
+        const rawOptions = [w.definition, ...chosenDistractors.slice(0, 3)];
+        const shuffled = [...rawOptions];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        if (shuffled[0] === w.definition && shuffled.length > 1) {
+          const targetIdx = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+          [shuffled[0], shuffled[targetIdx]] = [shuffled[targetIdx], shuffled[0]];
+        }
+
+        return {
+          id: `quiz_vocab_${w.id}_${Date.now()}_${idx}`,
+          cohort: (w.cefrLevel === 'C2' ? 'senior' : w.cefrLevel === 'C1' ? 'pro' : w.cefrLevel === 'B2' ? 'academy' : 'junior') as AgeCohortId,
+          educationLevel: w.cefrLevel === 'C2' ? 'Graduate & Professional' : w.cefrLevel === 'C1' ? 'College & University' : 'High School',
+          category: w.category,
+          word: w.word,
+          phonetic: w.phonetic,
+          prompt: `Select the precise definition of "${w.word}" (${w.phonetic}):`,
+          options: shuffled,
+          correctAnswer: w.definition,
+          explanation: `"${w.word}" (${w.partOfSpeech}): ${w.definition} Example: "${w.exampleSentence}"`,
+          audioPrompt: `Define ${w.word}`,
+          praise: `Great job mastering "${w.word}"!`
+        };
+      });
       apiService.quizzes.saveBatch(newQuizzes).catch(() => {});
 
       // Record items into the Ingested Items Ledger with timestamp columns

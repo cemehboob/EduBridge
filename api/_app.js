@@ -4819,6 +4819,50 @@ var multiExamMockTests = [
 		]
 	}
 ];
+// src/utils/questionShuffler.ts
+/**
+* Centralized Question & Option Shuffler Utility for EduBridge
+*
+* Implements Fisher-Yates randomization to ensure answer options are distributed
+* evenly across positions (A, B, C, D) rather than predictably clustering at index 0.
+*
+* Fully preserves answer mapping, scoring, validation, and explanations.
+*/
+/**
+* Shuffles an array of string options using the Fisher-Yates algorithm.
+* Guarantees that if options.length > 1, the result is randomized.
+*/
+function shuffleOptions(options, correctAnswer) {
+	if (!options || options.length <= 1) return options ? [...options] : [];
+	const shuffled = [...options];
+	for (let i = shuffled.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+	}
+	return shuffled;
+}
+/**
+* Shuffles an array of options while tracking and updating the correctIndex pointer.
+* Used for components that store answers as numerical indices (e.g., STEM Academic View).
+*/
+function shuffleIndexedOptions(options, correctIndex) {
+	if (!options || options.length <= 1) return {
+		options: [...options],
+		correctIndex
+	};
+	const originalCorrectAnswer = options[correctIndex];
+	const shuffled = [...options];
+	for (let i = shuffled.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+	}
+	let newCorrectIndex = shuffled.indexOf(originalCorrectAnswer);
+	if (newCorrectIndex === -1) newCorrectIndex = 0;
+	return {
+		options: shuffled,
+		correctIndex: newCorrectIndex
+	};
+}
 // src/data/initialData.ts
 var initialProfile = {
 	id: "user_edubridge_01",
@@ -5117,7 +5161,13 @@ var initialUnits = [
 		lessons: []
 	}
 ];
-var mockTests = [...multiExamMockTests];
+var mockTests = multiExamMockTests.map((test) => ({
+	...test,
+	questions: test.questions.map((q) => ({
+		...q,
+		options: q.options ? shuffleOptions(q.options, q.correctAnswer) : void 0
+	}))
+}));
 var academicTopics = [
 	{
 		id: "math_calc_01",
@@ -5281,7 +5331,17 @@ console.log('4');
 			]
 		}
 	}
-];
+].map((topic) => {
+	const shuffled = shuffleIndexedOptions(topic.practiceProblem.options, topic.practiceProblem.correctIndex);
+	return {
+		...topic,
+		practiceProblem: {
+			...topic.practiceProblem,
+			options: shuffled.options,
+			correctIndex: shuffled.correctIndex
+		}
+	};
+});
 var careerRoadmaps = [
 	{
 		id: "cr_ai_engineer",
@@ -8876,17 +8936,19 @@ function generateOneHundredWordsBatch(batchNumber, timestamp) {
 }
 function buildTenPracticeTestQuestions(testId, mod, subject, basePrompt, baseOptions, baseCorrect, baseExplanation) {
 	const qList = [];
+	const q1Correct = baseCorrect || `Direct application of principles defined under ${subject}`;
+	const q1RawOptions = baseOptions || [
+		`Direct application of principles defined under ${subject}`,
+		"Uncalibrated trial-and-error without empirical parameters",
+		"Total disregard for observable physical constraints",
+		"Outdated nineteenth-century anecdotal conjecture"
+	];
 	qList.push({
 		id: `${testId}_q1`,
 		questionNumber: 1,
 		prompt: basePrompt,
-		options: baseOptions || [
-			`Direct application of principles defined under ${subject}`,
-			"Uncalibrated trial-and-error without empirical parameters",
-			"Total disregard for observable physical constraints",
-			"Outdated nineteenth-century anecdotal conjecture"
-		],
-		correctAnswer: baseCorrect || `Direct application of principles defined under ${subject}`,
+		options: shuffleOptions(q1RawOptions, q1Correct),
+		correctAnswer: q1Correct,
 		explanation: baseExplanation || `The primary finding is corroborated by direct application of principles in ${subject}.`,
 		subject
 	});
@@ -8995,7 +9057,7 @@ function buildTenPracticeTestQuestions(testId, mod, subject, basePrompt, baseOpt
 			id: `${testId}_q${idx + 2}`,
 			questionNumber: idx + 2,
 			prompt: item.p,
-			options: item.opts,
+			options: shuffleOptions(item.opts, item.ans),
 			correctAnswer: item.ans,
 			explanation: item.exp,
 			subject
@@ -10309,7 +10371,13 @@ function generatePracticeTestsBatch(batchIndex, executionTimestamp) {
 			explanation: "Model Band 9 speaking performance demonstrating fluency, natural discourse markers, and rich academic vocabulary.",
 			questions: buildTenPracticeTestQuestions(`pt_daily_cam_batch_${batchIndex}_05`, "Speaking", pt5Subject, "Describe a recent scientific or technological innovation that has positively impacted your daily routine.", void 0, void 0, "Model Band 9 speaking performance demonstrating fluency, discourse markers, and academic vocabulary.")
 		}
-	];
+	].map((test) => ({
+		...test,
+		questions: test.questions.map((q) => ({
+			...q,
+			options: q.options ? shuffleOptions(q.options, q.correctAnswer) : void 0
+		}))
+	}));
 }
 function getInitialIngestedItemsLedger() {
 	return [
@@ -12469,23 +12537,6 @@ Dr. Thorne: Exactly. In stage one, provide optimal nitrogen and minerals to maxi
 * Every test features at least 10 subject-coherent, related, or mix-and-match questions
 * with passages/transcripts, distinct multiple-choice options, verified answers, and comprehensive explanations.
 */
-/**
-* Fisher-Yates option shuffler that guarantees the correct answer is not
-* predictably placed at index 0 (Option A), forcing the user to evaluate all choices.
-*/
-function shuffleOptions(options, correctAnswer) {
-	if (!options || options.length <= 1) return options;
-	const shuffled = [...options];
-	for (let i = shuffled.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-	}
-	if (correctAnswer && shuffled[0].trim().toLowerCase() === correctAnswer.trim().toLowerCase() && shuffled.length > 1) {
-		const targetIdx = 1 + Math.floor(Math.random() * (shuffled.length - 1));
-		[shuffled[0], shuffled[targetIdx]] = [shuffled[targetIdx], shuffled[0]];
-	}
-	return shuffled;
-}
 var AUTHENTIC_READING_GENERAL = [
 	{
 		topic: "Employee Workplace Health & Ergonomics Policy",
@@ -15314,6 +15365,17 @@ async function executeJobOnDatabase(jobId, customTimestamp) {
 		for (const w of newWords.slice(0, 15)) {
 			const cohort = w.cefrLevel === "C2" ? "senior" : w.cefrLevel === "C1" ? "pro" : w.cefrLevel === "B2" ? "academy" : "junior";
 			const educationLevel = w.cefrLevel === "C2" ? "Graduate & Professional" : w.cefrLevel === "C1" ? "College & University" : "High School";
+			const chosenDistractors = newWords.filter((ow) => ow.word !== w.word && ow.definition !== w.definition).map((ow) => ow.definition).slice(0, 3);
+			if (chosenDistractors.length < 3) chosenDistractors.push(`A provisional methodology distinct from ${w.word.toLowerCase()}`, `An unverified computational simulation parameter`, `A non-standard linguistic deviation`);
+			const shuffled = [...[w.definition, ...chosenDistractors.slice(0, 3)]];
+			for (let i = shuffled.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+			}
+			if (shuffled[0] === w.definition && Math.random() > .35 && shuffled.length > 1) {
+				const targetIdx = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+				[shuffled[0], shuffled[targetIdx]] = [shuffled[targetIdx], shuffled[0]];
+			}
 			const quizItem = {
 				id: `quiz_vocab_${w.id}_${Date.now()}`,
 				cohort,
@@ -15322,12 +15384,7 @@ async function executeJobOnDatabase(jobId, customTimestamp) {
 				word: w.word,
 				phonetic: w.phonetic,
 				prompt: `Select the precise definition of the academic term "${w.word}" (${w.phonetic}):`,
-				options: [
-					w.definition,
-					`An unverified hypothesis opposite to ${w.word.toLowerCase()}`,
-					`A generic administrative guideline`,
-					`Uncontrolled physical dissipation`
-				],
+				options: shuffled,
 				correctAnswer: w.definition,
 				explanation: `"${w.word}" (${w.partOfSpeech}): ${w.definition} Example: "${w.exampleSentence}"`,
 				audioPrompt: `Pronounce and explain the definition of ${w.word}`,

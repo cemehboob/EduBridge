@@ -16,6 +16,7 @@ import {
   RevisionItem
 } from '../types';
 import { multiExamMockTests } from './multiExamMockTestsData';
+import { shuffleOptions, shuffleIndexedOptions } from '../utils/questionShuffler';
 
 export const initialProfile: UserProfile = {
   id: 'user_edubridge_01',
@@ -304,11 +305,15 @@ export const initialUnits: Unit[] = [
   }
 ];
 
-export const mockTests: MockTest[] = [
-  ...multiExamMockTests
-];
+export const mockTests: MockTest[] = multiExamMockTests.map((test) => ({
+  ...test,
+  questions: test.questions.map((q) => ({
+    ...q,
+    options: q.options ? shuffleOptions(q.options, q.correctAnswer) : undefined
+  }))
+}));
 
-export const academicTopics: AcademicTopic[] = [
+const rawAcademicTopics: AcademicTopic[] = [
   {
     id: 'math_calc_01',
     subject: 'Mathematics',
@@ -452,6 +457,18 @@ console.log('4');
     }
   }
 ];
+
+export const academicTopics: AcademicTopic[] = rawAcademicTopics.map((topic) => {
+  const shuffled = shuffleIndexedOptions(topic.practiceProblem.options, topic.practiceProblem.correctIndex);
+  return {
+    ...topic,
+    practiceProblem: {
+      ...topic.practiceProblem,
+      options: shuffled.options,
+      correctIndex: shuffled.correctIndex
+    }
+  };
+});
 
 export const careerRoadmaps: CareerRoadmap[] = [
   {

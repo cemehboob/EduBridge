@@ -47,6 +47,7 @@ import { tfngExercises, band9EssayTemplates, cueCardItems, ageCohorts } from '..
 import { sound } from '../../utils/audio';
 import { calculateCohortFromDob } from '../../utils/userProfile';
 import { AudioListeningPlayer } from '../common/AudioListeningPlayer';
+import { shuffleOptions } from '../../utils/questionShuffler';
 
 interface ExamPrepViewProps {
   mockTests: MockTest[];
@@ -227,7 +228,7 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
   }, [userAnswers, essayText, activeTest, activePracticeItem, currentQuestionIndex, practiceAnswers, practiceUserAnswer, activeSectionIndex, selectedExam, selectedPracticeModule]);
 
   // Early Childhood Assessment Challenges (Ages 5–8)
-  const earlyLearningChallenges = [
+  const initialEarlyChallenges = [
     {
       id: 'early_q1',
       title: 'Phonics Letter Sounds',
@@ -290,10 +291,17 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     }
   ];
 
+  const [earlyLearningChallenges, setEarlyLearningChallenges] = useState(() =>
+    initialEarlyChallenges.map((c) => ({
+      ...c,
+      options: shuffleOptions(c.options, c.correctAnswer)
+    }))
+  );
   const [earlyQuestionIndex, setEarlyQuestionIndex] = useState(0);
   const [earlySelectedAnswer, setEarlySelectedAnswer] = useState<string | null>(null);
   const [earlyFeedback, setEarlyFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
   const [earlyStars, setEarlyStars] = useState(0);
+  const [earlyFinished, setEarlyFinished] = useState(false);
 
   const handleEarlyAnswer = (chosen: string) => {
     sound.playClick();
@@ -355,7 +363,30 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
     sound.playClick();
     setEarlySelectedAnswer(null);
     setEarlyFeedback(null);
-    setEarlyQuestionIndex((prev) => (prev + 1) % earlyLearningChallenges.length);
+    if (earlyQuestionIndex < earlyLearningChallenges.length - 1) {
+      setEarlyQuestionIndex((prev) => prev + 1);
+    } else {
+      setEarlyFinished(true);
+      sound.playLevelUp();
+      try {
+        confetti({ particleCount: 90, spread: 70 });
+      } catch {}
+    }
+  };
+
+  const handleRestartEarlyChallenges = () => {
+    sound.playClick();
+    setEarlyLearningChallenges(
+      initialEarlyChallenges.map((c) => ({
+        ...c,
+        options: shuffleOptions(c.options, c.correctAnswer)
+      }))
+    );
+    setEarlyQuestionIndex(0);
+    setEarlySelectedAnswer(null);
+    setEarlyFeedback(null);
+    setEarlyStars(0);
+    setEarlyFinished(false);
   };
 
   const isAdmin = currentUser?.role === 'admin' || profile?.role === 'admin';
@@ -503,7 +534,14 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
 
   const handleStartExam = (test: MockTest) => {
     sound.playClick();
-    setActiveTest(test);
+    const preparedTest: MockTest = {
+      ...test,
+      questions: test.questions.map((q) => ({
+        ...q,
+        options: q.options ? shuffleOptions(q.options, q.correctAnswer) : undefined
+      }))
+    };
+    setActiveTest(preparedTest);
     setActiveSectionIndex(0);
     setSecondsRemaining(test.totalDurationMin * 60);
     setIsRunning(true);
@@ -1239,73 +1277,107 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
             </div>
           </div>
 
-          {/* Early Challenge Interactive Card */}
-          <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-sm space-y-6 text-center max-w-2xl mx-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <span className="text-xs font-black text-indigo-600 uppercase tracking-wider">
-                {earlyLearningChallenges[earlyQuestionIndex].category}
-              </span>
-              <span className="text-xs font-bold text-slate-500">
-                Question {earlyQuestionIndex + 1} of {earlyLearningChallenges.length}
-              </span>
-            </div>
-
-            <div className="py-4 space-y-3">
-              <div className="text-6xl animate-bounce">
-                {earlyLearningChallenges[earlyQuestionIndex].icon}
+          {/* Early Challenge Interactive Card or Completion Screen */}
+          {earlyFinished ? (
+            <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-md space-y-6 text-center max-w-2xl mx-auto animate-fade-in">
+              <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-500 flex items-center justify-center text-white shadow-lg animate-bounce">
+                <Award className="w-10 h-10" />
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900">
-                {earlyLearningChallenges[earlyQuestionIndex].question}
-              </h3>
-            </div>
-
-            {/* Large Touch-Friendly Options */}
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              {earlyLearningChallenges[earlyQuestionIndex].options.map((opt) => {
-                const isSelected = earlySelectedAnswer === opt;
-                const isCorrect = opt === earlyLearningChallenges[earlyQuestionIndex].correctAnswer;
-                let btnStyle = 'bg-slate-100 text-slate-800 hover:bg-slate-200 border-slate-200';
-                if (earlyFeedback) {
-                  if (isCorrect) {
-                    btnStyle = 'bg-emerald-500 text-white border-emerald-600 shadow-md';
-                  } else if (isSelected) {
-                    btnStyle = 'bg-rose-500 text-white border-rose-600';
-                  }
-                }
-                return (
-                  <button
-                    key={opt}
-                    disabled={!!earlyFeedback}
-                    onClick={() => handleEarlyAnswer(opt)}
-                    className={`py-4 px-6 rounded-2xl text-lg font-black border-2 transition-all transform active:scale-95 cursor-pointer ${btnStyle}`}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Feedback & Next Button */}
-            {earlyFeedback && (
-              <div className="space-y-4 pt-4 animate-fadeIn">
-                <div
-                  className={`p-4 rounded-2xl text-sm font-black border ${
-                    earlyFeedback.isCorrect
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                      : 'bg-amber-50 text-amber-800 border-amber-200'
-                  }`}
-                >
-                  {earlyFeedback.message}
+              <div className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                  Mission Accomplished!
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
+                  Exploration Completed! 🌟
+                </h3>
+                <p className="text-sm text-slate-600 max-w-md mx-auto">
+                  Superstar! You answered all {earlyLearningChallenges.length} challenges and earned {earlyStars} shiny stars!
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <div className="px-5 py-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 font-black text-sm">
+                  ⭐ Total Stars: {earlyStars} / {earlyLearningChallenges.length}
                 </div>
-                <button
-                  onClick={handleNextEarlyQuestion}
-                  className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-md transition-all cursor-pointer"
-                >
-                  Next Challenge ➔
-                </button>
+                <div className="px-5 py-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 font-black text-sm">
+                  🎯 Accuracy: {Math.round((earlyStars / earlyLearningChallenges.length) * 100)}%
+                </div>
               </div>
-            )}
-          </div>
+              <button
+                onClick={handleRestartEarlyChallenges}
+                className="px-8 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 mx-auto cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Play Again with Fresh Questions</span>
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-sm space-y-6 text-center max-w-2xl mx-auto">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <span className="text-xs font-black text-indigo-600 uppercase tracking-wider">
+                  {earlyLearningChallenges[earlyQuestionIndex].category}
+                </span>
+                <span className="text-xs font-bold text-slate-500">
+                  Question {earlyQuestionIndex + 1} of {earlyLearningChallenges.length}
+                </span>
+              </div>
+
+              <div className="py-4 space-y-3">
+                <div className="text-6xl animate-bounce">
+                  {earlyLearningChallenges[earlyQuestionIndex].icon}
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                  {earlyLearningChallenges[earlyQuestionIndex].question}
+                </h3>
+              </div>
+
+              {/* Large Touch-Friendly Options (Shuffled Order) */}
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                {earlyLearningChallenges[earlyQuestionIndex].options.map((opt) => {
+                  const isSelected = earlySelectedAnswer === opt;
+                  const isCorrect = opt === earlyLearningChallenges[earlyQuestionIndex].correctAnswer;
+                  let btnStyle = 'bg-slate-100 text-slate-800 hover:bg-slate-200 border-slate-200';
+                  if (earlyFeedback) {
+                    if (isCorrect) {
+                      btnStyle = 'bg-emerald-500 text-white border-emerald-600 shadow-md';
+                    } else if (isSelected) {
+                      btnStyle = 'bg-rose-500 text-white border-rose-600';
+                    }
+                  }
+                  return (
+                    <button
+                      key={opt}
+                      disabled={!!earlyFeedback}
+                      onClick={() => handleEarlyAnswer(opt)}
+                      className={`py-4 px-6 rounded-2xl text-lg font-black border-2 transition-all transform active:scale-95 cursor-pointer ${btnStyle}`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Feedback & Next Button */}
+              {earlyFeedback && (
+                <div className="space-y-4 pt-4 animate-fadeIn">
+                  <div
+                    className={`p-4 rounded-2xl text-sm font-black border ${
+                      earlyFeedback.isCorrect
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                    }`}
+                  >
+                    {earlyFeedback.message}
+                  </div>
+                  <button
+                    onClick={handleNextEarlyQuestion}
+                    className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-md transition-all cursor-pointer"
+                  >
+                    {earlyQuestionIndex < earlyLearningChallenges.length - 1 ? 'Next Challenge ➔' : 'Complete Exploration 🌟'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -2021,7 +2093,14 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
                       key={test.id}
                       onClick={() => {
                         sound.playClick();
-                        setActivePracticeItem(test);
+                        const preparedTest: IELTSPracticeTest = {
+                          ...test,
+                          questions: (test.questions || []).map((q) => ({
+                            ...q,
+                            options: q.options ? shuffleOptions(q.options, q.correctAnswer) : undefined
+                          }))
+                        };
+                        setActivePracticeItem(preparedTest);
                         setCurrentQuestionIndex(0);
                         setPracticeAnswers({});
                         setPracticeTestSubmitted(false);
@@ -2082,7 +2161,14 @@ export const ExamPrepView: React.FC<ExamPrepViewProps> = ({
                         key={t.id}
                         onClick={() => {
                           sound.playClick();
-                          setActiveTest(t);
+                          const prepared: MockTest = {
+                            ...t,
+                            questions: t.questions.map((q) => ({
+                              ...q,
+                              options: q.options ? shuffleOptions(q.options, q.correctAnswer) : undefined
+                            }))
+                          };
+                          setActiveTest(prepared);
                           setActiveSectionIndex(0);
                           setIsRunning(false);
                           setExamResult(null);

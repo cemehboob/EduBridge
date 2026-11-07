@@ -18,29 +18,8 @@ import {
   AUTHENTIC_SPEAKING_PRACTICE
 } from '../data/authenticIeltsPracticeData';
 import { THEMED_PRACTICE_SETS } from '../data/multiQuestionPracticeSets';
-
-/**
- * Fisher-Yates option shuffler that guarantees the correct answer is not
- * predictably placed at index 0 (Option A), forcing the user to evaluate all choices.
- */
-export function shuffleOptions(options?: string[], correctAnswer?: string): string[] | undefined {
-  if (!options || options.length <= 1) return options;
-  const shuffled = [...options];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  // Ensure the correct answer does not consistently land at index 0 (Option A)
-  if (
-    correctAnswer &&
-    shuffled[0].trim().toLowerCase() === correctAnswer.trim().toLowerCase() &&
-    shuffled.length > 1
-  ) {
-    const targetIdx = 1 + Math.floor(Math.random() * (shuffled.length - 1));
-    [shuffled[0], shuffled[targetIdx]] = [shuffled[targetIdx], shuffled[0]];
-  }
-  return shuffled;
-}
+import { shuffleOptions } from '../utils/questionShuffler';
+export { shuffleOptions };
 
 // General Training Reading authentic templates
 const AUTHENTIC_READING_GENERAL = [

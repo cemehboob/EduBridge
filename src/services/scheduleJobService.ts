@@ -1,4 +1,5 @@
 import { MockTest, ScheduledJob, VocabularyWord, AuditLog, IELTSPracticeTest, IngestedItemRecord } from '../types';
+import { shuffleOptions } from '../utils/questionShuffler';
 
 export const initialScheduledJobs: ScheduledJob[] = [
   {
@@ -210,18 +211,21 @@ export function buildTenPracticeTestQuestions(
   baseExplanation?: string
 ) {
   const qList = [];
+  const q1Correct = baseCorrect || `Direct application of principles defined under ${subject}`;
+  const q1RawOptions = baseOptions || [
+    `Direct application of principles defined under ${subject}`,
+    'Uncalibrated trial-and-error without empirical parameters',
+    'Total disregard for observable physical constraints',
+    'Outdated nineteenth-century anecdotal conjecture'
+  ];
+
   // Q1: The base question
   qList.push({
     id: `${testId}_q1`,
     questionNumber: 1,
     prompt: basePrompt,
-    options: baseOptions || [
-      `Direct application of principles defined under ${subject}`,
-      'Uncalibrated trial-and-error without empirical parameters',
-      'Total disregard for observable physical constraints',
-      'Outdated nineteenth-century anecdotal conjecture'
-    ],
-    correctAnswer: baseCorrect || `Direct application of principles defined under ${subject}`,
+    options: shuffleOptions(q1RawOptions, q1Correct),
+    correctAnswer: q1Correct,
     explanation: baseExplanation || `The primary finding is corroborated by direct application of principles in ${subject}.`,
     subject
   });
@@ -334,7 +338,7 @@ export function buildTenPracticeTestQuestions(
       id: `${testId}_q${idx + 2}`,
       questionNumber: idx + 2,
       prompt: item.p,
-      options: item.opts,
+      options: shuffleOptions(item.opts, item.ans),
       correctAnswer: item.ans,
       explanation: item.exp,
       subject
@@ -1330,7 +1334,13 @@ export function generatePracticeTestsBatch(batchIndex: number, executionTimestam
     )
   };
 
-  return [pt1, pt2, pt3, pt4, pt5];
+  return [pt1, pt2, pt3, pt4, pt5].map((test) => ({
+    ...test,
+    questions: test.questions.map((q) => ({
+      ...q,
+      options: q.options ? shuffleOptions(q.options, q.correctAnswer) : undefined
+    }))
+  }));
 }
 
 export function getInitialIngestedItemsLedger(): IngestedItemRecord[] {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BookOpen,
   Calculator,
@@ -15,6 +15,7 @@ import {
 import { AcademicTopic, AcademicSubject } from '../../types';
 import { sound } from '../../utils/audio';
 import { StorageService } from '../../services/storage';
+import { shuffleIndexedOptions } from '../../utils/questionShuffler';
 
 interface AcademicViewProps {
   topics: AcademicTopic[];
@@ -36,11 +37,27 @@ export const AcademicView: React.FC<AcademicViewProps> = ({ topics, onConsultAI 
   const filteredTopics = topics.filter((t) => t.subject === activeSubject);
   const activeTopic = topics.find((t) => t.id === selectedTopicId) || filteredTopics[0] || topics[0];
 
+  // Dynamically randomized option order for the active practice problem
+  const [shuffledProblem, setShuffledProblem] = useState<{ options: string[]; correctIndex: number } | null>(null);
+
+  useEffect(() => {
+    if (activeTopic?.practiceProblem) {
+      setShuffledProblem(
+        shuffleIndexedOptions(activeTopic.practiceProblem.options, activeTopic.practiceProblem.correctIndex)
+      );
+      setSelectedOption(null);
+      setShowSolution(false);
+    }
+  }, [activeTopic?.id]);
+
+  const activeOptions = shuffledProblem?.options || activeTopic?.practiceProblem.options || [];
+  const activeCorrectIndex = shuffledProblem !== null ? shuffledProblem.correctIndex : (activeTopic?.practiceProblem.correctIndex ?? 0);
+
   const handleSelectOption = (idx: number) => {
     sound.playClick();
     setSelectedOption(idx);
     setShowSolution(true);
-    const isCorrect = activeTopic && idx === activeTopic.practiceProblem.correctIndex;
+    const isCorrect = activeTopic && idx === activeCorrectIndex;
     if (isCorrect) {
       sound.playSuccess();
     } else {
@@ -58,9 +75,9 @@ export const AcademicView: React.FC<AcademicViewProps> = ({ topics, onConsultAI 
         moduleOrSubject: activeTopic.subject,
         questionNumber: 1,
         questionPrompt: activeTopic.practiceProblem.question,
-        options: activeTopic.practiceProblem.options,
-        userAnswer: activeTopic.practiceProblem.options[idx] || `Option #${idx + 1}`,
-        correctAnswer: activeTopic.practiceProblem.options[activeTopic.practiceProblem.correctIndex],
+        options: activeOptions,
+        userAnswer: activeOptions[idx] || `Option #${idx + 1}`,
+        correctAnswer: activeOptions[activeCorrectIndex],
         isCorrect: !!isCorrect,
         score: isCorrect ? '1/1 (Correct)' : '0/1 (Needs Review)',
         explanation: activeTopic.practiceProblem.stepByStepSolution?.join(' ') || 'Standard step-by-step derivation.',
@@ -259,9 +276,9 @@ export const AcademicView: React.FC<AcademicViewProps> = ({ topics, onConsultAI 
 
                 {/* Multiple choice options */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {activeTopic.practiceProblem.options.map((opt, idx) => {
+                  {activeOptions.map((opt, idx) => {
                     const isSelected = selectedOption === idx;
-                    const isCorrect = idx === activeTopic.practiceProblem.correctIndex;
+                    const isCorrect = idx === activeCorrectIndex;
                     let style = 'bg-white border-slate-200 text-slate-800 hover:border-indigo-300';
 
                     if (selectedOption !== null) {

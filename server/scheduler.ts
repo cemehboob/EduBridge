@@ -76,6 +76,31 @@ export async function executeJobOnDatabase(jobId: string, customTimestamp?: stri
     for (const w of newWords.slice(0, 15)) {
       const cohort = w.cefrLevel === 'C2' ? 'senior' : w.cefrLevel === 'C1' ? 'pro' : w.cefrLevel === 'B2' ? 'academy' : 'junior';
       const educationLevel = w.cefrLevel === 'C2' ? 'Graduate & Professional' : w.cefrLevel === 'C1' ? 'College & University' : 'High School';
+      
+      // Pull realistic distractors from other vocabulary words in the batch
+      const otherWords = newWords.filter((ow) => ow.word !== w.word && ow.definition !== w.definition);
+      const distractorPool = otherWords.map((ow) => ow.definition);
+      const chosenDistractors = distractorPool.slice(0, 3);
+      if (chosenDistractors.length < 3) {
+        chosenDistractors.push(
+          `A provisional methodology distinct from ${w.word.toLowerCase()}`,
+          `An unverified computational simulation parameter`,
+          `A non-standard linguistic deviation`
+        );
+      }
+      
+      const rawOptions = [w.definition, ...chosenDistractors.slice(0, 3)];
+      // Fisher-Yates option shuffle
+      const shuffled = [...rawOptions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      if (shuffled[0] === w.definition && Math.random() > 0.35 && shuffled.length > 1) {
+        const targetIdx = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+        [shuffled[0], shuffled[targetIdx]] = [shuffled[targetIdx], shuffled[0]];
+      }
+
       const quizItem = {
         id: `quiz_vocab_${w.id}_${Date.now()}`,
         cohort,
@@ -84,12 +109,7 @@ export async function executeJobOnDatabase(jobId: string, customTimestamp?: stri
         word: w.word,
         phonetic: w.phonetic,
         prompt: `Select the precise definition of the academic term "${w.word}" (${w.phonetic}):`,
-        options: [
-          w.definition,
-          `An unverified hypothesis opposite to ${w.word.toLowerCase()}`,
-          `A generic administrative guideline`,
-          `Uncontrolled physical dissipation`
-        ],
+        options: shuffled,
         correctAnswer: w.definition,
         explanation: `"${w.word}" (${w.partOfSpeech}): ${w.definition} Example: "${w.exampleSentence}"`,
         audioPrompt: `Pronounce and explain the definition of ${w.word}`,

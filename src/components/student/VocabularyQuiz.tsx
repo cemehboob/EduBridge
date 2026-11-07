@@ -28,6 +28,7 @@ import { StorageService } from '../../services/storage';
 import { apiService } from '../../services/apiService';
 import { cohortQuizCategories, cohortQuizQuestions, CohortQuizQuestion } from '../../data/cohortQuizzesData';
 import { calculateCohortFromDob, calculateEducationLevel } from '../../utils/userProfile';
+import { shuffleOptions, deduplicateQuestionsByPrompt, isPlaceholderQuestion } from '../../utils/questionShuffler';
 
 interface VocabularyQuizProps {
   vocabularyWords?: VocabularyWord[];
@@ -78,19 +79,16 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
   const [maxStreak, setMaxStreak] = useState<number>(0);
   const [starsEarned, setStarsEarned] = useState<number>(0);
   const [isQuizFinished, setIsQuizFinished] = useState<boolean>(false);
-  const [cloudQuizPool, setCloudQuizPool] = useState<CohortQuizQuestion[]>(cohortQuizQuestions);
+  const [cloudQuizPool, setCloudQuizPool] = useState<CohortQuizQuestion[]>(() =>
+    deduplicateQuestionsByPrompt(cohortQuizQuestions.filter((q) => !isPlaceholderQuestion(q)))
+  );
   const [quizBatchLimit, setQuizBatchLimit] = useState<number>(10);
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
 
-  // Randomly shuffle options for the active question (guarantees correct answer is not always at the top)
+  // Keep active question options synchronized
   useEffect(() => {
     if (cohortQuestions[currentIndex]) {
-      const raw = [...(cohortQuestions[currentIndex].options || [])];
-      for (let i = raw.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [raw[i], raw[j]] = [raw[j], raw[i]];
-      }
-      setShuffledOptions(raw);
+      setShuffledOptions(cohortQuestions[currentIndex].options || []);
     }
   }, [currentIndex, cohortQuestions]);
 
@@ -99,7 +97,12 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
     let isMounted = true;
     apiService.quizzes.getAll().then((items) => {
       if (isMounted && items && items.length > 0) {
-        setCloudQuizPool(items);
+        const cleanItems = deduplicateQuestionsByPrompt(
+          items.filter((q) => !isPlaceholderQuestion(q))
+        );
+        if (cleanItems.length > 0) {
+          setCloudQuizPool(cleanItems);
+        }
       }
     }).catch(() => {});
     return () => { isMounted = false; };
@@ -121,21 +124,40 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
   // Start Quiz Handler
   const handleStartQuiz = () => {
     sound.playClick();
-    // Filter questions by selected cohort: unattempted questions come first, attempted move to end of bank
-    const currentPool = cloudQuizPool.length > 0 ? cloudQuizPool : cohortQuizQuestions;
-    const pool = currentPool.filter((q) => q.cohort === selectedCohort);
+    // 1. Gather pool, strictly removing any placeholder or diagnostic dummy content
+    const sourcePool = cloudQuizPool.length > 0 ? cloudQuizPool : cohortQuizQuestions;
+    const cleanPool = sourcePool.filter((q) => !isPlaceholderQuestion(q));
+
+    // 2. Filter by selected age cohort
+    let poolForCohort = cleanPool.filter((q) => q.cohort === selectedCohort);
+    if (poolForCohort.length === 0) {
+      poolForCohort = cohortQuizQuestions.filter((q) => q.cohort === selectedCohort);
+    }
+
+    // 3. Deduplicate strictly by prompt so no repeated questions can ever occur
+    const uniquePool = deduplicateQuestionsByPrompt(poolForCohort);
+
+    // 4. Prioritize unattempted questions
     const attemptedIds = StorageService.getAttemptedCohortQuizIds();
-    const unattempted = pool.filter((q) => !attemptedIds.includes(q.id));
-    const attempted = pool
+    const unattempted = uniquePool.filter((q) => !attemptedIds.includes(q.id));
+    const attempted = uniquePool
       .filter((q) => attemptedIds.includes(q.id))
       .sort((a, b) => attemptedIds.indexOf(a.id) - attemptedIds.indexOf(b.id));
 
     const orderedPool = [...unattempted, ...attempted];
-    const basePool = orderedPool.length > 0 ? orderedPool : pool;
-    // Calibrated session size (default 10 questions) ensures quiz stops cleanly at the end
-    const finalSelection = quizBatchLimit > 0 ? basePool.slice(0, quizBatchLimit) : basePool;
+    const basePool = orderedPool.length > 0 ? orderedPool : uniquePool;
 
-    setCohortQuestions(finalSelection);
+    // 5. Strictly enforce session question count (default 10 questions, capped at available unique items)
+    const targetCount = quizBatchLimit > 0 ? Math.min(quizBatchLimit, uniquePool.length) : Math.min(10, uniquePool.length);
+    const selectedBatch = basePool.slice(0, targetCount);
+
+    // 6. Data-level option shuffling: Randomize option positions (A, B, C, D) for each question independently
+    const finalizedQuestions = selectedBatch.map((q) => ({
+      ...q,
+      options: shuffleOptions(q.options, q.correctAnswer)
+    }));
+
+    setCohortQuestions(finalizedQuestions);
     setCurrentIndex(0);
     setSelectedOption(null);
     setIsSubmitted(false);
@@ -147,8 +169,8 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
     setIsQuizActive(true);
 
     // Initial voice prompt
-    if (finalSelection[0]) {
-      handleSpeak(finalSelection[0].prompt);
+    if (finalizedQuestions[0]) {
+      handleSpeak(finalizedQuestions[0].prompt);
     }
   };
 
@@ -431,7 +453,7 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
                     { count: 5, label: '5 Quick' },
                     { count: 10, label: '10 Standard (Recommended)' },
                     { count: 15, label: '15 Challenge' },
-                    { count: 0, label: 'All Available' }
+                    { count: 20, label: '20 Mastery' }
                   ].map((b) => (
                     <button
                       key={b.count}
