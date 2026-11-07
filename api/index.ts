@@ -1,5 +1,5 @@
-let cachedServerApp: any = null;
-let cachedEnsureDbInitialized: any = null;
+import { serverApp, ensureDbInitialized } from '../server/app';
+
 let dbInitPromise: Promise<void> | null = null;
 
 function sendJson(res: any, status: number, data: any) {
@@ -13,14 +13,8 @@ function sendJson(res: any, status: number, data: any) {
 
 export default async function handler(req: any, res: any) {
   try {
-    if (!cachedServerApp) {
-      const appModule = await import('../server/app');
-      cachedServerApp = appModule.serverApp;
-      cachedEnsureDbInitialized = appModule.ensureDbInitialized;
-    }
-
-    if (!dbInitPromise && process.env.DATABASE_URL && cachedEnsureDbInitialized) {
-      dbInitPromise = cachedEnsureDbInitialized().catch((e: any) => {
+    if (!dbInitPromise && process.env.DATABASE_URL) {
+      dbInitPromise = ensureDbInitialized().catch((e: any) => {
         console.warn('[Vercel Serverless DB Note]', e.message);
       });
     }
@@ -47,7 +41,7 @@ export default async function handler(req: any, res: any) {
       res.on('finish', resolve);
       res.on('close', resolve);
       res.on('error', reject);
-      cachedServerApp(req, res);
+      serverApp(req, res);
     });
   } catch (err: any) {
     console.error('[Vercel Handler Exception]:', err);
