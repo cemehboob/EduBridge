@@ -1550,6 +1550,18 @@ serverApp.all('/api/cron', async (_req: Request, res: Response) => {
   }
 });
 
+// Global Express error handler: prevent any route error from crashing the serverless worker
+serverApp.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('[EduBridge Server Error]:', err);
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Internal Server Error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Server background interval check (runs automatically every 60 seconds on server / daemons, unref to avoid blocking build/exit)
 if (
   process.env.NODE_ENV !== 'test' &&

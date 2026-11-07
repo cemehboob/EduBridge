@@ -1,7 +1,16 @@
+function sendJson(res: any, status: number, data: any) {
+  if (typeof res.status === 'function') {
+    return res.status(status).json(data);
+  }
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(data));
+}
+
 export default async function handler(req: any, res: any) {
   const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
-  return res.status(200).json({
+  return sendJson(res, 200, {
     success: true,
     message: 'EduBridge Vercel Cron executed successfully.',
     timestamp,

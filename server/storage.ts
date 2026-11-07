@@ -11,12 +11,19 @@ import {
 import { initialUsers } from '../src/data/userManagementData';
 import { initialActivities, initialQuestionAttempts } from '../src/data/activityData';
 
-// Determine persistent data directory
-const DATA_DIR = path.resolve(process.cwd(), 'data/server_vault');
+// Determine persistent data directory (use /tmp in serverless / read-only runtimes like Vercel)
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const DATA_DIR = isServerless
+  ? path.resolve('/tmp', 'server_vault')
+  : path.resolve(process.cwd(), 'data/server_vault');
 
-// Ensure directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+// Ensure directory exists without crashing on read-only environments
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch (e: any) {
+  console.warn('[ServerStorage] Directory initialization note:', e.message);
 }
 
 // In-process mutex queue for safe concurrent atomic writes
@@ -39,10 +46,16 @@ class WriteMutex {
 
 const mutex = new WriteMutex();
 
+// In-memory memory fallback store if disk is read-only
+const memoryVault = new Map<string, any>();
+
 function readJsonFile<T>(filename: string, fallback: T): T {
   const filePath = path.join(DATA_DIR, filename);
   try {
     if (!fs.existsSync(filePath)) {
+      if (memoryVault.has(filename)) {
+        return memoryVault.get(filename);
+      }
       writeJsonFileSync(filename, fallback);
       return fallback;
     }
@@ -52,17 +65,24 @@ function readJsonFile<T>(filename: string, fallback: T): T {
     }
     return JSON.parse(raw);
   } catch (err) {
-    console.warn(`[ServerStorage] Error reading ${filename}:`, err);
+    if (memoryVault.has(filename)) {
+      return memoryVault.get(filename);
+    }
     return fallback;
   }
 }
 
 function writeJsonFileSync<T>(filename: string, data: T): void {
-  const filePath = path.join(DATA_DIR, filename);
-  const tempPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).substring(2, 7)}`;
-  const serialized = JSON.stringify(data, null, 2);
-  fs.writeFileSync(tempPath, serialized, 'utf-8');
-  fs.renameSync(tempPath, filePath);
+  memoryVault.set(filename, data);
+  try {
+    const filePath = path.join(DATA_DIR, filename);
+    const tempPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).substring(2, 7)}`;
+    const serialized = JSON.stringify(data, null, 2);
+    fs.writeFileSync(tempPath, serialized, 'utf-8');
+    fs.renameSync(tempPath, filePath);
+  } catch (err: any) {
+    // Non-fatal fallback to in-memory store
+  }
 }
 
 // Initial seed written response for Alex Rivera
@@ -545,6 +565,10 @@ export const ServerStorage = {
   }
 };
 
-// Initialize server storage upon loading
-ServerStorage.initialize();
+// Initialize server storage safely upon loading
+try {
+  ServerStorage.initialize();
+} catch (e: any) {
+  console.warn('[ServerStorage] Safe load note:', e.message);
+}
 
