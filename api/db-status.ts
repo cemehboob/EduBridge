@@ -29,6 +29,14 @@ export default async function handler(req: any, res: any) {
     }
   } catch {}
 
+  let appLoadError: any = null;
+  try {
+    const appModule = await import('../server/app');
+    appLoadError = 'loaded successfully, serverApp is ' + typeof appModule.serverApp;
+  } catch (e: any) {
+    appLoadError = { message: e.message, stack: e.stack };
+  }
+
   let filesInTask: string[] = [];
   let filesInServer: string[] = [];
   try {
@@ -60,6 +68,7 @@ export default async function handler(req: any, res: any) {
       tables: tables.map((t: any) => t.table_name),
       userCount: parseInt(usersCount[0]?.count || '0', 10),
       activityCount: parseInt(activitiesCount[0]?.count || '0', 10),
+      appLoadError,
       filesInTask,
       filesInServer,
       timestamp: new Date().toISOString()
