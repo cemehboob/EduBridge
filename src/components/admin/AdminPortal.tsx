@@ -284,6 +284,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // Full User Dashboard Access & Inspector State
   const [selectedUserForDashboard, setSelectedUserForDashboard] = useState<UserAccount | null>(null);
   const [userDashboardSearch, setUserDashboardSearch] = useState('');
+  const [userDashboardRoleFilter, setUserDashboardRoleFilter] = useState<'all' | 'student' | 'parent' | 'teacher' | 'admin'>('all');
+  const [userDashboardFetchFeedback, setUserDashboardFetchFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [inspectedSubView, setInspectedSubView] = useState<'activities' | 'questions'>('activities');
 
   const [isFlushingCache, setIsFlushingCache] = useState(false);
@@ -894,11 +896,106 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         const pAdminPct = Math.round((catCounts.admin.length / totalPlatformActs) * 100);
         const pHabitsPct = Math.max(0, 100 - (pExamPct + pSolverPct + pLessonsPct + pVocabPct + pStemPct + pAdminPct));
 
-        // Filter users for user dashboard selector
+        // Role counts for user dashboard selector
+        const userRoleCounts = {
+          all: users.length,
+          student: users.filter((u) => u.role === 'student').length,
+          parent: users.filter((u) => u.role === 'parent').length,
+          teacher: users.filter((u) => u.role === 'teacher').length,
+          admin: users.filter((u) => u.role === 'admin').length,
+        };
+
+        // Filter users for user dashboard selector with role filter & comprehensive query matching
         const filteredUserList = users.filter((u) => {
+          const matchesRole = userDashboardRoleFilter === 'all' || u.role === userDashboardRoleFilter;
           const q = userDashboardSearch.toLowerCase().trim();
-          return !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
+          const matchesQuery =
+            !q ||
+            u.name.toLowerCase().includes(q) ||
+            u.email.toLowerCase().includes(q) ||
+            (u.username && u.username.toLowerCase().includes(q)) ||
+            u.id.toLowerCase().includes(q) ||
+            u.role.toLowerCase().includes(q);
+          return matchesRole && matchesQuery;
         });
+
+        // Enter & fetch user handler
+        const handleFetchUser = () => {
+          const q = userDashboardSearch.toLowerCase().trim();
+          if (!q) {
+            if (filteredUserList.length > 0) {
+              sound.playClick();
+              setSelectedUserForDashboard(filteredUserList[0]);
+              setUserDashboardFetchFeedback({
+                type: 'success',
+                message: `Fetched first user: ${filteredUserList[0].name} (${filteredUserList[0].role.toUpperCase()})`
+              });
+            } else {
+              setUserDashboardFetchFeedback({
+                type: 'error',
+                message: 'Please enter a name, email, or user ID to search.'
+              });
+            }
+            return;
+          }
+
+          // 1. Exact match (id, email, username, or name)
+          const exact = users.find(
+            (u) =>
+              u.id.toLowerCase() === q ||
+              u.email.toLowerCase() === q ||
+              u.name.toLowerCase() === q ||
+              (u.username && u.username.toLowerCase() === q)
+          );
+
+          if (exact) {
+            sound.playClick();
+            if (userDashboardRoleFilter !== 'all' && exact.role !== userDashboardRoleFilter) {
+              setUserDashboardRoleFilter('all');
+            }
+            setSelectedUserForDashboard(exact);
+            setUserDashboardFetchFeedback({
+              type: 'success',
+              message: `Exact match found: ${exact.name} (${exact.role.toUpperCase()}) - ${exact.email}`
+            });
+            return;
+          }
+
+          // 2. Partial match in currently filtered list
+          if (filteredUserList.length > 0) {
+            sound.playClick();
+            setSelectedUserForDashboard(filteredUserList[0]);
+            setUserDashboardFetchFeedback({
+              type: 'success',
+              message: `Found ${filteredUserList.length} matching user(s). Inspected top match: ${filteredUserList[0].name} (${filteredUserList[0].role.toUpperCase()})`
+            });
+            return;
+          }
+
+          // 3. Partial match across all users (in case role filter hid it)
+          const matchInAnyRole = users.find(
+            (u) =>
+              u.name.toLowerCase().includes(q) ||
+              u.email.toLowerCase().includes(q) ||
+              (u.username && u.username.toLowerCase().includes(q))
+          );
+          if (matchInAnyRole) {
+            sound.playClick();
+            setUserDashboardRoleFilter('all');
+            setSelectedUserForDashboard(matchInAnyRole);
+            setUserDashboardFetchFeedback({
+              type: 'success',
+              message: `Found ${matchInAnyRole.name} (${matchInAnyRole.role.toUpperCase()}) in "${matchInAnyRole.role}" role. Switched role filter to All.`
+            });
+            return;
+          }
+
+          sound.playError();
+          setUserDashboardFetchFeedback({
+            type: 'error',
+            message: `No user found matching "${userDashboardSearch}". Try another name, email, or check the role filter.`
+          });
+        };
 
         // Compute activities and question attempts for inspected user from authoritative server history
         const targetUserActivities = selectedUserForDashboard
@@ -1245,52 +1342,274 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 )}
               </div>
 
-              {/* User Selection & Search Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                <div className="md:col-span-4 relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                  <input
-                    type="text"
-                    value={userDashboardSearch}
-                    onChange={(e) => setUserDashboardSearch(e.target.value)}
-                    placeholder="Search user by name, email, or role..."
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
-                  />
+              {/* User Selection, Role Filter & Fetch Controls */}
+              <div className="space-y-4">
+                {/* 1. Role Filter Tabs */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
+                      <Filter className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Role Filter:</span>
+                    </span>
+                    {(
+                      [
+                        { key: 'all', label: 'All Roles', count: userRoleCounts.all, color: 'indigo' },
+                        { key: 'student', label: 'Students', count: userRoleCounts.student, color: 'emerald' },
+                        { key: 'parent', label: 'Parents', count: userRoleCounts.parent, color: 'amber' },
+                        { key: 'teacher', label: 'Teachers', count: userRoleCounts.teacher, color: 'blue' },
+                        { key: 'admin', label: 'Admins', count: userRoleCounts.admin, color: 'rose' }
+                      ] as const
+                    ).map((rf) => {
+                      const isActive = userDashboardRoleFilter === rf.key;
+                      return (
+                        <button
+                          key={rf.key}
+                          type="button"
+                          onClick={() => {
+                            sound.playClick();
+                            setUserDashboardRoleFilter(rf.key);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                            isActive
+                              ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs ring-1 ring-indigo-400'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                          }`}
+                        >
+                          <span>{rf.label}</span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded-md text-[10px] font-black ${
+                              isActive
+                                ? 'bg-white/20 text-white'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {rf.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Reset filters shortcut if query or filter active */}
+                  {(userDashboardSearch || userDashboardRoleFilter !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setUserDashboardSearch('');
+                        setUserDashboardRoleFilter('all');
+                        setUserDashboardFetchFeedback(null);
+                      }}
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline cursor-pointer"
+                    >
+                      Clear search &amp; filters
+                    </button>
+                  )}
                 </div>
 
-                <div className="md:col-span-8 flex flex-wrap items-center gap-1 overflow-x-auto">
-                  {filteredUserList.map((u) => {
-                    const isSelected = selectedUserForDashboard?.id === u.id;
-                    const roleColor =
-                      u.role === 'admin'
-                        ? 'bg-rose-100 text-rose-800 border-rose-300'
-                        : u.role === 'teacher'
-                        ? 'bg-blue-100 text-blue-800 border-blue-300'
-                        : u.role === 'parent'
-                        ? 'bg-amber-100 text-amber-800 border-amber-300'
-                        : 'bg-emerald-100 text-emerald-800 border-emerald-300';
+                {/* 2. Search & Fetch Bar + Quick Dropdown */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5">
+                  <div className="md:col-span-8 flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="text"
+                        value={userDashboardSearch}
+                        onChange={(e) => {
+                          setUserDashboardSearch(e.target.value);
+                          if (userDashboardFetchFeedback) setUserDashboardFetchFeedback(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleFetchUser();
+                          }
+                        }}
+                        placeholder="Enter user name, email, or ID and press Enter to fetch..."
+                        className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+                      />
+                      {userDashboardSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUserDashboardSearch('');
+                            if (userDashboardFetchFeedback) setUserDashboardFetchFeedback(null);
+                          }}
+                          className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                          title="Clear search"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleFetchUser()}
+                      className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors"
+                      title="Fetch user matching entered query (or press Enter)"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      <span>Fetch User</span>
+                    </button>
+                  </div>
 
-                    return (
+                  {/* Dropdown User Selector */}
+                  <div className="md:col-span-4">
+                    <select
+                      value={selectedUserForDashboard?.id || ''}
+                      onChange={(e) => {
+                        const found = users.find((u) => u.id === e.target.value);
+                        if (found) {
+                          sound.playClick();
+                          setSelectedUserForDashboard(found);
+                          setUserDashboardFetchFeedback({
+                            type: 'success',
+                            message: `Selected ${found.name} (${found.role.toUpperCase()})`
+                          });
+                        }
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl border border-slate-300 text-xs font-medium bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs cursor-pointer text-slate-700"
+                    >
+                      <option value="">-- Choose User to Inspect ({filteredUserList.length}) --</option>
+                      {filteredUserList.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} [{u.role.toUpperCase()}] - {u.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Fetch Feedback Banner */}
+                {userDashboardFetchFeedback && (
+                  <div
+                    className={`p-2.5 rounded-xl text-xs flex items-center justify-between border ${
+                      userDashboardFetchFeedback.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {userDashboardFetchFeedback.type === 'success' ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      ) : (
+                        <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                      )}
+                      <span>{userDashboardFetchFeedback.message}</span>
+                    </div>
+                    <button
+                      onClick={() => setUserDashboardFetchFeedback(null)}
+                      className="text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* 3. Scalable, Scrollable User Cards Grid */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 px-1">
+                    <span>
+                      User Directory ({filteredUserList.length} of {users.length} accounts):
+                    </span>
+                    <span>Click any user card or choose from dropdown to inspect</span>
+                  </div>
+
+                  {filteredUserList.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 max-h-56 overflow-y-auto p-1.5 border border-slate-200/80 rounded-2xl bg-slate-50/60">
+                      {filteredUserList.map((u) => {
+                        const isSelected = selectedUserForDashboard?.id === u.id;
+                        const roleColor =
+                          u.role === 'admin'
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : u.role === 'teacher'
+                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                            : u.role === 'parent'
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-300';
+
+                        const avatarColor =
+                          u.role === 'admin'
+                            ? 'bg-rose-600 text-white'
+                            : u.role === 'teacher'
+                            ? 'bg-blue-600 text-white'
+                            : u.role === 'parent'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-emerald-600 text-white';
+
+                        return (
+                          <div
+                            key={u.id}
+                            onClick={() => {
+                              sound.playClick();
+                              setSelectedUserForDashboard(u);
+                              setUserDashboardFetchFeedback({
+                                type: 'success',
+                                message: `Loaded ${u.name} (${u.role.toUpperCase()})`
+                              });
+                            }}
+                            className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm ring-2 ring-indigo-300'
+                                : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
+                                  isSelected ? 'bg-white/20 text-white' : avatarColor
+                                }`}
+                              >
+                                {u.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold truncate">
+                                  {u.name}
+                                </div>
+                                <div
+                                  className={`text-[10px] truncate ${
+                                    isSelected ? 'text-indigo-100' : 'text-slate-400 font-mono'
+                                  }`}
+                                >
+                                  {u.email}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span
+                                className={`text-[9px] px-1.5 py-0.5 rounded border font-black uppercase ${
+                                  isSelected
+                                    ? 'bg-white/20 text-white border-white/30'
+                                    : roleColor
+                                }`}
+                              >
+                                {u.role}
+                              </span>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center space-y-2">
+                      <div className="text-xs text-slate-500">
+                        No users match "{userDashboardSearch}" with role filter "{userDashboardRoleFilter}".
+                      </div>
                       <button
-                        key={u.id}
                         type="button"
                         onClick={() => {
-                          sound.playClick();
-                          setSelectedUserForDashboard(u);
+                          setUserDashboardSearch('');
+                          setUserDashboardRoleFilter('all');
+                          setUserDashboardFetchFeedback(null);
                         }}
-                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
-                          isSelected
-                            ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm ring-2 ring-indigo-300'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
+                        className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-indigo-600 hover:bg-indigo-50 cursor-pointer shadow-2xs"
                       >
-                        <span>{u.name}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md border font-black uppercase ${isSelected ? 'bg-white/20 text-white border-white/30' : roleColor}`}>
-                          {u.role}
-                        </span>
+                        Reset All Filters &amp; View All Users
                       </button>
-                    );
-                  })}
+                    </div>
+                  )}
                 </div>
               </div>
 
