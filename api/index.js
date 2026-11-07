@@ -1,5 +1,5 @@
-import { serverApp, ensureDbInitialized } from './_app.js';
-
+let serverApp = null;
+let ensureDbInitialized = null;
 let dbInitPromise = null;
 
 function sendJson(res, status, data) {
@@ -13,7 +13,23 @@ function sendJson(res, status, data) {
 
 export default async function handler(req, res) {
   try {
-    if (!dbInitPromise && process.env.DATABASE_URL) {
+    if (!serverApp) {
+      try {
+        const appMod = await import('./_app.js');
+        serverApp = appMod.serverApp;
+        ensureDbInitialized = appMod.ensureDbInitialized;
+      } catch (e1) {
+        try {
+          const appMod = await import('../server/app.js');
+          serverApp = appMod.serverApp;
+          ensureDbInitialized = appMod.ensureDbInitialized;
+        } catch (e2) {
+          throw new Error('Failed loading server backend: e1=' + e1.message + ', e2=' + e2.message);
+        }
+      }
+    }
+
+    if (!dbInitPromise && process.env.DATABASE_URL && ensureDbInitialized) {
       dbInitPromise = ensureDbInitialized().catch((e) => {
         console.warn('[Vercel Serverless DB Note]', e.message);
       });

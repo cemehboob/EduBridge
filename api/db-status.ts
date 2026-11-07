@@ -31,7 +31,7 @@ export default async function handler(req: any, res: any) {
 
   let appLoadError: any = null;
   try {
-    const appModule = await import('../server/app');
+    const appModule = await import('../server/app.js');
     appLoadError = 'loaded successfully, serverApp is ' + typeof appModule.serverApp;
   } catch (e: any) {
     appLoadError = { message: e.message, stack: e.stack };
@@ -39,11 +39,15 @@ export default async function handler(req: any, res: any) {
 
   let filesInTask: string[] = [];
   let filesInServer: string[] = [];
+  let filesInApi: string[] = [];
   try {
     const fs = await import('fs');
     filesInTask = fs.readdirSync('/var/task');
     if (fs.existsSync('/var/task/server')) {
       filesInServer = fs.readdirSync('/var/task/server');
+    }
+    if (fs.existsSync('/var/task/api')) {
+      filesInApi = fs.readdirSync('/var/task/api');
     }
   } catch (e: any) {
     filesInTask = ['error: ' + e.message];
@@ -71,6 +75,7 @@ export default async function handler(req: any, res: any) {
       appLoadError,
       filesInTask,
       filesInServer,
+      filesInApi,
       timestamp: new Date().toISOString()
     });
   } catch (err: any) {
