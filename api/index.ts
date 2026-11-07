@@ -10,6 +10,14 @@ export default async function handler(req: any, res: any) {
     }
   }
 
+  // Restore the original user-requested path if Vercel rewrote it to /api/index
+  const matchedPath = (req.headers && (req.headers['x-matched-path'] as string || req.headers['x-invoke-path'] as string));
+  if (matchedPath && matchedPath !== '/api/index' && matchedPath !== '/api') {
+    const queryIndex = (req.url || '').indexOf('?');
+    const queryString = queryIndex !== -1 ? req.url.slice(queryIndex) : '';
+    req.url = matchedPath + (matchedPath.includes('?') ? '' : queryString);
+  }
+
   // Normalize route url if /api was stripped by Vercel rewrite
   if (req.url && !req.url.startsWith('/api')) {
     req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
@@ -17,5 +25,3 @@ export default async function handler(req: any, res: any) {
 
   return serverApp(req, res);
 }
-
-
