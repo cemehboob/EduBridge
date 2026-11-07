@@ -687,6 +687,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               type="button"
+              onClick={() => { sound.playClick(); setActiveAdminTab('database'); }}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs ${
+                activeAdminTab === 'database'
+                  ? 'bg-indigo-700 text-white ring-2 ring-indigo-400'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
+              title="Open Neon Postgres Database Objects & Configuration Setup"
+            >
+              <Database className="w-3.5 h-3.5 shrink-0" />
+              <span>Database &amp; Setup (20 Objects)</span>
+            </button>
+            <button
+              type="button"
               onClick={() => { sound.playClick(); syncActivities(); }}
               disabled={isSyncingServer}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 cursor-pointer transition-all shadow-2xs"
@@ -715,6 +728,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             >
               <BarChart3 className="w-3.5 h-3.5 shrink-0" />
               <span>Dashboard</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { sound.playClick(); setActiveAdminTab('database'); }}
+              className={`flex-1 min-w-[130px] px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                activeAdminTab === 'database'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-indigo-100/80 hover:bg-indigo-200/80 text-indigo-800 border border-indigo-200'
+              }`}
+              title="Neon Postgres Database Objects, Views & Central Configuration Setup"
+            >
+              <Database className="w-3.5 h-3.5 shrink-0" />
+              <span>Database &amp; Setup</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                activeAdminTab === 'database' ? 'bg-white/20 text-white' : 'bg-indigo-200 text-indigo-900'
+              }`}>
+                20
+              </span>
             </button>
 
             <button
@@ -836,18 +868,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <Mail className="w-3.5 h-3.5 shrink-0" />
               <span>SMTP &amp; Email</span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => { sound.playClick(); setActiveAdminTab('database'); }}
-              className={`flex-1 min-w-[98px] px-2 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap ${
-                activeAdminTab === 'database' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-              title="Neon Postgres Database Objects, Views & Central Configuration Setup"
-            >
-              <Database className="w-3.5 h-3.5 shrink-0" />
-              <span>Database &amp; Setup</span>
-            </button>
           </div>
         </div>
       </div>
@@ -899,6 +919,39 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
         return (
           <div className="space-y-6">
+            {/* Direct Database & Configuration Setup Quick-Access Banner */}
+            <div className="p-5 rounded-3xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm border border-indigo-700/60">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
+                  <Database className="w-6 h-6 text-indigo-300" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black uppercase tracking-wider">
+                      Live Cloud Database Active
+                    </span>
+                    <span className="text-[11px] text-indigo-300 font-mono font-bold">20 Objects Deployed in Neon Postgres</span>
+                  </div>
+                  <h3 className="text-lg font-black tracking-tight text-white mt-0.5">
+                    Neon Postgres Cloud Database &amp; Central Configuration Setup
+                  </h3>
+                  <p className="text-xs text-indigo-200 leading-relaxed">
+                    Control all 20 database objects (standard_tests, quizzes, app_configurations, scheduled_jobs) and manage standardized test counts, themes, and automated jobs directly in the database.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { sound.playClick(); setActiveAdminTab('database'); }}
+                  className="px-5 py-2.5 rounded-xl bg-white hover:bg-indigo-50 text-indigo-950 font-black text-xs transition-all shadow-xs flex items-center gap-2 cursor-pointer shrink-0"
+                >
+                  <Database className="w-4 h-4 text-indigo-600" />
+                  <span>Open Database &amp; Setup Interface →</span>
+                </button>
+              </div>
+            </div>
+
             {/* Top Cluster Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-2xs space-y-1">

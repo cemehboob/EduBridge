@@ -1,0 +1,9 @@
+{
+  "name": "edubridge-static-artifacts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "exit 0",
+    "vite": "exit 0"
+  }
+}
