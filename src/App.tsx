@@ -742,6 +742,25 @@ export default function App() {
     // Close Auth modal
     setIsAuthModalOpen(false);
 
+    // Record user login activity in central database activities table for live multi-machine admin visibility
+    StorageService.recordUserActivity({
+      userId: updatedUser.id,
+      userName: updatedUser.name,
+      userRole: updatedUser.role,
+      cohort: updatedUser.cohort || 'academy',
+      type: 'auth' as any,
+      category: 'auth',
+      action: isNewRegistration
+        ? `Registered and joined EduBridge (${updatedUser.role.toUpperCase()})`
+        : `Logged in to EduBridge (${updatedUser.role.toUpperCase()})`,
+      title: `${updatedUser.name} Logged In`,
+      module: 'Authentication',
+      status: 'completed',
+      score: 'Online',
+      details: `${updatedUser.name} (${updatedUser.email}) authenticated as ${updatedUser.role.toUpperCase()}. User is active on the platform.`,
+      relativeTime: 'Just now'
+    });
+
     // Append Audit Trail
     const newLog: AuditLog = {
       id: `log_${Date.now()}`,
@@ -768,6 +787,24 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    if (currentUser) {
+      StorageService.recordUserActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        cohort: currentUser.cohort || 'academy',
+        type: 'auth' as any,
+        category: 'auth',
+        action: `Logged out of EduBridge (${currentUser.role.toUpperCase()})`,
+        title: `${currentUser.name} Logged Out`,
+        module: 'Authentication',
+        status: 'completed',
+        score: 'Offline',
+        details: `${currentUser.name} (${currentUser.email}) logged out of session.`,
+        relativeTime: 'Just now'
+      });
+      apiService.auth.logout().catch(() => {});
+    }
     StorageService.setActiveUser(null);
     setCurrentUser(null);
     setIsAuthModalOpen(true);
@@ -1113,6 +1150,7 @@ export default function App() {
             <AdminPortal
               models={ollamaModels}
               metrics={systemMetrics}
+              activities={activities}
               auditLogs={auditLogs}
               scheduledJobs={scheduledJobs}
               vocabularyWords={vocabularyWords}

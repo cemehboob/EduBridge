@@ -72,6 +72,7 @@ interface AdminPortalProps {
   vocabularyWords: VocabularyWord[];
   ingestedLedger: IngestedItemRecord[];
   users: UserAccount[];
+  activities?: UserActivityRecord[];
   featureFlags: FeatureFlag[];
   feedbackTickets: UserFeedbackTicket[];
   onToggleModelStatus: (modelId: string) => void;
@@ -93,6 +94,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   vocabularyWords,
   ingestedLedger,
   users,
+  activities,
   featureFlags,
   feedbackTickets,
   onToggleModelStatus,
@@ -266,7 +268,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   };
 
   // Platform Activities Feed State (All users + Admin's own activities)
-  const [allActivities, setAllActivities] = useState<UserActivityRecord[]>(() => StorageService.getUserActivities());
+  const [allActivities, setAllActivities] = useState<UserActivityRecord[]>(() =>
+    activities && activities.length > 0 ? activities : StorageService.getUserActivities()
+  );
+
+  useEffect(() => {
+    if (activities && activities.length > 0) {
+      setAllActivities(activities);
+    }
+  }, [activities]);
   const [activitySearch, setActivitySearch] = useState('');
   const [activityRoleFilter, setActivityRoleFilter] = useState<'all' | 'student' | 'teacher' | 'parent' | 'admin'>('all');
   const [activityCategoryFilter, setActivityCategoryFilter] = useState<string>('all');
@@ -1542,9 +1552,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             act.userName?.toLowerCase().includes(q) ||
             act.timestamp.toLowerCase().includes(q);
 
-          const matchesCat = activityCategoryFilter === 'all' || act.type === activityCategoryFilter;
+          const matchesCat =
+            activityCategoryFilter === 'all' ||
+            act.type === activityCategoryFilter ||
+            (act.category && act.category.toLowerCase().includes(activityCategoryFilter.toLowerCase())) ||
+            (activityCategoryFilter === 'auth' && (act.type === 'auth' || act.category === 'auth' || act.title.toLowerCase().includes('log')));
 
-          const actRole = userRoleMap.get(act.userId) || (act.type === 'admin_action' ? 'admin' : 'student');
+          const actRole = userRoleMap.get(act.userId) || act.userRole || (act.type === 'admin_action' ? 'admin' : 'student');
           const matchesRole = activityRoleFilter === 'all' || actRole === activityRoleFilter;
 
           return matchesSearch && matchesCat && matchesRole;
@@ -1562,7 +1576,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     Platform User Activities &amp; System Operations
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Comprehensive chronological record of all learning, testing, solving, and administrative actions performed across EduBridge.
+                    Comprehensive chronological record of all learning, testing, solving, login sessions, and administrative actions synced live across all machines from the central database.
                   </p>
                 </div>
                 <div className="px-3.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold">
@@ -1571,37 +1585,63 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               </div>
 
               {/* Filter Controls */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs">
-                  {[
-                    { id: 'all', label: 'All Roles' },
-                    { id: 'student', label: 'Students' },
-                    { id: 'teacher', label: 'Teachers' },
-                    { id: 'parent', label: 'Parents' },
-                    { id: 'admin', label: 'Admin Activities' }
-                  ].map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => { sound.playClick(); setActivityRoleFilter(r.id as any); }}
-                      className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
-                        activityRoleFilter === r.id ? 'bg-white text-indigo-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
+              <div className="space-y-2 pt-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs">
+                    {[
+                      { id: 'all', label: 'All Roles' },
+                      { id: 'student', label: 'Students' },
+                      { id: 'teacher', label: 'Teachers' },
+                      { id: 'parent', label: 'Parents' },
+                      { id: 'admin', label: 'Admin Activities' }
+                    ].map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => { sound.playClick(); setActivityRoleFilter(r.id as any); }}
+                        className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                          activityRoleFilter === r.id ? 'bg-white text-indigo-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="relative w-full sm:w-72">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      value={activitySearch}
+                      onChange={(e) => setActivitySearch(e.target.value)}
+                      placeholder="Search by title, user, category..."
+                      className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
                 </div>
 
-                <div className="relative w-full sm:w-72">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                  <input
-                    type="text"
-                    value={activitySearch}
-                    onChange={(e) => setActivitySearch(e.target.value)}
-                    placeholder="Search by title, user, category..."
-                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+                {/* Category Type Filter Bar */}
+                <div className="flex flex-wrap items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200/60 text-xs">
+                  {[
+                    { id: 'all', label: 'All Activity Types' },
+                    { id: 'auth', label: '🔑 Logins & Sessions' },
+                    { id: 'mock_test', label: '📝 Exams & Practice' },
+                    { id: 'solver', label: '🤖 AI Solvers' },
+                    { id: 'lesson', label: '📚 Lessons' },
+                    { id: 'vocab_quiz', label: '📖 Vocab Quizzes' },
+                    { id: 'admin_action', label: '⚙️ Admin Operations' }
+                  ].map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { sound.playClick(); setActivityCategoryFilter(c.id); }}
+                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                        activityCategoryFilter === c.id ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -1622,8 +1662,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <tbody className="divide-y divide-slate-100">
                     {filteredAll.map((act) => {
                       const isAdmin = act.userId === 'usr_admin_04' || act.type === 'admin_action';
+                      const isAuth = act.type === 'auth' || act.category === 'auth';
                       return (
-                        <tr key={act.id} className={isAdmin ? 'bg-indigo-50/20 hover:bg-indigo-50/40' : 'hover:bg-slate-50/80'}>
+                        <tr key={act.id} className={isAuth ? 'bg-purple-50/20 hover:bg-purple-50/40' : isAdmin ? 'bg-indigo-50/20 hover:bg-indigo-50/40' : 'hover:bg-slate-50/80'}>
                           <td className="py-3 px-3.5 font-bold">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                               isAdmin
@@ -1637,13 +1678,32 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                               {act.userName || act.userId}
                             </span>
                           </td>
-                          <td className="py-3 px-3.5 font-bold text-slate-900">{act.title}</td>
-                          <td className="py-3 px-3.5 text-slate-600 font-medium">{act.category}</td>
-                          <td className="py-3 px-3.5 font-extrabold text-emerald-700">{act.score || 'Completed'}</td>
+                          <td className="py-3 px-3.5 font-bold text-slate-900">
+                            <div className="flex items-center gap-1.5">
+                              {isAuth && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>}
+                              <span>{act.title}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3.5 text-slate-600 font-medium">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              isAuth ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {act.category}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3.5 font-extrabold text-emerald-700">
+                            {isAuth ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px]">
+                                {act.score || 'Online'}
+                              </span>
+                            ) : (
+                              act.score || 'Completed'
+                            )}
+                          </td>
                           <td className="py-3 px-3.5 font-mono text-slate-500 text-[11px] whitespace-nowrap">{act.timestamp}</td>
                           <td className="py-3 px-3.5 text-slate-500 text-[11px] max-w-sm" title={act.details}>
                             <div className="line-clamp-2 leading-relaxed">{act.details}</div>
-                            {(() => {
+                            {!isAuth && (() => {
                               const qStats = getActivityQuestionStats(act);
                               return (
                                 <div className="flex flex-wrap items-center gap-1 mt-1.5">
@@ -1668,17 +1728,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             })()}
                           </td>
                           <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                            <button
-                              onClick={() => {
-                                sound.playClick();
-                                setSelectedAttemptForModal(act);
-                              }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
-                              title="Inspect full original attempt, submitted answers, and rubric"
-                            >
-                              <Eye className="w-3 h-3" />
-                              <span>Show Attempt</span>
-                            </button>
+                            {isAuth ? (
+                              <span className="text-[10px] text-slate-400 font-medium italic">Session Logged</span>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  sound.playClick();
+                                  setSelectedAttemptForModal(act);
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                                title="Inspect full original attempt, submitted answers, and rubric"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>Show Attempt</span>
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );

@@ -97,7 +97,9 @@ class ApiService {
     // Include trusted active user identification header
     try {
       if (typeof localStorage !== 'undefined') {
-        const activeUserId = localStorage.getItem('edubridge_active_user_id');
+        const activeUserId =
+          localStorage.getItem('edubridge_active_user_id') ||
+          localStorage.getItem('edubridge_active_user_id_v1');
         if (activeUserId) {
           headers['x-user-id'] = activeUserId;
         }

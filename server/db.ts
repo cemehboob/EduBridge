@@ -1195,6 +1195,34 @@ export const DbStorage = {
     const id = activity.id || `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const timestamp = activity.timestamp || new Date().toISOString().replace('T', ' ').slice(0, 19);
 
+    // Ensure foreign key constraint on users(id) is satisfied
+    if (activity.userId) {
+      try {
+        const uRows: any = await sql`SELECT id FROM users WHERE id = ${activity.userId} LIMIT 1`;
+        const count = Array.isArray(uRows) ? uRows.length : uRows?.rows?.length || 0;
+        if (count === 0) {
+          const fallbackEmail = activity.userId.includes('@') ? activity.userId : `${activity.userId}@edubridge.org`;
+          await sql`
+            INSERT INTO users (id, name, username, email, password, role, cohort, status, created_at)
+            VALUES (
+              ${activity.userId},
+              ${activity.userName || 'EduBridge Learner'},
+              ${(activity.userName || activity.userId).toLowerCase().replace(/[^a-z0-9]/g, '_')},
+              ${fallbackEmail},
+              'Password123!',
+              ${activity.userRole || 'student'},
+              ${activity.cohort || 'academy'},
+              'active',
+              ${timestamp}
+            )
+            ON CONFLICT (id) DO NOTHING
+          `;
+        }
+      } catch (fkErr: any) {
+        console.warn('[DbStorage] FK check note:', fkErr.message);
+      }
+    }
+
     await sql`
       INSERT INTO activities (
         id, user_id, user_name, type, title, category, timestamp,

@@ -287,6 +287,22 @@ export const StorageService = {
     const currentAudit = StorageService.getAuditLogs();
     StorageService.saveAuditLogs([auditRecord, ...currentAudit]);
 
+    // Automatically record and synchronize User Activity with central database
+    const activeUser = StorageService.getActiveUser();
+    StorageService.recordUserActivity({
+      userId: activeUser?.id || 'usr_student_01',
+      userName: data.userName || activeUser?.name || 'EduBridge Learner',
+      userRole: (data.userRole || activeUser?.role || 'student') as any,
+      cohort: (data.cohort || activeUser?.cohort || 'academy') as any,
+      type: data.testType === 'PRACTICE_TEST' ? 'practice_test' : 'mock_test',
+      title: data.testTitle,
+      category: data.category || `${data.testType} · Examination`,
+      score: data.score || 'Completed',
+      xpEarned: data.xpEarned || 50,
+      status: data.status === 'COMPLETED' ? 'completed' : 'in_progress',
+      details: data.details || `Completed ${data.testType} "${data.testTitle}" with verification hash ${hash}. Result: ${data.score}.`
+    });
+
     return record;
   },
 
@@ -574,8 +590,13 @@ export const StorageService = {
   },
   setActiveUserId: (id: string | null): void => {
     try {
-      if (id) localStorage.setItem(KEYS.ACTIVE_USER_ID, id);
-      else localStorage.removeItem(KEYS.ACTIVE_USER_ID);
+      if (id) {
+        localStorage.setItem(KEYS.ACTIVE_USER_ID, id);
+        localStorage.setItem('edubridge_active_user_id', id);
+      } else {
+        localStorage.removeItem(KEYS.ACTIVE_USER_ID);
+        localStorage.removeItem('edubridge_active_user_id');
+      }
     } catch {}
   },
 
