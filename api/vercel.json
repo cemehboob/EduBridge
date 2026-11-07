@@ -1,6 +1,0 @@
-{
-  "buildCommand": "echo 'GitHub Pages artifact branch - skipping build' && exit 0",
-  "ignoreCommand": "exit 0",
-  "cleanUrls": true
-}
-
