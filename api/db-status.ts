@@ -29,6 +29,18 @@ export default async function handler(req: any, res: any) {
     }
   } catch {}
 
+  let filesInTask: string[] = [];
+  let filesInServer: string[] = [];
+  try {
+    const fs = await import('fs');
+    filesInTask = fs.readdirSync('/var/task');
+    if (fs.existsSync('/var/task/server')) {
+      filesInServer = fs.readdirSync('/var/task/server');
+    }
+  } catch (e: any) {
+    filesInTask = ['error: ' + e.message];
+  }
+
   try {
     const sql = neon(dbUrl);
     const tables = await sql`
@@ -48,6 +60,8 @@ export default async function handler(req: any, res: any) {
       tables: tables.map((t: any) => t.table_name),
       userCount: parseInt(usersCount[0]?.count || '0', 10),
       activityCount: parseInt(activitiesCount[0]?.count || '0', 10),
+      filesInTask,
+      filesInServer,
       timestamp: new Date().toISOString()
     });
   } catch (err: any) {
