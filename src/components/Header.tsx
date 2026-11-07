@@ -133,7 +133,15 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Role Navigation Bar */}
           <nav aria-label="Portal Navigation" className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200">
-            {isAdmin ? (
+            {!currentUser ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-700">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="font-bold text-slate-900">EduBridge Public Hub</span>
+                <span className="hidden lg:inline text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 font-medium">
+                  Autonomous AI Core
+                </span>
+              </div>
+            ) : isAdmin ? (
               visibleRoles.map((r) => {
                 const isActive = activeRole === r.role;
                 return (
@@ -168,8 +176,8 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Gamification Stats, Tools & User Menu */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Gamification metrics - shown primarily in student view */}
-            {activeRole === 'student' && (
+            {/* Gamification metrics - shown primarily in student view when logged in */}
+            {currentUser && activeRole === 'student' && (
               <>
                 {/* Streak */}
                 <button

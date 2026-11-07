@@ -325,15 +325,66 @@ serverApp.get('/api/health', async (_req: Request, res: Response) => {
 // ==================== AUTHENTICATION ====================
 serverApp.post('/api/auth/register', async (req: Request, res: Response) => {
   try {
-    const { name, username, email, password, dateOfBirth, role, preferences } = req.body;
+    const { name, username, email, password, dateOfBirth, role, preferences, otp } = req.body;
 
     if (!name || !email || !password || !dateOfBirth) {
       res.status(400).json({ success: false, error: 'Name, email, password, and dateOfBirth are required.' });
       return;
     }
 
-    const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
+
+    // Enforce strict OTP verification to prevent unauthorized account creation
+    if (!otp) {
+      res.status(400).json({
+        success: false,
+        error: 'Registration requires 6-digit email OTP verification. Please request a verification code via /api/auth/register/request-otp.'
+      });
+      return;
+    }
+
+    const cleanOtp = String(otp).trim();
+    const record = await DbStorage.getOtp(cleanEmail, 'REGISTRATION');
+    if (!record) {
+      res.status(400).json({
+        success: false,
+        error: 'No active registration OTP found for this email. Please request a new verification code.'
+      });
+      return;
+    }
+
+    if (Date.now() > record.expiresAt) {
+      await DbStorage.invalidateOtp(record.id);
+      res.status(400).json({
+        success: false,
+        error: 'Verification code has expired. Please request a new code.'
+      });
+      return;
+    }
+
+    if (record.attempts >= record.maxAttempts) {
+      await DbStorage.invalidateOtp(record.id);
+      res.status(429).json({
+        success: false,
+        error: 'Too many incorrect attempts. For security, this verification code has been invalidated. Please request a new one.'
+      });
+      return;
+    }
+
+    if (hashOtp(cleanOtp) !== record.otpHash) {
+      const newAttempts = await DbStorage.incrementOtpAttempts(record.id);
+      const remaining = Math.max(0, record.maxAttempts - newAttempts);
+      res.status(400).json({
+        success: false,
+        error: `Incorrect verification code. ${remaining} attempts remaining.`
+      });
+      return;
+    }
+
+    // OTP is valid! Mark verified in database
+    await DbStorage.markOtpVerified(record.id);
+
+    const cleanName = name.trim();
     const cleanUsername = (username || cleanName.toLowerCase().replace(/\s+/g, '.')).trim().toLowerCase();
 
     const newUser: UserAccount = {
@@ -731,8 +782,32 @@ serverApp.post('/api/auth/register/verify-otp', async (req: Request, res: Respon
       }
     };
 
-    const created = await ServerStorage.createUser(newUser);
+    const created = await DbStorage.createUser(newUser);
     const token = await createSessionToken(created);
+
+    // Record registration activity in the database activities table
+    try {
+      const regActivity: UserActivityRecord = {
+        id: `act_reg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        userId: created.id,
+        userName: created.name,
+        userRole: created.role,
+        cohort: created.cohort || 'academy',
+        type: 'auth' as any,
+        category: 'auth',
+        title: `${created.name} Verified Email & Registered`,
+        action: `New ${created.role.toUpperCase()} registered with verified OTP on EduBridge`,
+        module: 'Authentication',
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        status: 'completed',
+        score: 'Verified & Registered',
+        details: `${created.name} (${created.email}) verified OTP code and activated account.`,
+        relativeTime: 'Just now'
+      };
+      await DbStorage.saveActivity(regActivity);
+    } catch (actErr: any) {
+      console.warn('[ServerApp] Registration activity recording note:', actErr.message);
+    }
 
     // Send welcome confirmation asynchronously
     EmailService.sendRegistrationConfirmation(created.email, created.name).catch((e) =>
@@ -812,14 +887,9 @@ serverApp.post('/api/auth/password-reset/request-otp', async (req: Request, res:
 // Verify Password Reset OTP & Update Password
 serverApp.post('/api/auth/password-reset/verify-otp', async (req: Request, res: Response) => {
   try {
-    const { email, otp, newPassword } = req.body;
-    if (!email || !otp || !newPassword) {
-      res.status(400).json({ success: false, error: 'Email, verification code, and new password are required.' });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      res.status(400).json({ success: false, error: 'New password must be at least 6 characters long.' });
+    const { email, otp, newPassword, validateOnly } = req.body;
+    if (!email || !otp) {
+      res.status(400).json({ success: false, error: 'Email address and 6-digit verification code are required.' });
       return;
     }
 
@@ -850,7 +920,7 @@ serverApp.post('/api/auth/password-reset/verify-otp', async (req: Request, res: 
       await DbStorage.invalidateOtp(record.id);
       res.status(429).json({
         success: false,
-        error: 'Too many incorrect attempts. For security, this reset code has been invalidated.'
+        error: 'Too many incorrect attempts. For security, this reset code has been invalidated. Please request a new code.'
       });
       return;
     }
@@ -865,7 +935,22 @@ serverApp.post('/api/auth/password-reset/verify-otp', async (req: Request, res: 
       return;
     }
 
-    // Code is valid! Mark verified in database
+    // Code is valid! If user is pre-validating before typing new password, return success
+    if (validateOnly || !newPassword) {
+      res.json({
+        success: true,
+        verified: true,
+        message: 'Verification code confirmed. You can now set your new password.'
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ success: false, error: 'New password must be at least 6 characters long.' });
+      return;
+    }
+
+    // Code is valid and new password provided! Mark verified in database
     await DbStorage.markOtpVerified(record.id);
 
     const user = await DbStorage.getUserByIdentifier(cleanEmail);
@@ -879,6 +964,30 @@ serverApp.post('/api/auth/password-reset/verify-otp', async (req: Request, res: 
       emailVerified: true,
       emailVerificationStatus: 'verified'
     });
+
+    // Record password reset activity in database
+    try {
+      const resetActivity: UserActivityRecord = {
+        id: `act_pwd_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role,
+        cohort: user.cohort || 'academy',
+        type: 'auth' as any,
+        category: 'auth',
+        title: `${user.name} Reset Password`,
+        action: `Password reset verified via OTP and updated in database`,
+        module: 'Authentication',
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        status: 'completed',
+        score: 'Password Updated',
+        details: `${user.name} (${user.email}) successfully reset account password with verified OTP.`,
+        relativeTime: 'Just now'
+      };
+      await DbStorage.saveActivity(resetActivity);
+    } catch (actErr: any) {
+      console.warn('[ServerApp] Password reset activity recording note:', actErr.message);
+    }
 
     EmailService.sendPasswordResetConfirmation(user.email, user.name).catch((e) =>
       console.warn('Confirmation email dispatch note:', e)

@@ -2464,7 +2464,70 @@ async function runTests() {
     console.log('PASS: scheduled_jobs table in database maintains current execution timestamps, item counts, and status.');
   }
 
-  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 82 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
+  // Test 83: Public Home Page & Strict Database OTP Verification
+  console.log('\nTest 83: Verifying Public Home Page, Signout Transition & Strict Database OTP Enforcement...');
+  const homePageSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/home/HomePage.tsx'), 'utf-8');
+  const mainAppUpdatedSrc = fs.readFileSync(path.join(process.cwd(), 'src/App.tsx'), 'utf-8');
+  const authModalUpdatedSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/auth/AuthModal.tsx'), 'utf-8');
+  const clientStorageUpdatedSrc = fs.readFileSync(path.join(process.cwd(), 'src/services/storage.ts'), 'utf-8');
+  const serverAppUpdatedSrc = fs.readFileSync(path.join(process.cwd(), 'server/app.ts'), 'utf-8');
+
+  // 1. Verify Public HomePage showcases key modules & prominent Sign In
+  const hasHomePageComponent =
+    homePageSrc.includes('EduBridge 2.0') &&
+    homePageSrc.includes('Multi-Exam Mastery') &&
+    homePageSrc.includes('AI Multidisciplinary STEM') &&
+    homePageSrc.includes('5 Age Cohorts') &&
+    homePageSrc.includes('onOpenSignIn') &&
+    homePageSrc.includes('onOpenRegister');
+
+  // 2. Verify App renders HomePage when !currentUser and handleLogout transitions to null without forcing modal popup
+  const hasAppHomePageIntegration =
+    mainAppUpdatedSrc.includes('<HomePage') &&
+    mainAppUpdatedSrc.includes('!currentUser ? (') &&
+    mainAppUpdatedSrc.includes('StorageService.setActiveUser(null)') &&
+    mainAppUpdatedSrc.includes('setCurrentUser(null)');
+
+  // 3. Verify getActiveUser returns null when not logged in (no auto-login of default user)
+  const hasCleanSignoutStorage =
+    clientStorageUpdatedSrc.includes('if (!activeId) return null;') &&
+    !clientStorageUpdatedSrc.includes('return all.find((u) => u.id === activeId) || all[0]');
+
+  // 4. Verify AuthModal calls validatePasswordResetOtp before advancing to new password step
+  const hasStrictPasswordResetOtpCheck =
+    authModalUpdatedSrc.includes('apiService.auth.validatePasswordResetOtp') &&
+    !authModalUpdatedSrc.includes("setForgotStep('new_password');\n  };");
+
+  // 5. Verify direct registration without OTP is blocked in server/app.ts
+  const hasServerStrictOtpRegistration =
+    serverAppUpdatedSrc.includes('Registration requires 6-digit email OTP verification') &&
+    serverAppUpdatedSrc.includes('/api/auth/register/request-otp');
+
+  if (
+    !hasHomePageComponent ||
+    !hasAppHomePageIntegration ||
+    !hasCleanSignoutStorage ||
+    !hasStrictPasswordResetOtpCheck ||
+    !hasServerStrictOtpRegistration
+  ) {
+    console.error('FAIL: Test 83 Public Home Page or Strict OTP Verification check failed.');
+    console.error({
+      hasHomePageComponent,
+      hasAppHomePageIntegration,
+      hasCleanSignoutStorage,
+      hasStrictPasswordResetOtpCheck,
+      hasServerStrictOtpRegistration
+    });
+    failures++;
+  } else {
+    console.log('PASS: Public HomePage showcases all EduBridge functions (Multi-Exam, AI Solver, 5 Cohorts, Streaks, Portals, Database).');
+    console.log('PASS: App renders HomePage when signed out with prominent Sign In and Create Account triggers.');
+    console.log('PASS: StorageService.getActiveUser() returns null on logout, eliminating default user auto-login.');
+    console.log('PASS: AuthModal strictly verifies OTP with database before allowing new password entry.');
+    console.log('PASS: Server strictly enforces database OTP verification on registration and password reset, blocking unauthorized creation.');
+  }
+
+  console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 83 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
 }
 

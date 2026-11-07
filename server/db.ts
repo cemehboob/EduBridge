@@ -1047,86 +1047,100 @@ export const DbStorage = {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.getUserByIdentifier(identifier);
     }
-    const clean = identifier.trim().toLowerCase();
-    const sql = getSql();
-    const rows = await sql`
-      SELECT * FROM users
-      WHERE LOWER(email) = ${clean}
-         OR LOWER(username) = ${clean}
-         OR LOWER(name) = ${clean}
-      LIMIT 1
-    `;
-    return rows.length > 0 ? rowToUser(rows[0]) : null;
+    try {
+      const clean = identifier.trim().toLowerCase();
+      const sql = getSql();
+      const rows = await sql`
+        SELECT * FROM users
+        WHERE LOWER(email) = ${clean}
+           OR LOWER(username) = ${clean}
+           OR LOWER(name) = ${clean}
+        LIMIT 1
+      `;
+      return rows.length > 0 ? rowToUser(rows[0]) : null;
+    } catch {
+      return ServerStorage.getUserByIdentifier(identifier);
+    }
   },
 
   createUser: async (user: UserAccount): Promise<UserAccount> => {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.createUser(user);
     }
-    const sql = getSql();
-    // Check uniqueness
-    const existing = await sql`
-      SELECT id FROM users
-      WHERE id = ${user.id} OR LOWER(email) = ${user.email.toLowerCase()}
-      LIMIT 1
-    `;
-    if (existing.length > 0) {
-      throw new Error('An account already exists with this email address.');
+    try {
+      const sql = getSql();
+      // Check uniqueness
+      const existing = await sql`
+        SELECT id FROM users
+        WHERE id = ${user.id} OR LOWER(email) = ${user.email.toLowerCase()}
+        LIMIT 1
+      `;
+      if (existing.length > 0) {
+        throw new Error('An account already exists with this email address.');
+      }
+      await sql`
+        INSERT INTO users (
+          id, name, username, email, password, date_of_birth,
+          role, status, email_verified, email_verification_status,
+          created_at, last_login_at, preferences, profile_stats
+        )
+        VALUES (
+          ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
+          ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
+          ${user.emailVerified ?? true}, ${user.emailVerificationStatus || 'verified'},
+          ${user.createdAt}, ${user.lastLoginAt},
+          ${JSON.stringify(user.preferences)}, ${JSON.stringify(user.profileStats)}
+        )
+      `;
+      const created = await sql`SELECT * FROM users WHERE id = ${user.id}`;
+      return rowToUser(created[0]);
+    } catch (err: any) {
+      if (err.message?.includes('already exists')) throw err;
+      return ServerStorage.createUser(user);
     }
-    await sql`
-      INSERT INTO users (
-        id, name, username, email, password, date_of_birth,
-        role, status, email_verified, email_verification_status,
-        created_at, last_login_at, preferences, profile_stats
-      )
-      VALUES (
-        ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
-        ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
-        ${user.emailVerified ?? true}, ${user.emailVerificationStatus || 'verified'},
-        ${user.createdAt}, ${user.lastLoginAt},
-        ${JSON.stringify(user.preferences)}, ${JSON.stringify(user.profileStats)}
-      )
-    `;
-    const created = await sql`SELECT * FROM users WHERE id = ${user.id}`;
-    return rowToUser(created[0]);
   },
 
   updateUser: async (id: string, updates: Partial<UserAccount>): Promise<UserAccount> => {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.updateUser(id, updates);
     }
-    const sql = getSql();
-    const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
-    if (existing.length === 0) {
-      throw new Error(`User not found with id ${id}`);
+    try {
+      const sql = getSql();
+      const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
+      if (existing.length === 0) {
+        throw new Error(`User not found with id ${id}`);
+      }
+      const current = rowToUser(existing[0]);
+
+      const merged: UserAccount = {
+        ...current,
+        ...updates,
+        id: current.id, // immutable
+        preferences: updates.preferences ? { ...current.preferences, ...updates.preferences } : current.preferences,
+        profileStats: updates.profileStats ? { ...current.profileStats, ...updates.profileStats } : current.profileStats
+      };
+
+      await sql`
+        UPDATE users SET
+          name = ${merged.name},
+          username = ${merged.username || null},
+          email = ${merged.email},
+          password = ${merged.password},
+          date_of_birth = ${merged.dateOfBirth},
+          role = ${merged.role},
+          status = ${merged.status},
+          email_verified = ${merged.emailVerified ?? true},
+          email_verification_status = ${merged.emailVerificationStatus || 'verified'},
+          last_login_at = ${merged.lastLoginAt},
+          preferences = ${JSON.stringify(merged.preferences)},
+          profile_stats = ${JSON.stringify(merged.profileStats)}
+        WHERE id = ${id}
+      `;
+      return merged;
+    } catch (err: any) {
+      if (err.message?.includes('not found')) throw err;
+      return ServerStorage.updateUser(id, updates);
     }
-    const current = rowToUser(existing[0]);
-
-    const merged: UserAccount = {
-      ...current,
-      ...updates,
-      id: current.id, // immutable
-      preferences: updates.preferences ? { ...current.preferences, ...updates.preferences } : current.preferences,
-      profileStats: updates.profileStats ? { ...current.profileStats, ...updates.profileStats } : current.profileStats
-    };
-
-    await sql`
-      UPDATE users SET
-        name = ${merged.name},
-        username = ${merged.username || null},
-        email = ${merged.email},
-        password = ${merged.password},
-        date_of_birth = ${merged.dateOfBirth},
-        role = ${merged.role},
-        status = ${merged.status},
-        email_verified = ${merged.emailVerified ?? true},
-        email_verification_status = ${merged.emailVerificationStatus || 'verified'},
-        last_login_at = ${merged.lastLoginAt},
-        preferences = ${JSON.stringify(merged.preferences)},
-        profile_stats = ${JSON.stringify(merged.profileStats)}
-      WHERE id = ${id}
-    `;
-    return merged;
   },
 
   // --- Activities ---

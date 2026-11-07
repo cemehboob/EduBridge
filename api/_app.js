@@ -7265,6 +7265,16 @@ var ApiService = class {
 					body: JSON.stringify({ email })
 				});
 			},
+			validatePasswordResetOtp: async (email, otp) => {
+				return this.request("/auth/password-reset/verify-otp", {
+					method: "POST",
+					body: JSON.stringify({
+						email,
+						otp,
+						validateOnly: true
+					})
+				});
+			},
 			verifyPasswordResetOtp: async (email, otp, newPassword) => {
 				return this.request("/auth/password-reset/verify-otp", {
 					method: "POST",
@@ -10969,9 +10979,9 @@ var StorageService = {
 		} catch {}
 	},
 	getActiveUser: () => {
-		const all = StorageService.getUsers();
 		const activeId = StorageService.getActiveUserId();
-		return all.find((u) => u.id === activeId) || all[0] || null;
+		if (!activeId) return null;
+		return StorageService.getUsers().find((u) => u.id === activeId) || null;
 	},
 	setActiveUser: (id) => {
 		StorageService.setActiveUserId(id);
@@ -13059,7 +13069,7 @@ var initialWrittenResponses = [{
 	vocabularyRecommendations: ["Consider using \"paradigm shift\" or \"epistemic framework\" for further lexical sophistication."],
 	timestamp: "2026-11-01 15:30:00"
 }];
-var ServerStorage$1 = {
+var ServerStorage = {
 	initialize: () => {
 		const users = readJsonFile("users.json", initialUsers);
 		if (!users || users.length === 0) writeJsonFileSync("users.json", initialUsers);
@@ -13093,12 +13103,12 @@ var ServerStorage$1 = {
 		return readJsonFile("sessions.json", []);
 	},
 	saveSession: (session) => {
-		const sessions = ServerStorage$1.getSessions().filter((s) => s.token !== session.token && Date.now() <= s.expiresAt);
+		const sessions = ServerStorage.getSessions().filter((s) => s.token !== session.token && Date.now() <= s.expiresAt);
 		sessions.push(session);
 		writeJsonFileSync("sessions.json", sessions);
 	},
 	removeSession: (token) => {
-		writeJsonFileSync("sessions.json", ServerStorage$1.getSessions().filter((s) => s.token !== token));
+		writeJsonFileSync("sessions.json", ServerStorage.getSessions().filter((s) => s.token !== token));
 	},
 	getUsers: () => {
 		return readJsonFile("users.json", initialUsers);
@@ -13280,7 +13290,7 @@ var ServerStorage$1 = {
 		});
 	},
 	getAttemptDetail: (activityId, requestingUserId, requestingUserRole) => {
-		const activity = ServerStorage$1.getActivityById(activityId);
+		const activity = ServerStorage.getActivityById(activityId);
 		if (!activity) throw new Error(`Activity not found: ${activityId}`);
 		if (requestingUserRole !== "admin" && requestingUserId && activity.userId !== requestingUserId) {
 			const err = /* @__PURE__ */ new Error("Unauthorized: You do not have permission to view another user’s attempt.");
@@ -13288,16 +13298,16 @@ var ServerStorage$1 = {
 			throw err;
 		}
 		const testId = activity.replayPayload?.subId || activity.id;
-		let questions = ServerStorage$1.getQuestionAttempts({
+		let questions = ServerStorage.getQuestionAttempts({
 			userId: activity.userId,
 			testId
 		});
-		if (questions.length === 0) questions = ServerStorage$1.getQuestionAttempts({ userId: activity.userId }).filter((q) => q.testId === testId || q.testTitle.toLowerCase().includes(activity.title.toLowerCase().slice(0, 15)));
-		let written = ServerStorage$1.getWrittenResponses({
+		if (questions.length === 0) questions = ServerStorage.getQuestionAttempts({ userId: activity.userId }).filter((q) => q.testId === testId || q.testTitle.toLowerCase().includes(activity.title.toLowerCase().slice(0, 15)));
+		let written = ServerStorage.getWrittenResponses({
 			userId: activity.userId,
 			activityId
 		});
-		if (written.length === 0) written = ServerStorage$1.getWrittenResponses({ userId: activity.userId }).filter((w) => w.activityId === activity.id || testId && w.taskTitle.toLowerCase().includes(activity.title.toLowerCase().slice(0, 15)));
+		if (written.length === 0) written = ServerStorage.getWrittenResponses({ userId: activity.userId }).filter((w) => w.activityId === activity.id || testId && w.taskTitle.toLowerCase().includes(activity.title.toLowerCase().slice(0, 15)));
 		const writtenResponse = written[0] || void 0;
 		const totalQ = questions.length || 1;
 		const correctQ = questions.filter((q) => q.isCorrect).length;
@@ -13317,12 +13327,12 @@ var ServerStorage$1 = {
 		};
 	},
 	getUserFullHistory: (userId) => {
-		const user = ServerStorage$1.getUserById(userId);
+		const user = ServerStorage.getUserById(userId);
 		if (!user) throw new Error(`User not found: ${userId}`);
-		const activities = ServerStorage$1.getActivities({ userId }).items;
-		const questionAttempts = ServerStorage$1.getQuestionAttempts({ userId });
-		const writtenResponses = ServerStorage$1.getWrittenResponses({ userId });
-		const incompleteAttempt = ServerStorage$1.getIncompleteAttempt(userId);
+		const activities = ServerStorage.getActivities({ userId }).items;
+		const questionAttempts = ServerStorage.getQuestionAttempts({ userId });
+		const writtenResponses = ServerStorage.getWrittenResponses({ userId });
+		const incompleteAttempt = ServerStorage.getIncompleteAttempt(userId);
 		const totalActivities = activities.length;
 		const totalPracticeTests = activities.filter((a) => a.type === "practice_test").length;
 		const totalQuizzes = activities.filter((a) => a.type === "quiz").length;
@@ -13398,7 +13408,7 @@ var ServerStorage$1 = {
 	}
 };
 try {
-	ServerStorage$1.initialize();
+	ServerStorage.initialize();
 } catch (e) {
 	console.warn("[ServerStorage] Safe load note:", e.message);
 }
@@ -13411,7 +13421,7 @@ function getSql() {
 async function initializeDatabase() {
 	if (!process.env.DATABASE_URL) {
 		console.log("[EduBridge DB] DATABASE_URL not set — using local storage vault fallback. In Vercel, attach Neon Postgres to activate cloud DB.");
-		ServerStorage$1.initialize();
+		ServerStorage.initialize();
 		return;
 	}
 	const sql = getSql();
@@ -14212,7 +14222,7 @@ function rowToQuiz(row) {
 }
 var DbStorage = {
 	getHealthStats: async () => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getHealthStats();
+		if (!process.env.DATABASE_URL) return ServerStorage.getHealthStats();
 		const sql = getSql();
 		const [users, acts, qAtts, wRes, incAtts, tests, quizzes, configs] = await Promise.all([
 			sql`SELECT COUNT(*) as count FROM users`,
@@ -14239,7 +14249,7 @@ var DbStorage = {
 		};
 	},
 	getSessions: async () => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getSessions();
+		if (!process.env.DATABASE_URL) return ServerStorage.getSessions();
 		return (await getSql()`SELECT * FROM sessions WHERE expires_at > ${Date.now()}`).map((r) => ({
 			token: r.token,
 			userId: r.user_id,
@@ -14249,7 +14259,7 @@ var DbStorage = {
 		}));
 	},
 	saveSession: async (session) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.saveSession(session);
+		if (!process.env.DATABASE_URL) return ServerStorage.saveSession(session);
 		const sql = getSql();
 		await sql`
       INSERT INTO sessions (token, user_id, user_role, created_at, expires_at)
@@ -14260,7 +14270,7 @@ var DbStorage = {
 	},
 	findSession: async (token) => {
 		if (!process.env.DATABASE_URL) {
-			const sess = ServerStorage$1.getSessions().find((s) => s.token === token && Date.now() <= s.expiresAt);
+			const sess = ServerStorage.getSessions().find((s) => s.token === token && Date.now() <= s.expiresAt);
 			return sess ? {
 				userId: sess.userId,
 				userRole: sess.userRole,
@@ -14276,93 +14286,107 @@ var DbStorage = {
 		};
 	},
 	removeSession: async (token) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.removeSession(token);
+		if (!process.env.DATABASE_URL) return ServerStorage.removeSession(token);
 		await getSql()`DELETE FROM sessions WHERE token = ${token}`;
 	},
 	getUsers: async () => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getUsers();
+		if (!process.env.DATABASE_URL) return ServerStorage.getUsers();
 		return (await getSql()`SELECT * FROM users ORDER BY created_at DESC`).map(rowToUser);
 	},
 	getUserById: async (id) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getUserById(id);
+		if (!process.env.DATABASE_URL) return ServerStorage.getUserById(id);
 		const rows = await getSql()`SELECT * FROM users WHERE id = ${id}`;
 		return rows.length > 0 ? rowToUser(rows[0]) : null;
 	},
 	getUserByIdentifier: async (identifier) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getUserByIdentifier(identifier);
-		const clean = identifier.trim().toLowerCase();
-		const rows = await getSql()`
-      SELECT * FROM users
-      WHERE LOWER(email) = ${clean}
-         OR LOWER(username) = ${clean}
-         OR LOWER(name) = ${clean}
-      LIMIT 1
-    `;
-		return rows.length > 0 ? rowToUser(rows[0]) : null;
+		if (!process.env.DATABASE_URL) return ServerStorage.getUserByIdentifier(identifier);
+		try {
+			const clean = identifier.trim().toLowerCase();
+			const rows = await getSql()`
+        SELECT * FROM users
+        WHERE LOWER(email) = ${clean}
+           OR LOWER(username) = ${clean}
+           OR LOWER(name) = ${clean}
+        LIMIT 1
+      `;
+			return rows.length > 0 ? rowToUser(rows[0]) : null;
+		} catch {
+			return ServerStorage.getUserByIdentifier(identifier);
+		}
 	},
 	createUser: async (user) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.createUser(user);
-		const sql = getSql();
-		if ((await sql`
-      SELECT id FROM users
-      WHERE id = ${user.id} OR LOWER(email) = ${user.email.toLowerCase()}
-      LIMIT 1
-    `).length > 0) throw new Error("An account already exists with this email address.");
-		await sql`
-      INSERT INTO users (
-        id, name, username, email, password, date_of_birth,
-        role, status, email_verified, email_verification_status,
-        created_at, last_login_at, preferences, profile_stats
-      )
-      VALUES (
-        ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
-        ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
-        ${user.emailVerified ?? true}, ${user.emailVerificationStatus || "verified"},
-        ${user.createdAt}, ${user.lastLoginAt},
-        ${JSON.stringify(user.preferences)}, ${JSON.stringify(user.profileStats)}
-      )
-    `;
-		return rowToUser((await sql`SELECT * FROM users WHERE id = ${user.id}`)[0]);
+		if (!process.env.DATABASE_URL) return ServerStorage.createUser(user);
+		try {
+			const sql = getSql();
+			if ((await sql`
+        SELECT id FROM users
+        WHERE id = ${user.id} OR LOWER(email) = ${user.email.toLowerCase()}
+        LIMIT 1
+      `).length > 0) throw new Error("An account already exists with this email address.");
+			await sql`
+        INSERT INTO users (
+          id, name, username, email, password, date_of_birth,
+          role, status, email_verified, email_verification_status,
+          created_at, last_login_at, preferences, profile_stats
+        )
+        VALUES (
+          ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
+          ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
+          ${user.emailVerified ?? true}, ${user.emailVerificationStatus || "verified"},
+          ${user.createdAt}, ${user.lastLoginAt},
+          ${JSON.stringify(user.preferences)}, ${JSON.stringify(user.profileStats)}
+        )
+      `;
+			return rowToUser((await sql`SELECT * FROM users WHERE id = ${user.id}`)[0]);
+		} catch (err) {
+			if (err.message?.includes("already exists")) throw err;
+			return ServerStorage.createUser(user);
+		}
 	},
 	updateUser: async (id, updates) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.updateUser(id, updates);
-		const sql = getSql();
-		const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
-		if (existing.length === 0) throw new Error(`User not found with id ${id}`);
-		const current = rowToUser(existing[0]);
-		const merged = {
-			...current,
-			...updates,
-			id: current.id,
-			preferences: updates.preferences ? {
-				...current.preferences,
-				...updates.preferences
-			} : current.preferences,
-			profileStats: updates.profileStats ? {
-				...current.profileStats,
-				...updates.profileStats
-			} : current.profileStats
-		};
-		await sql`
-      UPDATE users SET
-        name = ${merged.name},
-        username = ${merged.username || null},
-        email = ${merged.email},
-        password = ${merged.password},
-        date_of_birth = ${merged.dateOfBirth},
-        role = ${merged.role},
-        status = ${merged.status},
-        email_verified = ${merged.emailVerified ?? true},
-        email_verification_status = ${merged.emailVerificationStatus || "verified"},
-        last_login_at = ${merged.lastLoginAt},
-        preferences = ${JSON.stringify(merged.preferences)},
-        profile_stats = ${JSON.stringify(merged.profileStats)}
-      WHERE id = ${id}
-    `;
-		return merged;
+		if (!process.env.DATABASE_URL) return ServerStorage.updateUser(id, updates);
+		try {
+			const sql = getSql();
+			const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
+			if (existing.length === 0) throw new Error(`User not found with id ${id}`);
+			const current = rowToUser(existing[0]);
+			const merged = {
+				...current,
+				...updates,
+				id: current.id,
+				preferences: updates.preferences ? {
+					...current.preferences,
+					...updates.preferences
+				} : current.preferences,
+				profileStats: updates.profileStats ? {
+					...current.profileStats,
+					...updates.profileStats
+				} : current.profileStats
+			};
+			await sql`
+        UPDATE users SET
+          name = ${merged.name},
+          username = ${merged.username || null},
+          email = ${merged.email},
+          password = ${merged.password},
+          date_of_birth = ${merged.dateOfBirth},
+          role = ${merged.role},
+          status = ${merged.status},
+          email_verified = ${merged.emailVerified ?? true},
+          email_verification_status = ${merged.emailVerificationStatus || "verified"},
+          last_login_at = ${merged.lastLoginAt},
+          preferences = ${JSON.stringify(merged.preferences)},
+          profile_stats = ${JSON.stringify(merged.profileStats)}
+        WHERE id = ${id}
+      `;
+			return merged;
+		} catch (err) {
+			if (err.message?.includes("not found")) throw err;
+			return ServerStorage.updateUser(id, updates);
+		}
 	},
 	getActivities: async (filter) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getActivities(filter);
+		if (!process.env.DATABASE_URL) return ServerStorage.getActivities(filter);
 		const sql = getSql();
 		let query = `SELECT * FROM activities WHERE 1=1`;
 		const params = [];
@@ -14414,12 +14438,12 @@ var DbStorage = {
 		};
 	},
 	getActivityById: async (id) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getActivityById(id);
+		if (!process.env.DATABASE_URL) return ServerStorage.getActivityById(id);
 		const rows = await getSql()`SELECT * FROM activities WHERE id = ${id}`;
 		return rows.length > 0 ? rowToActivity(rows[0]) : null;
 	},
 	saveActivity: async (activity) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.saveActivity(activity);
+		if (!process.env.DATABASE_URL) return ServerStorage.saveActivity(activity);
 		const sql = getSql();
 		const id = activity.id || `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 		const timestamp = activity.timestamp || (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19);
@@ -14488,7 +14512,7 @@ var DbStorage = {
 		return rowToActivity((await sql`SELECT * FROM activities WHERE id = ${id}`)[0]);
 	},
 	getQuestionAttempts: async (filter) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getQuestionAttempts(filter);
+		if (!process.env.DATABASE_URL) return ServerStorage.getQuestionAttempts(filter);
 		const sql = getSql();
 		let query = `SELECT * FROM question_attempts WHERE 1=1`;
 		const params = [];
@@ -14506,7 +14530,7 @@ var DbStorage = {
 		return (Array.isArray(rowsRes) ? rowsRes : rowsRes?.rows || []).map(rowToQuestionAttempt);
 	},
 	saveQuestionAttempt: async (attempt) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.saveQuestionAttempt(attempt);
+		if (!process.env.DATABASE_URL) return ServerStorage.saveQuestionAttempt(attempt);
 		const sql = getSql();
 		const id = attempt.id || `qatt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 		const timestamp = attempt.timestamp || (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19);
@@ -14533,7 +14557,7 @@ var DbStorage = {
 		return rowToQuestionAttempt((await sql`SELECT * FROM question_attempts WHERE id = ${id}`)[0]);
 	},
 	saveBatchQuestionAttempts: async (attempts) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.saveBatchQuestionAttempts(attempts);
+		if (!process.env.DATABASE_URL) return ServerStorage.saveBatchQuestionAttempts(attempts);
 		const saved = [];
 		for (const attempt of attempts) try {
 			const s = await DbStorage.saveQuestionAttempt(attempt);
@@ -14544,7 +14568,7 @@ var DbStorage = {
 		return saved;
 	},
 	getWrittenResponses: async (filter) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getWrittenResponses(filter);
+		if (!process.env.DATABASE_URL) return ServerStorage.getWrittenResponses(filter);
 		const sql = getSql();
 		let query = `SELECT * FROM written_responses WHERE 1=1`;
 		const params = [];
@@ -14562,7 +14586,7 @@ var DbStorage = {
 		return (Array.isArray(rowsRes) ? rowsRes : rowsRes?.rows || []).map(rowToWrittenResponse);
 	},
 	saveWrittenResponse: async (response) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.saveWrittenResponse(response);
+		if (!process.env.DATABASE_URL) return ServerStorage.saveWrittenResponse(response);
 		const sql = getSql();
 		const id = response.id || `wres_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 		const timestamp = response.timestamp || (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19);
@@ -14600,7 +14624,7 @@ var DbStorage = {
 		return rowToWrittenResponse((await sql`SELECT * FROM written_responses WHERE id = ${id}`)[0]);
 	},
 	getIncompleteAttempt: async (userId, testId) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getIncompleteAttempt(userId, testId);
+		if (!process.env.DATABASE_URL) return ServerStorage.getIncompleteAttempt(userId, testId);
 		const sql = getSql();
 		if (testId) {
 			const rows = await sql`
@@ -14615,7 +14639,7 @@ var DbStorage = {
 		return rows.length > 0 ? rowToIncompleteAttempt(rows[0]) : null;
 	},
 	saveIncompleteAttempt: async (attempt) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.saveIncompleteAttempt(attempt);
+		if (!process.env.DATABASE_URL) return ServerStorage.saveIncompleteAttempt(attempt);
 		const sql = getSql();
 		const id = attempt.id || `inc_${attempt.userId}_${attempt.testId}`;
 		const lastSavedAt = (/* @__PURE__ */ new Date()).toISOString();
@@ -14642,14 +14666,14 @@ var DbStorage = {
     `)[0]);
 	},
 	clearIncompleteAttempt: async (userId, testId) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.clearIncompleteAttempt(userId, testId);
+		if (!process.env.DATABASE_URL) return ServerStorage.clearIncompleteAttempt(userId, testId);
 		const sql = getSql();
 		if (testId) await sql`DELETE FROM incomplete_attempts WHERE user_id = ${userId} AND test_id = ${testId}`;
 		else await sql`DELETE FROM incomplete_attempts WHERE user_id = ${userId}`;
 		return true;
 	},
 	getAttemptDetail: async (activityId, requestingUserId, requestingUserRole) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getAttemptDetail(activityId, requestingUserId, requestingUserRole);
+		if (!process.env.DATABASE_URL) return ServerStorage.getAttemptDetail(activityId, requestingUserId, requestingUserRole);
 		const activity = await DbStorage.getActivityById(activityId);
 		if (!activity) throw Object.assign(/* @__PURE__ */ new Error(`Activity not found: ${activityId}`), { statusCode: 404 });
 		if (requestingUserRole !== "admin" && requestingUserId && activity.userId !== requestingUserId) throw Object.assign(/* @__PURE__ */ new Error("Unauthorized: You do not have permission to view another user's attempt."), { statusCode: 403 });
@@ -14683,7 +14707,7 @@ var DbStorage = {
 		};
 	},
 	getUserFullHistory: async (userId) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getUserFullHistory(userId);
+		if (!process.env.DATABASE_URL) return ServerStorage.getUserFullHistory(userId);
 		const user = await DbStorage.getUsers().then((users) => users.find((u) => u.id === userId));
 		if (!user) throw new Error(`User not found: ${userId}`);
 		const [activitiesResult, questionAttempts, writtenResponses, incompleteAttempt] = await Promise.all([
@@ -15126,7 +15150,7 @@ var DbStorage = {
 		return value;
 	},
 	createOtp: async (record) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.createOtp(record);
+		if (!process.env.DATABASE_URL) return ServerStorage.createOtp(record);
 		const sql = getSql();
 		try {
 			await sql`
@@ -15151,11 +15175,11 @@ var DbStorage = {
 			return record;
 		} catch (err) {
 			console.warn("[DbStorage createOtp Note]", err.message);
-			return ServerStorage$1.createOtp(record);
+			return ServerStorage.createOtp(record);
 		}
 	},
 	getOtp: async (email, type) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getOtp(email, type);
+		if (!process.env.DATABASE_URL) return ServerStorage.getOtp(email, type);
 		try {
 			const rows = await getSql()`
         SELECT * FROM auth_otps
@@ -15180,11 +15204,11 @@ var DbStorage = {
 				metadata: typeof r.metadata === "string" ? JSON.parse(r.metadata) : r.metadata || {}
 			};
 		} catch {
-			return ServerStorage$1.getOtp(email, type);
+			return ServerStorage.getOtp(email, type);
 		}
 	},
 	incrementOtpAttempts: async (id) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.incrementOtpAttempts(id);
+		if (!process.env.DATABASE_URL) return ServerStorage.incrementOtpAttempts(id);
 		try {
 			const rows = await getSql()`
         UPDATE auth_otps
@@ -15194,11 +15218,11 @@ var DbStorage = {
       `;
 			return rows.length > 0 ? parseInt(String(rows[0].attempts), 10) : 1;
 		} catch {
-			return ServerStorage$1.incrementOtpAttempts(id);
+			return ServerStorage.incrementOtpAttempts(id);
 		}
 	},
 	markOtpVerified: async (id) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.markOtpVerified(id);
+		if (!process.env.DATABASE_URL) return ServerStorage.markOtpVerified(id);
 		try {
 			await getSql()`
         UPDATE auth_otps
@@ -15206,11 +15230,11 @@ var DbStorage = {
         WHERE id = ${id}
       `;
 		} catch {
-			ServerStorage$1.markOtpVerified(id);
+			ServerStorage.markOtpVerified(id);
 		}
 	},
 	invalidateOtp: async (id) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.invalidateOtp(id);
+		if (!process.env.DATABASE_URL) return ServerStorage.invalidateOtp(id);
 		try {
 			await getSql()`
         UPDATE auth_otps
@@ -15218,11 +15242,11 @@ var DbStorage = {
         WHERE id = ${id}
       `;
 		} catch {
-			ServerStorage$1.invalidateOtp(id);
+			ServerStorage.invalidateOtp(id);
 		}
 	},
 	getOtpLogs: async (limit = 50) => {
-		if (!process.env.DATABASE_URL) return ServerStorage$1.getOtpLogs(limit);
+		if (!process.env.DATABASE_URL) return ServerStorage.getOtpLogs(limit);
 		try {
 			return (await getSql()`
         SELECT id, email, type, attempts, max_attempts, expires_at, created_at, last_sent_at, status, metadata
@@ -15241,7 +15265,7 @@ var DbStorage = {
 				metadata: typeof r.metadata === "string" ? JSON.parse(r.metadata) : r.metadata || {}
 			}));
 		} catch {
-			return ServerStorage$1.getOtpLogs(limit);
+			return ServerStorage.getOtpLogs(limit);
 		}
 	}
 };
@@ -15930,50 +15954,6 @@ async function ensureDbInitialized() {
 	}
 }
 if (!process.env.npm_lifecycle_event?.includes("build") && !process.argv.some((a) => a.includes("build"))) ensureDbInitialized().catch(() => {});
-var ServerStorage = {
-	getSessions: () => DbStorage.getSessions(),
-	saveSession: (s) => DbStorage.saveSession(s),
-	findSession: (t) => DbStorage.findSession(t),
-	removeSession: (t) => DbStorage.removeSession(t),
-	getUsers: () => DbStorage.getUsers(),
-	getUserById: (id) => DbStorage.getUserById(id),
-	getUserByIdentifier: (id) => DbStorage.getUserByIdentifier(id),
-	createUser: (u) => DbStorage.createUser(u),
-	updateUser: (id, updates) => DbStorage.updateUser(id, updates),
-	getActivities: (filter) => DbStorage.getActivities(filter),
-	getActivityById: (id) => DbStorage.getActivityById(id),
-	saveActivity: (a) => DbStorage.saveActivity(a),
-	getQuestionAttempts: (filter) => DbStorage.getQuestionAttempts(filter),
-	saveQuestionAttempt: (q) => DbStorage.saveQuestionAttempt(q),
-	saveBatchQuestionAttempts: (qs) => DbStorage.saveBatchQuestionAttempts(qs),
-	getWrittenResponses: (filter) => DbStorage.getWrittenResponses(filter),
-	saveWrittenResponse: (w) => DbStorage.saveWrittenResponse(w),
-	getIncompleteAttempt: (uid, tid) => DbStorage.getIncompleteAttempt(uid, tid),
-	saveIncompleteAttempt: (a) => DbStorage.saveIncompleteAttempt(a),
-	clearIncompleteAttempt: (uid, tid) => DbStorage.clearIncompleteAttempt(uid, tid),
-	getAttemptDetail: (id, uid, role) => DbStorage.getAttemptDetail(id, uid, role),
-	getUserFullHistory: (uid) => DbStorage.getUserFullHistory(uid),
-	getHealthStats: () => DbStorage.getHealthStats(),
-	getStandardTests: (filter) => DbStorage.getStandardTests(filter),
-	getStandardTestById: (id) => DbStorage.getStandardTestById(id),
-	saveStandardTest: (t) => DbStorage.saveStandardTest(t),
-	deleteStandardTest: (id) => DbStorage.deleteStandardTest(id),
-	getQuizzes: (filter) => DbStorage.getQuizzes(filter),
-	getQuizById: (id) => DbStorage.getQuizById(id),
-	saveQuiz: (q) => DbStorage.saveQuiz(q),
-	saveBatchQuizzes: (qs) => DbStorage.saveBatchQuizzes(qs),
-	getAllConfigurations: () => DbStorage.getAllConfigurations(),
-	getConfiguration: (k) => DbStorage.getConfiguration(k),
-	setConfiguration: (k, v, cat, desc, by) => DbStorage.setConfiguration(k, v, cat, desc, by),
-	getScheduledJobs: () => DbStorage.getScheduledJobs(),
-	updateScheduledJob: (id, updates) => DbStorage.updateScheduledJob(id, updates),
-	createOtp: (r) => DbStorage.createOtp(r),
-	getOtp: (e, t) => DbStorage.getOtp(e, t),
-	incrementOtpAttempts: (id) => DbStorage.incrementOtpAttempts(id),
-	markOtpVerified: (id) => DbStorage.markOtpVerified(id),
-	invalidateOtp: (id) => DbStorage.invalidateOtp(id),
-	getOtpLogs: (l) => DbStorage.getOtpLogs(l)
-};
 var serverApp = express();
 serverApp.use((req, res, next) => {
 	res.header("Access-Control-Allow-Origin", "*");
@@ -16163,7 +16143,7 @@ serverApp.get("/api/health", async (_req, res) => {
 });
 serverApp.post("/api/auth/register", async (req, res) => {
 	try {
-		const { name, username, email, password, dateOfBirth, role, preferences } = req.body;
+		const { name, username, email, password, dateOfBirth, role, preferences, otp } = req.body;
 		if (!name || !email || !password || !dateOfBirth) {
 			res.status(400).json({
 				success: false,
@@ -16171,8 +16151,50 @@ serverApp.post("/api/auth/register", async (req, res) => {
 			});
 			return;
 		}
-		const cleanName = name.trim();
 		const cleanEmail = email.trim().toLowerCase();
+		if (!otp) {
+			res.status(400).json({
+				success: false,
+				error: "Registration requires 6-digit email OTP verification. Please request a verification code via /api/auth/register/request-otp."
+			});
+			return;
+		}
+		const cleanOtp = String(otp).trim();
+		const record = await DbStorage.getOtp(cleanEmail, "REGISTRATION");
+		if (!record) {
+			res.status(400).json({
+				success: false,
+				error: "No active registration OTP found for this email. Please request a new verification code."
+			});
+			return;
+		}
+		if (Date.now() > record.expiresAt) {
+			await DbStorage.invalidateOtp(record.id);
+			res.status(400).json({
+				success: false,
+				error: "Verification code has expired. Please request a new code."
+			});
+			return;
+		}
+		if (record.attempts >= record.maxAttempts) {
+			await DbStorage.invalidateOtp(record.id);
+			res.status(429).json({
+				success: false,
+				error: "Too many incorrect attempts. For security, this verification code has been invalidated. Please request a new one."
+			});
+			return;
+		}
+		if (hashOtp(cleanOtp) !== record.otpHash) {
+			const newAttempts = await DbStorage.incrementOtpAttempts(record.id);
+			const remaining = Math.max(0, record.maxAttempts - newAttempts);
+			res.status(400).json({
+				success: false,
+				error: `Incorrect verification code. ${remaining} attempts remaining.`
+			});
+			return;
+		}
+		await DbStorage.markOtpVerified(record.id);
+		const cleanName = name.trim();
 		const cleanUsername = (username || cleanName.toLowerCase().replace(/\s+/g, ".")).trim().toLowerCase();
 		const newUser = {
 			id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -16559,8 +16581,30 @@ serverApp.post("/api/auth/register/verify-otp", async (req, res) => {
 				todayXp: 50
 			}
 		};
-		const created = await ServerStorage.createUser(newUser);
+		const created = await DbStorage.createUser(newUser);
 		const token = await createSessionToken(created);
+		try {
+			const regActivity = {
+				id: `act_reg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+				userId: created.id,
+				userName: created.name,
+				userRole: created.role,
+				cohort: created.cohort || "academy",
+				type: "auth",
+				category: "auth",
+				title: `${created.name} Verified Email & Registered`,
+				action: `New ${created.role.toUpperCase()} registered with verified OTP on EduBridge`,
+				module: "Authentication",
+				timestamp: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19),
+				status: "completed",
+				score: "Verified & Registered",
+				details: `${created.name} (${created.email}) verified OTP code and activated account.`,
+				relativeTime: "Just now"
+			};
+			await DbStorage.saveActivity(regActivity);
+		} catch (actErr) {
+			console.warn("[ServerApp] Registration activity recording note:", actErr.message);
+		}
 		EmailService.sendRegistrationConfirmation(created.email, created.name).catch((e) => console.warn("Welcome email dispatch note:", e));
 		res.status(201).json({
 			success: true,
@@ -16638,18 +16682,11 @@ serverApp.post("/api/auth/password-reset/request-otp", async (req, res) => {
 });
 serverApp.post("/api/auth/password-reset/verify-otp", async (req, res) => {
 	try {
-		const { email, otp, newPassword } = req.body;
-		if (!email || !otp || !newPassword) {
+		const { email, otp, newPassword, validateOnly } = req.body;
+		if (!email || !otp) {
 			res.status(400).json({
 				success: false,
-				error: "Email, verification code, and new password are required."
-			});
-			return;
-		}
-		if (newPassword.length < 6) {
-			res.status(400).json({
-				success: false,
-				error: "New password must be at least 6 characters long."
+				error: "Email address and 6-digit verification code are required."
 			});
 			return;
 		}
@@ -16675,7 +16712,7 @@ serverApp.post("/api/auth/password-reset/verify-otp", async (req, res) => {
 			await DbStorage.invalidateOtp(record.id);
 			res.status(429).json({
 				success: false,
-				error: "Too many incorrect attempts. For security, this reset code has been invalidated."
+				error: "Too many incorrect attempts. For security, this reset code has been invalidated. Please request a new code."
 			});
 			return;
 		}
@@ -16685,6 +16722,21 @@ serverApp.post("/api/auth/password-reset/verify-otp", async (req, res) => {
 			res.status(400).json({
 				success: false,
 				error: `Incorrect reset code. ${remaining} attempts remaining.`
+			});
+			return;
+		}
+		if (validateOnly || !newPassword) {
+			res.json({
+				success: true,
+				verified: true,
+				message: "Verification code confirmed. You can now set your new password."
+			});
+			return;
+		}
+		if (newPassword.length < 6) {
+			res.status(400).json({
+				success: false,
+				error: "New password must be at least 6 characters long."
 			});
 			return;
 		}
@@ -16702,6 +16754,28 @@ serverApp.post("/api/auth/password-reset/verify-otp", async (req, res) => {
 			emailVerified: true,
 			emailVerificationStatus: "verified"
 		});
+		try {
+			const resetActivity = {
+				id: `act_pwd_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+				userId: user.id,
+				userName: user.name,
+				userRole: user.role,
+				cohort: user.cohort || "academy",
+				type: "auth",
+				category: "auth",
+				title: `${user.name} Reset Password`,
+				action: `Password reset verified via OTP and updated in database`,
+				module: "Authentication",
+				timestamp: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19),
+				status: "completed",
+				score: "Password Updated",
+				details: `${user.name} (${user.email}) successfully reset account password with verified OTP.`,
+				relativeTime: "Just now"
+			};
+			await DbStorage.saveActivity(resetActivity);
+		} catch (actErr) {
+			console.warn("[ServerApp] Password reset activity recording note:", actErr.message);
+		}
 		EmailService.sendPasswordResetConfirmation(user.email, user.name).catch((e) => console.warn("Confirmation email dispatch note:", e));
 		res.json({
 			success: true,

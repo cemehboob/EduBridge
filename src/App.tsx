@@ -33,6 +33,7 @@ import { sound } from './utils/audio';
 import { userAccountToProfile, calculateCohortFromDob, calculateEducationLevel } from './utils/userProfile';
 
 import { Header } from './components/Header';
+import { HomePage } from './components/home/HomePage';
 import { StudentView, StudentTab } from './components/student/StudentView';
 import { AIService } from './services/aiService';
 import { apiService } from './services/apiService';
@@ -56,11 +57,9 @@ export default function App() {
   // Global ecosystem state with offline persistence
   const [users, setUsers] = useState<UserAccount[]>(() => StorageService.getUsers());
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
-    const active = StorageService.getActiveUser();
-    if (active) return active;
-    const allUsers = StorageService.getUsers();
-    return allUsers[0] || null;
+    return StorageService.getActiveUser();
   });
+  const [authModalInitialTab, setAuthModalInitialTab] = useState<'login' | 'register' | 'forgot_password'>('login');
   const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>(() => StorageService.getFeatureFlags());
   const [feedbackTickets, setFeedbackTickets] = useState<UserFeedbackTicket[]>(() => StorageService.getFeedbackTickets());
   const [userGuideArticles] = useState<UserGuideArticle[]>(() => StorageService.getUserGuideArticles());
@@ -823,7 +822,8 @@ export default function App() {
     }
     StorageService.setActiveUser(null);
     setCurrentUser(null);
-    setIsAuthModalOpen(true);
+    AIService.stopSpeaking();
+    setActiveLesson(null);
   };
 
   const handleUpdateCurrentUser = (updatedUser: UserAccount) => {
@@ -1077,7 +1077,10 @@ export default function App() {
         onToggleSound={handleToggleSound}
         isOnline={isOnline}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onOpenAuthModal={() => {
+          setAuthModalInitialTab('login');
+          setIsAuthModalOpen(true);
+        }}
         onOpenProfileModal={() => setIsProfileModalOpen(true)}
         onOpenFeedbackModal={() => setIsFeedbackModalOpen(true)}
         onOpenGuideModal={() => setIsGuideModalOpen(true)}
@@ -1105,101 +1108,117 @@ export default function App() {
       />
 
       {/* Main Content View by Role (Strict RBAC Guarded) */}
-      <div className="flex-1 py-4 sm:py-6">
-        {effectiveRole === 'student' && (
-          <StudentView
-            key={`${currentUser?.id || 'guest'}_${homeResetKey}`}
-            activeTab={studentTab}
-            onTabChange={setStudentTab}
-            resetTrigger={homeResetKey}
-            profile={profile}
-            currentUser={currentUser}
-            activities={activities}
-            units={units}
-            ieltsUnits={ieltsUnits}
-            mockTests={mockTests}
-            academicTopics={academicTopics}
-            ollamaModels={ollamaModels}
-            chatMessages={chatMessages}
-            dailyTasks={dailyTasks}
-            revisions={revisions}
-            careerRoadmaps={careerRoadmaps}
-            resume={resume}
-            certificates={certificates}
-            vocabularyWords={vocabularyWords}
-            onStartLesson={handleStartLesson}
-            onSendMessage={handleSendMessage}
-            onToggleTask={handleToggleDailyTask}
-            onCompleteRevision={handleCompleteRevision}
-            onAddTask={handleAddTask}
-            onUpdateResume={handleUpdateResume}
-            onOpenResourceVault={() => setIsResourceVaultOpen(true)}
-            onMarkLessonCompleted={handleMarkLessonCompleted}
-            onRecordActivity={handleRecordActivity}
-            onUpdateMockTests={setMockTests}
-            onCelebrate={(type) => {
-              if (type === 'daily_goal') {
-                const todayKey = 'edubridge_daily_goal_celebrated_' + new Date().toISOString().slice(0, 10);
-                if (localStorage.getItem(todayKey)) {
-                  // Already celebrated daily goal today! Do not show modal repeatedly.
-                  return;
-                }
-                localStorage.setItem(todayKey, 'true');
-              }
-              triggerCelebration(type);
-              setCelebrationModal({
-                type: type === 'daily_goal' ? 'goal_reached' : 'streak_completed',
-                title: type === 'daily_goal' ? 'Daily XP Goal Reached! 🎉' : `${profile.currentStreak}-Day Streak Milestone! 🔥`,
-                subtitle: type === 'daily_goal'
-                  ? `You earned ${profile.todayXp} of ${profile.dailyGoalXp} XP today!`
-                  : `Day ${profile.currentStreak} completed. Your habit consistency is world-class!`
-              });
+      <div className="flex-1">
+        {!currentUser ? (
+          <HomePage
+            onOpenSignIn={() => {
+              setAuthModalInitialTab('login');
+              setIsAuthModalOpen(true);
             }}
-            onToggleSimplifiedInterface={handleToggleSimplifiedInterface}
+            onOpenRegister={() => {
+              setAuthModalInitialTab('register');
+              setIsAuthModalOpen(true);
+            }}
+            onOpenGuide={() => setIsGuideModalOpen(true)}
           />
-        )}
+        ) : (
+          <div className="py-4 sm:py-6">
+            {effectiveRole === 'student' && (
+              <StudentView
+                key={`${currentUser?.id || 'guest'}_${homeResetKey}`}
+                activeTab={studentTab}
+                onTabChange={setStudentTab}
+                resetTrigger={homeResetKey}
+                profile={profile}
+                currentUser={currentUser}
+                activities={activities}
+                units={units}
+                ieltsUnits={ieltsUnits}
+                mockTests={mockTests}
+                academicTopics={academicTopics}
+                ollamaModels={ollamaModels}
+                chatMessages={chatMessages}
+                dailyTasks={dailyTasks}
+                revisions={revisions}
+                careerRoadmaps={careerRoadmaps}
+                resume={resume}
+                certificates={certificates}
+                vocabularyWords={vocabularyWords}
+                onStartLesson={handleStartLesson}
+                onSendMessage={handleSendMessage}
+                onToggleTask={handleToggleDailyTask}
+                onCompleteRevision={handleCompleteRevision}
+                onAddTask={handleAddTask}
+                onUpdateResume={handleUpdateResume}
+                onOpenResourceVault={() => setIsResourceVaultOpen(true)}
+                onMarkLessonCompleted={handleMarkLessonCompleted}
+                onRecordActivity={handleRecordActivity}
+                onUpdateMockTests={setMockTests}
+                onCelebrate={(type) => {
+                  if (type === 'daily_goal') {
+                    const todayKey = 'edubridge_daily_goal_celebrated_' + new Date().toISOString().slice(0, 10);
+                    if (localStorage.getItem(todayKey)) {
+                      // Already celebrated daily goal today! Do not show modal repeatedly.
+                      return;
+                    }
+                    localStorage.setItem(todayKey, 'true');
+                  }
+                  triggerCelebration(type);
+                  setCelebrationModal({
+                    type: type === 'daily_goal' ? 'goal_reached' : 'streak_completed',
+                    title: type === 'daily_goal' ? 'Daily XP Goal Reached! 🎉' : `${profile.currentStreak}-Day Streak Milestone! 🔥`,
+                    subtitle: type === 'daily_goal'
+                      ? `You earned ${profile.todayXp} of ${profile.dailyGoalXp} XP today!`
+                      : `Day ${profile.currentStreak} completed. Your habit consistency is world-class!`
+                  });
+                }}
+                onToggleSimplifiedInterface={handleToggleSimplifiedInterface}
+              />
+            )}
 
-        {effectiveRole === 'parent' && (
-          <main className="w-full px-3 sm:px-4 lg:px-6">
-            <ParentPortal progress={childProgress} />
-          </main>
-        )}
+            {effectiveRole === 'parent' && (
+              <main className="w-full px-3 sm:px-4 lg:px-6">
+                <ParentPortal progress={childProgress} />
+              </main>
+            )}
 
-        {effectiveRole === 'teacher' && (
-          <main className="w-full px-3 sm:px-4 lg:px-6">
-            <TeacherPortal
-              assignments={assignments}
-              questionBank={questionBank}
-              onAddQuestion={handleAddQuestion}
-              onAddAssignment={handleAddAssignment}
-            />
-          </main>
-        )}
+            {effectiveRole === 'teacher' && (
+              <main className="w-full px-3 sm:px-4 lg:px-6">
+                <TeacherPortal
+                  assignments={assignments}
+                  questionBank={questionBank}
+                  onAddQuestion={handleAddQuestion}
+                  onAddAssignment={handleAddAssignment}
+                />
+              </main>
+            )}
 
-        {effectiveRole === 'admin' && isUserAdmin && (
-          <main className="w-full px-3 sm:px-4 lg:px-6">
-            <AdminPortal
-              models={ollamaModels}
-              metrics={systemMetrics}
-              activities={activities}
-              auditLogs={auditLogs}
-              scheduledJobs={scheduledJobs}
-              vocabularyWords={vocabularyWords}
-              ingestedLedger={ingestedLedger}
-              users={users}
-              featureFlags={featureFlags}
-              feedbackTickets={feedbackTickets}
-              onToggleModelStatus={handleToggleModelStatus}
-              onUpdateModelTemp={handleUpdateModelTemp}
-              onToggleJob={handleToggleJob}
-              onRunScheduledJob={handleRunScheduledJob}
-              onToggleUserStatus={handleToggleUserStatus}
-              onAddUser={handleAddUser}
-              onUpdateUser={handleAdminUpdateUser}
-              onToggleFeatureFlag={handleToggleFeatureFlag}
-              onRespondFeedback={handleRespondFeedback}
-            />
-          </main>
+            {effectiveRole === 'admin' && isUserAdmin && (
+              <main className="w-full px-3 sm:px-4 lg:px-6">
+                <AdminPortal
+                  models={ollamaModels}
+                  metrics={systemMetrics}
+                  activities={activities}
+                  auditLogs={auditLogs}
+                  scheduledJobs={scheduledJobs}
+                  vocabularyWords={vocabularyWords}
+                  ingestedLedger={ingestedLedger}
+                  users={users}
+                  featureFlags={featureFlags}
+                  feedbackTickets={feedbackTickets}
+                  onToggleModelStatus={handleToggleModelStatus}
+                  onUpdateModelTemp={handleUpdateModelTemp}
+                  onToggleJob={handleToggleJob}
+                  onRunScheduledJob={handleRunScheduledJob}
+                  onToggleUserStatus={handleToggleUserStatus}
+                  onAddUser={handleAddUser}
+                  onUpdateUser={handleAdminUpdateUser}
+                  onToggleFeatureFlag={handleToggleFeatureFlag}
+                  onRespondFeedback={handleRespondFeedback}
+                />
+              </main>
+            )}
+          </div>
         )}
       </div>
 
@@ -1242,6 +1261,7 @@ export default function App() {
         onLogin={handleLogin}
         onRegister={handleRegister}
         onResetPassword={handleResetPassword}
+        initialTab={authModalInitialTab}
       />
 
       {/* User Profile & Preferences Modal */}

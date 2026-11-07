@@ -246,6 +246,16 @@ class ApiService {
       });
     },
 
+    validatePasswordResetOtp: async (
+      email: string,
+      otp: string
+    ): Promise<{ success: boolean; verified: boolean; message: string }> => {
+      return this.request('/auth/password-reset/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp, validateOnly: true })
+      });
+    },
+
     verifyPasswordResetOtp: async (
       email: string,
       otp: string,

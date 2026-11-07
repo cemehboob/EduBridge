@@ -602,9 +602,10 @@ export const StorageService = {
   },
 
   getActiveUser: (): UserAccount | null => {
-    const all = StorageService.getUsers();
     const activeId = StorageService.getActiveUserId();
-    return all.find((u) => u.id === activeId) || all[0] || null;
+    if (!activeId) return null;
+    const all = StorageService.getUsers();
+    return all.find((u) => u.id === activeId) || null;
   },
   setActiveUser: (id: string | null): void => {
     StorageService.setActiveUserId(id);

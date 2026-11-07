@@ -31,6 +31,7 @@ interface AuthModalProps {
   onLogin: (user: UserAccount) => void;
   onRegister: (newUser: UserAccount) => void;
   onResetPassword?: (email: string, newPassword: string) => void;
+  initialTab?: 'login' | 'register' | 'forgot_password';
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -39,9 +40,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   users,
   onLogin,
   onRegister,
-  onResetPassword
+  onResetPassword,
+  initialTab = 'login'
 }) => {
-  const [tab, setTab] = useState<'login' | 'register' | 'forgot_password'>('login');
+  const [tab, setTab] = useState<'login' | 'register' | 'forgot_password'>(initialTab);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -81,6 +83,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }, 1000);
     return () => clearInterval(interval);
   }, [resendCooldown]);
+
+  // Synchronize initialTab when modal opens
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setTab(initialTab);
+      setErrorMsg(null);
+      setSuccessMsg(null);
+      if (initialTab === 'register') {
+        setRegStep('form');
+      } else if (initialTab === 'forgot_password') {
+        setForgotStep('email');
+      }
+    }
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
 
@@ -193,7 +209,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setForgotStep('otp');
   };
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -203,8 +219,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    sound.playSuccess();
-    setForgotStep('new_password');
+    const cleanEmail = forgotEmail.trim().toLowerCase();
+
+    try {
+      // Authoritatively verify OTP against database before advancing to new password step
+      await apiService.auth.validatePasswordResetOtp(cleanEmail, cleanOtp);
+      sound.playSuccess();
+      setForgotStep('new_password');
+    } catch (serverErr: any) {
+      sound.playError();
+      setErrorMsg(serverErr.message || 'Invalid or expired verification code.');
+    }
   };
 
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
@@ -222,10 +247,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     const cleanEmail = forgotEmail.trim().toLowerCase();
+    const cleanOtp = enteredOtp.trim();
 
     try {
-      // 1. Authoritative password reset verification against central server
-      await apiService.auth.verifyPasswordResetOtp(cleanEmail, enteredOtp.trim(), newPassword);
+      // 1. Authoritative password reset verification against central server and database
+      await apiService.auth.verifyPasswordResetOtp(cleanEmail, cleanOtp, newPassword);
       onResetPassword?.(cleanEmail, newPassword);
       StorageService.clearPasswordResetOtp(cleanEmail);
 
@@ -236,34 +262,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setTab('login');
       setForgotStep('email');
       setEmailDeliveryNotice(null);
-      return;
     } catch (serverErr: any) {
-      if (serverErr.statusCode === 400 || serverErr.statusCode === 429) {
-        sound.playError();
-        setErrorMsg(serverErr.message || 'Invalid or expired verification code.');
-        return;
-      }
-      console.warn('Server password reset verification note, verifying locally:', serverErr.message);
-    }
-
-    // Local fallback verification
-    const record = StorageService.getPasswordResetOtp(cleanEmail);
-    if (!record || record.otp !== enteredOtp.trim()) {
       sound.playError();
-      setErrorMsg('Invalid or expired 6-digit code. Please request a new code.');
-      return;
+      setErrorMsg(serverErr.message || 'Invalid or expired verification code.');
     }
-
-    onResetPassword?.(cleanEmail, newPassword);
-    StorageService.clearPasswordResetOtp(cleanEmail);
-
-    sound.playLevelUp();
-    setSuccessMsg('Your password has been reset successfully! Please sign in with your new password.');
-    setLoginIdentifier(cleanEmail);
-    setLoginPassword('');
-    setTab('login');
-    setForgotStep('email');
-    setEmailDeliveryNotice(null);
   };
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
@@ -375,26 +377,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         `A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your email inbox and enter the code below.`
       );
       setRegOtpCode('');
-      return;
     } catch (err: any) {
-      if (err.statusCode === 409) {
-        sound.playError();
-        setErrorMsg(err.message);
-        return;
-      }
-      console.warn('Central server OTP request notice, proceeding with direct registration:', err.message);
-    }
-
-    // Direct registration fallback if offline
-    try {
-      const { user: serverUser } = await apiService.auth.register(newUser);
-      sound.playSuccess();
-      onRegister(serverUser);
-      onClose();
-    } catch {
-      sound.playSuccess();
-      onRegister({ ...newUser, emailVerified: true, emailVerificationStatus: 'verified' });
-      onClose();
+      sound.playError();
+      setErrorMsg(err.message || 'Failed to dispatch verification code. Please check your email address and try again.');
     }
   };
 
