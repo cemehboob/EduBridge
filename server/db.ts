@@ -53,6 +53,16 @@ export async function initializeDatabase(): Promise<void> {
 
   const sql = getSql();
 
+  try {
+    // Quick existence check: if core tables exist, skip full DDL execution for rapid cold starts
+    const existing = await sql`SELECT 1 FROM users, standard_tests, quizzes, app_configurations LIMIT 1`;
+    if (existing && existing.length > 0) {
+      return;
+    }
+  } catch {
+    // One or more tables do not exist yet; proceed with full table creation DDL below
+  }
+
   // Create all tables in order
   await sql`
     CREATE TABLE IF NOT EXISTS users (

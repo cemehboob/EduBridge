@@ -1,5 +1,93 @@
 [
   {
+    "id": "act_cross_machine_1794048462969",
+    "userId": "usr_machine_a_1794048462969",
+    "userName": "Sofia Martinez 1794048462969",
+    "type": "mock_test",
+    "title": "IELTS Academic Reading Complete Simulation 1",
+    "category": "Examination Preparation",
+    "score": "Band 7.5 (34/40)",
+    "xpEarned": 150,
+    "status": "completed",
+    "totalQuestions": 40,
+    "attemptedQuestions": 40,
+    "correctAnswers": 34,
+    "incorrectAnswers": 6,
+    "details": "Completed complete timed section on Machine A.",
+    "timestamp": "2026-11-03 22:15:00",
+    "replayPayload": {
+      "tab": "exam",
+      "subId": "ielts_acad_reading_01"
+    }
+  },
+  {
+    "id": "act_test_metrics_1794048462967",
+    "userId": "usr_cross_1794048462960",
+    "userName": "Elena Rostova 1794048462960",
+    "type": "mock_test",
+    "title": "Verification Practice Test with Metrics",
+    "category": "IELTS Academic",
+    "score": "9/10 (90%)",
+    "xpEarned": 90,
+    "status": "completed",
+    "totalQuestions": 10,
+    "attemptedQuestions": 10,
+    "correctAnswers": 9,
+    "incorrectAnswers": 1,
+    "details": "Completed timed section. Total Questions: 10 · Answers: 10 · Correct: 9 · Wrong: 1.",
+    "timestamp": "2026-11-03 21:15:00",
+    "replayPayload": {
+      "tab": "exam",
+      "subId": "test_sample_01"
+    }
+  },
+  {
+    "id": "act_conc_2_1794048462964",
+    "userId": "usr_cross_1794048462960",
+    "userName": "Elena Rostova 1794048462960",
+    "type": "quiz",
+    "title": "Concurrent Vocabulary Quiz 2",
+    "category": "Vocabulary",
+    "score": "100%",
+    "status": "completed",
+    "details": "Completed on Tablet B.",
+    "timestamp": "2026-11-03 21:10:02",
+    "replayPayload": {
+      "tab": "language"
+    }
+  },
+  {
+    "id": "act_conc_1_1794048462964",
+    "userId": "usr_cross_1794048462960",
+    "userName": "Elena Rostova 1794048462960",
+    "type": "quiz",
+    "title": "Concurrent Vocabulary Quiz 1",
+    "category": "Vocabulary",
+    "score": "100%",
+    "status": "completed",
+    "details": "Completed on Laptop A.",
+    "timestamp": "2026-11-03 21:10:01",
+    "replayPayload": {
+      "tab": "language"
+    }
+  },
+  {
+    "id": "act_machineA_1794048462961",
+    "userId": "usr_cross_1794048462960",
+    "userName": "Elena Rostova 1794048462960",
+    "type": "practice_test",
+    "title": "PTE Academic Speaking & Pronunciation Mastery",
+    "category": "PTE Academic",
+    "score": "84 / 90 (Superior English)",
+    "status": "completed",
+    "details": "Completed oral fluency assessment with real-time phoneme alignment.",
+    "timestamp": "2026-11-03 21:00:00",
+    "replayPayload": {
+      "tab": "exam",
+      "subId": "pte_prac_01"
+    }
+  },
+  {
     "id": "act_cross_machine_1794044452666",
     "userId": "usr_machine_a_1794044452665",
     "userName": "Sofia Martinez 1794044452665",

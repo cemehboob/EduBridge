@@ -81,6 +81,14 @@ serverApp.use((req: Request, res: Response, next: NextFunction) => {
 serverApp.use(express.json({ limit: '15mb' }));
 serverApp.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
+// Ensure database tables and initial data are verified on cold-start requests
+serverApp.use(async (_req: Request, _res: Response, next: NextFunction) => {
+  if (!dbInitialized && process.env.DATABASE_URL) {
+    await ensureDbInitialized().catch(() => {});
+  }
+  next();
+});
+
 // Persistent & In-memory session token store (mapping token -> { userId, createdAt, expiresAt })
 interface SessionInfo {
   token: string;
