@@ -1129,6 +1129,12 @@ export default function App() {
           });
         }}
         onNavigateHome={handleNavigateHome}
+        availableUsers={users}
+        onSwitchUser={handleLogin}
+        onOpenRegister={() => {
+          setAuthModalInitialTab('register');
+          setIsAuthModalOpen(true);
+        }}
       />
 
       {/* Main Content View by Role (Strict RBAC Guarded) */}

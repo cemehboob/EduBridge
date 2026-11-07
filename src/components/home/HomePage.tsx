@@ -85,15 +85,15 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="w-full bg-slate-50 text-slate-900 font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
       
-      {/* ==================== HERO SECTION ==================== */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-indigo-900 via-slate-900 to-slate-950 text-white pt-16 pb-24 px-4 sm:px-6 lg:px-8">
+      {/* ==================== HERO SECTION (Full Page Viewport Coverage) ==================== */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-indigo-900 via-slate-900 to-slate-950 text-white min-h-[calc(100vh-4rem)] flex flex-col justify-center py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
         {/* Glow Effects */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-indigo-500/20 blur-[130px] rounded-full pointer-events-none" />
         <div className="absolute bottom-10 right-10 w-[400px] h-[300px] bg-teal-500/15 blur-[120px] rounded-full pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto relative z-10 text-center">
+        <div className="max-w-6xl mx-auto relative z-10 text-center my-auto">
           
           {/* Platform Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-indigo-200 text-xs font-semibold mb-6 shadow-lg shadow-black/20">
@@ -567,7 +567,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   Cloud Synchronization & Conduction Ledgers
                 </h3>
                 <p className="text-xs text-slate-600 leading-relaxed mb-4">
-                  Multi-machine real-time synchronization backed by Neon Postgres serverless database. Guaranteed zero-drop offline queuing and cryptographic audit logs.
+                  Multi-machine real-time synchronization backed by Neon Postgres serverless database with resilient event queuing and cryptographic audit logs.
                 </p>
                 <ul className="space-y-2 text-xs text-slate-700">
                   <li className="flex items-center gap-2">

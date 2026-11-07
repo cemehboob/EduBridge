@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Flame,
   Heart,
@@ -14,6 +14,7 @@ import {
   HelpCircle,
   MessageSquare,
   User,
+  UserPlus,
   SlidersHorizontal,
   LogOut,
   LogIn,
@@ -48,6 +49,9 @@ interface HeaderProps {
   isKidMode?: boolean;
   onToggleKidMode?: () => void;
   onNavigateHome?: () => void;
+  availableUsers?: UserAccount[];
+  onSwitchUser?: (user: UserAccount) => void;
+  onOpenRegister?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -71,9 +75,31 @@ export const Header: React.FC<HeaderProps> = ({
   feedbackTicketCount = 0,
   isKidMode = false,
   onToggleKidMode,
-  onNavigateHome
+  onNavigateHome,
+  availableUsers = [],
+  onSwitchUser,
+  onOpenRegister
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close User Menu automatically whenever a click or touch occurs outside of userMenuRef
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
 
   const allRoles: { role: UserRole; label: string; icon: React.ReactNode }[] = [
     { role: 'student', label: 'Learner', icon: <GraduationCap className="w-4 h-4" /> },
@@ -261,32 +287,36 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* Curated Resource Vault Button */}
-            <button
-              onClick={() => {
-                sound.playClick();
-                onOpenResourceVault();
-              }}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-all cursor-pointer"
-              title="Open Universal Resource Vault (Printable Study Guides & Reference Sheets)"
-            >
-              <BookOpen className="w-4 h-4 text-emerald-600" />
-              <span className="hidden xl:inline">Resource Vault</span>
-            </button>
+            {/* Curated Resource Vault Button (Only for Signed-In Users) */}
+            {currentUser && (
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  onOpenResourceVault();
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-all cursor-pointer"
+                title="Open Universal Resource Vault (Printable Study Guides & Reference Sheets)"
+              >
+                <BookOpen className="w-4 h-4 text-emerald-600" />
+                <span className="hidden xl:inline">Resource Vault</span>
+              </button>
+            )}
 
-            {/* Offline Status Pill */}
-            <button
-              onClick={onOpenSyncModal}
-              className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                isOnline
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-              }`}
-              title="Click to view offline storage and backup options"
-            >
-              {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-600" /> : <WifiOff className="w-3.5 h-3.5 text-amber-600" />}
-              <span className="hidden md:inline">{isOnline ? 'Offline-Ready' : 'Offline Mode'}</span>
-            </button>
+            {/* Offline Status Pill - Strictly Scoped to Administrator Level Only */}
+            {isAdmin && (
+              <button
+                onClick={onOpenSyncModal}
+                className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                  isOnline
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                    : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                }`}
+                title="Admin Offline Storage, Backup & Multi-Machine Sync Console"
+              >
+                {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-600" /> : <WifiOff className="w-3.5 h-3.5 text-amber-600" />}
+                <span className="hidden md:inline">{isOnline ? 'Offline-Ready' : 'Offline Mode'}</span>
+              </button>
+            )}
 
             {/* User Guide Button (Windows Style) */}
             <button
@@ -301,24 +331,26 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden lg:inline">User Guide</span>
             </button>
 
-            {/* Feedback / Bug Report Button */}
-            <button
-              onClick={() => {
-                sound.playClick();
-                onOpenFeedbackModal();
-              }}
-              className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all cursor-pointer"
-              title="Feedback &amp; Admin Bug Report Mechanism"
-            >
-              <MessageSquare className="w-4 h-4 text-slate-600" />
-              <span className="hidden lg:inline">Feedback</span>
-              {feedbackTicketCount > 0 && (
-                <span className="w-2 h-2 rounded-full bg-indigo-600 absolute -top-0.5 -right-0.5 ring-2 ring-white"></span>
-              )}
-            </button>
+            {/* Feedback / Bug Report Button (Only for Signed-In Users) */}
+            {currentUser && (
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  onOpenFeedbackModal();
+                }}
+                className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all cursor-pointer"
+                title="Feedback &amp; Admin Bug Report Mechanism"
+              >
+                <MessageSquare className="w-4 h-4 text-slate-600" />
+                <span className="hidden lg:inline">Feedback</span>
+                {feedbackTicketCount > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 absolute -top-0.5 -right-0.5 ring-2 ring-white"></span>
+                )}
+              </button>
+            )}
 
-            {/* Mode Switcher moved right next to Feedback Button */}
-            {onToggleKidMode && (
+            {/* Mode Switcher (Only for Signed-In Users) */}
+            {currentUser && onToggleKidMode && (
               <button
                 onClick={() => {
                   sound.playClick();
@@ -337,11 +369,13 @@ export const Header: React.FC<HeaderProps> = ({
             )}
 
             {/* User Account / Profile Menu on the Right Side */}
-            <div className="relative ml-auto sm:ml-1">
+            <div ref={userMenuRef} className="relative ml-auto sm:ml-1">
               {currentUser ? (
                 <button
+                  type="button"
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all text-left cursor-pointer"
+                  title="Click to expand User Account & Switcher Menu"
                 >
                   <div className="relative">
                     <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 to-teal-500 text-white font-black text-[10px] flex items-center justify-center ring-2 ring-indigo-500/30">
@@ -357,88 +391,138 @@ export const Header: React.FC<HeaderProps> = ({
                       </span>
                     </div>
                   </div>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
               ) : (
-                <button
-                  onClick={onOpenAuthModal}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs transition-all"
-                >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>Sign In</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {onOpenRegister && (
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        onOpenRegister();
+                      }}
+                      className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50 shadow-2xs transition-all cursor-pointer"
+                    >
+                      <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Create Account</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      onOpenAuthModal();
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600 to-teal-600 hover:from-indigo-700 hover:to-teal-700 text-white shadow-xs transition-all cursor-pointer"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Sign In</span>
+                  </button>
+                </div>
               )}
 
-              {/* User Dropdown Menu */}
+              {/* User Dropdown Menu - Auto-dismisses when clicking outside */}
               {isUserMenuOpen && currentUser && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsUserMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 text-slate-800 text-xs">
-                    {/* User Header Details */}
-                    <div className="px-3.5 py-2.5 border-b border-slate-100">
-                      <div className="font-bold text-slate-900 text-sm">{currentUser.name}</div>
-                      <div className="text-slate-500 text-[11px] truncate">{currentUser.email}</div>
-                      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-600">
-                        <span className={`px-1.5 py-0.5 rounded font-semibold border ${roleBadgeColors[currentUser.role]}`}>
-                          Role: {currentUser.role}
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 text-slate-800 text-xs animate-in fade-in zoom-in-95">
+                  {/* User Header Details */}
+                  <div className="px-3.5 py-2.5 border-b border-slate-100">
+                    <div className="font-bold text-slate-900 text-sm">{currentUser.name}</div>
+                    <div className="text-slate-500 text-[11px] truncate">{currentUser.email}</div>
+                    <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-600">
+                      <span className={`px-1.5 py-0.5 rounded font-semibold border ${roleBadgeColors[currentUser.role]}`}>
+                        Role: {currentUser.role}
+                      </span>
+                      {currentUser.dateOfBirth && (
+                        <span className="flex items-center gap-1 text-slate-500">
+                          <Calendar className="w-3 h-3 text-slate-400" />
+                          DOB: {currentUser.dateOfBirth}
                         </span>
-                        {currentUser.dateOfBirth && (
-                          <span className="flex items-center gap-1 text-slate-500">
-                            <Calendar className="w-3 h-3 text-slate-400" />
-                            DOB: {currentUser.dateOfBirth}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Menu items */}
-                    <div className="p-1 space-y-0.5">
-                      <button
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onOpenProfileModal();
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-700 font-semibold cursor-pointer text-left"
-                      >
-                        <SlidersHorizontal className="w-4 h-4 text-indigo-600" />
-                        <div>
-                          <div>Profile &amp; Preferences</div>
-                          <div className="text-[10px] text-slate-400 font-normal">Color scheme, theme presets, password security, exam targets</div>
-                        </div>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onOpenAuthModal();
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-700 font-semibold cursor-pointer text-left"
-                      >
-                        <User className="w-4 h-4 text-emerald-600" />
-                        <div>
-                          <div>Switch Account / Sign In</div>
-                          <div className="text-[10px] text-slate-400 font-normal">Switch between Learner, Parent, Teacher, Admin</div>
-                        </div>
-                      </button>
-                    </div>
-
-                    <div className="pt-1 mt-1 border-t border-slate-100 px-1">
-                      <button
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onLogout();
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-rose-50 text-rose-600 font-semibold cursor-pointer text-left"
-                      >
-                        <LogOut className="w-4 h-4 text-rose-500" />
-                        <span>Sign Out</span>
-                      </button>
+                      )}
                     </div>
                   </div>
-                </>
+
+                  {/* Quick User Switcher Section (Direct Switch between Registered Users) */}
+                  {availableUsers && availableUsers.length > 1 && (
+                    <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/70">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1.5">
+                        Quick Switch User:
+                      </span>
+                      <div className="space-y-1">
+                        {availableUsers
+                          .filter((u) => u.id !== currentUser.id)
+                          .slice(0, 4)
+                          .map((u) => (
+                            <button
+                              key={u.id}
+                              onClick={() => {
+                                sound.playClick();
+                                setIsUserMenuOpen(false);
+                                if (onSwitchUser) onSwitchUser(u);
+                              }}
+                              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-left transition-all cursor-pointer group"
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[9px] flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                  {u.name.slice(0, 2).toUpperCase()}
+                                </span>
+                                <span className="font-semibold text-slate-800 text-[11px] truncate">{u.name}</span>
+                              </div>
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold border shrink-0 ${roleBadgeColors[u.role]}`}>
+                                {u.role}
+                              </span>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Menu Items */}
+                  <div className="p-1 space-y-0.5">
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setIsUserMenuOpen(false);
+                        onOpenProfileModal();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-700 font-semibold cursor-pointer text-left transition-colors"
+                    >
+                      <SlidersHorizontal className="w-4 h-4 text-indigo-600 shrink-0" />
+                      <div>
+                        <div className="font-bold text-slate-900">Profile &amp; Preferences</div>
+                        <div className="text-[10px] text-slate-400 font-normal">Theme presets, password security, exam targets</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setIsUserMenuOpen(false);
+                        onOpenAuthModal();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-700 font-semibold cursor-pointer text-left transition-colors"
+                    >
+                      <User className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <div className="font-bold text-slate-900">Switch Account / Sign In</div>
+                        <div className="text-[10px] text-slate-400 font-normal">Switch between Learner, Parent, Teacher, Admin</div>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Sign Out Action */}
+                  <div className="pt-1 mt-1 border-t border-slate-100 px-1">
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setIsUserMenuOpen(false);
+                        onLogout();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-rose-50 text-rose-600 font-semibold cursor-pointer text-left transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-500" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
 

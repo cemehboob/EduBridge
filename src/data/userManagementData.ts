@@ -1314,5 +1314,77 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
         tip: 'Every password update, DOB recalculation, cohort rule modification, and test configuration change is automatically committed to this ledger.'
       }
     ]
+  },
+  {
+    id: 'guide_public_home_hub',
+    title: 'Public Web Portal (Home Page) & Unified Learning Hub',
+    category: 'Platform Basics',
+    icon: 'Globe',
+    minRole: 'student',
+    summary: 'Full-page public landing hub showcasing all EduBridge functions: 14+ Multi-Exam Mock Tests, AI STEM & Voice Solver, 5 Age Cohorts, Gamification & Streaks, Role Portals, and Neon Postgres Database. Features direct Sign In, Free Registration, and seamless signout redirection.',
+    keywords: ['home page', 'landing page', 'public hub', 'overview', 'sign in', 'registration', 'logout redirect', 'capabilities', 'full page'],
+    screenshotUrl: '/assets/guide/getting_started_dashboard.jpg',
+    screenshotCaption: 'Public Home Page & Educational Hub: Comprehensive full-page portal showcasing platform functions, live metrics, interactive sample quiz, and sign-in controls.',
+    contentSections: [
+      {
+        heading: '1. Interface Description & Public Hub Architecture',
+        text: 'The Public Home Page serves as the primary gateway for prospective students, parents, and educators. It delivers a comprehensive, interactive preview of the complete EduBridge platform before authentication, highlighting 14+ multi-exam mock tests, AI question solving, 5 age-cohort curriculums, and database synchronization.',
+        steps: [
+          'Access the public URL (edu-bridge-alpha.vercel.app) to land directly on the full-page Home Page.',
+          'Review the live metrics banner showcasing 14+ Mock Tests, 340+ Quizzes, 12 Spoken Languages, and 100% Real-Time Cloud Sync.',
+          'Click "Sign In to Your Dashboard" or "Create Free Account" to launch the unified authentication dialog.',
+          'Browse interactive functional modules using the categorized navigation pills.'
+        ]
+      },
+      {
+        heading: '2. Functional Objects & Controls',
+        text: 'Key user-facing controls on the Home Page:',
+        steps: [
+          'Full-Page Viewport Hero: Covers the entire desktop screen seamlessly with immediate call-to-actions.',
+          'Categorized Capabilities Navigator: Filter between Multi-Exam Mastery, AI STEM & Voice Solver, 5 Age Cohorts, Gamification, Role Portals, and Neon Database.',
+          'Interactive Sample Vocabulary Challenge: Allows guests to test a sample question with immediate pedagogical feedback.',
+          'Secure Authentication Gate: One-click modal for logging into existing accounts or completing OTP-verified registration.',
+          'Seamless Signout Transition: Logging out from any dashboard immediately routes users back to this public landing page.'
+        ],
+        tip: 'The public header is intentionally streamlined: internal student study vaults and administrative offline options are hidden to maintain a focused, high-contrast presentation.'
+      }
+    ]
+  },
+  {
+    id: 'guide_question_randomization_quiz_session',
+    title: 'Application-Wide Question Randomization, Calibrated Quizzes & Admin-Only Offline Backups',
+    category: 'Exam Prep & Security',
+    icon: 'Sparkles',
+    minRole: 'student',
+    summary: 'Application-wide Fisher-Yates randomization distributing correct answers uniformly across options A, B, C, and D (~25% each), strict deduplication, calibrated 5/10/15/20 question limits with clean session termination, and strict administrator scoping for offline backup and synchronization tools.',
+    keywords: ['question randomization', 'option shuffling', 'fisher yates', 'session limits', 'deduplication', 'completion screen', 'admin offline', 'scoring accuracy'],
+    screenshotUrl: '/assets/guide/multi_question_exam_prep.jpg',
+    screenshotCaption: 'Adaptive Quiz & Question Randomization: Dynamically randomized option positions, zero duplicate prompts, clean session boundaries, and admin-isolated offline controls.',
+    contentSections: [
+      {
+        heading: '1. Eliminating Option Predictability via Pure Fisher-Yates Randomization',
+        text: 'EduBridge applies a centralized Fisher-Yates algorithmic shuffler across all practice tests, quizzes, STEM problems, and multi-exam mock exams. This guarantees that correct answers are evenly and unpredictable distributed across positions A, B, C, and D (approximating 25% for each position), eliminating guesswork while maintaining 100% scoring and explanation fidelity.',
+        steps: [
+          'Start any Adaptive Vocabulary Quiz, IELTS Practice Test, or Multi-Exam Mock Test.',
+          'Observe that answer options are dynamically randomized for each question and session.',
+          'Option A is no longer disproportionately favored, compelling learners to read and critically evaluate all four choices.',
+          'Submit answers to confirm that scoring, XP progression, and explanations match the intended answer regardless of position.'
+        ]
+      },
+      {
+        heading: '2. Calibrated Session Limits & Clean Session Termination',
+        text: 'Every quiz and practice session is strictly bounded by user-selected batch limits (5 Quick, 10 Standard, 15 Challenge, or 20 Mastery). Once the final question is answered, the session cleanly stops and renders a comprehensive completion screen with accuracy percentage, streak counters, and review actions.',
+        steps: [
+          'Select your preferred question batch size (5, 10, 15, or 20 questions) before launching.',
+          'Questions are strictly deduplicated by prompt to prevent repetitive or placeholder questions.',
+          'Upon completing the final question, the session automatically transitions to the completion card without looping or reloading.'
+        ]
+      },
+      {
+        heading: '3. Admin-Only Offline Storage & Multi-Machine Sync Scoping',
+        text: 'To protect student workspaces from operational complexity, all offline backup, sync diagnostics, and multi-machine IP binding controls are strictly isolated to the Administrator level. Regular users and public visitors experience a clean cloud-synchronized interface without technical sync modals.',
+        tip: 'Administrators can access the Offline Storage & Backup Console directly from the Admin Directorate or via the Admin-scoped Header status pill.'
+      }
+    ]
   }
 ];

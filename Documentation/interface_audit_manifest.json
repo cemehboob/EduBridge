@@ -1267,5 +1267,87 @@
         "recommendedAction": "Keep"
       }
     ]
+  },
+  {
+    "id": "public_home_hub",
+    "role": "Student",
+    "module": "Platform Basics & Public Hub",
+    "title": "Public Web Portal (Home Page) & Unified Learning Hub",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/dashboard_01_landing.png",
+    "objects": [
+      {
+        "name": "Hero Viewport Canvas",
+        "type": "Full-Page Responsive Viewport Section",
+        "purpose": "Showcases the complete EduBridge platform capabilities with zero double-scrolling and optimal viewport fit.",
+        "functionality": "Presents key platform metrics, high-contrast headline, and dual Call-to-Action gateways for Sign In and Account Creation.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Capabilities Category Navigator",
+        "type": "Segmented Module Nav Pills",
+        "purpose": "Enables visitors to explore discrete platform features: Multi-Exam Prep, AI STEM Solver, 5 Age Cohorts, Gamification, and Neon Database.",
+        "functionality": "Dynamically filters feature presentation cards with subtle horizontal scrolling on mobile and centered layout on desktop.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Interactive Sample Diagnostic Challenge",
+        "type": "Interactive Question Card",
+        "purpose": "Allows prospective learners to experience EduBridge's question answering and pedagogical explanation interface directly on the home page.",
+        "functionality": "Evaluates submitted answer choices and provides instant verified feedback.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Secure Sign In & Account Registration Modals",
+        "type": "Modal Authentication Gateways",
+        "purpose": "Enables seamless authentication for returning users and OTP-verified account creation for new learners.",
+        "functionality": "Verifies 6-digit email OTPs against database before account provisioning.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
+  },
+  {
+    "id": "question_randomization_quiz_session",
+    "role": "Student",
+    "module": "Assessment & Exam Preparation",
+    "title": "Adaptive Quiz & Question Randomization Engine",
+    "screenshotPath": "/Users/ejazmehboob/projects/EduBridge/Documentation/screenshots/dashboard_04_exam_prep.png",
+    "objects": [
+      {
+        "name": "Fisher-Yates Option Shuffler",
+        "type": "Algorithmic Option Randomizer",
+        "purpose": "Guarantees that correct answers are evenly and unpredictable distributed across options A, B, C, and D (~25% each).",
+        "functionality": "Randomizes multiple-choice order at the data level while preserving 100% scoring and explanation fidelity.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Question Batch Sizing Selector (5, 10, 15, 20)",
+        "type": "Segmented Control Buttons",
+        "purpose": "Empowers students to select exact session lengths: 5 Quick, 10 Standard, 15 Challenge, or 20 Mastery.",
+        "functionality": "Cuts off sessions strictly at the configured number and prevents runaway marathons.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Session Termination & Celebration Trophy Card",
+        "type": "Completion Interface",
+        "purpose": "Displays final score, accuracy percentage, streak counters, and earned XP immediately upon answering the final question.",
+        "functionality": "Records question-by-question attempt history into database and offers Retake or New Test actions.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      },
+      {
+        "name": "Admin-Only Offline Scoping",
+        "type": "Access Control Boundary",
+        "purpose": "Isolates offline storage, backup, and sync controls to the Administrator level.",
+        "functionality": "Keeps public home page and student views clean without technical sync indicators.",
+        "assessment": "Working Correctly",
+        "recommendedAction": "Keep"
+      }
+    ]
   }
 ]
