@@ -1341,7 +1341,7 @@ export const initialUserGuideArticles: UserGuideArticle[] = [
         text: 'Key user-facing controls on the Home Page:',
         steps: [
           'Full-Page Viewport Hero: Covers the entire desktop screen seamlessly with immediate call-to-actions.',
-          'Categorized Capabilities Navigator: Filter between Multi-Exam Mastery, AI STEM & Voice Solver, 5 Age Cohorts, Gamification, Role Portals, and Neon Database.',
+          'Categorized Capabilities Navigator: Filter between Multi-Exam Mastery, AI STEM & Voice Solver, 5 Age Cohorts, Gamification, Role Portals, and Prisma Postgres Database.',
           'Interactive Sample Vocabulary Challenge: Allows guests to test a sample question with immediate pedagogical feedback.',
           'Secure Authentication Gate: One-click modal for logging into existing accounts or completing OTP-verified registration.',
           'Seamless Signout Transition: Logging out from any dashboard immediately routes users back to this public landing page.'

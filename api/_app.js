@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import crypto from "crypto";
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
 import fs from "fs";
 import path from "path";
 import net from "net";
@@ -1549,7 +1549,7 @@ var initialUserGuideArticles = [
 			text: "Key user-facing controls on the Home Page:",
 			steps: [
 				"Full-Page Viewport Hero: Covers the entire desktop screen seamlessly with immediate call-to-actions.",
-				"Categorized Capabilities Navigator: Filter between Multi-Exam Mastery, AI STEM & Voice Solver, 5 Age Cohorts, Gamification, Role Portals, and Neon Database.",
+				"Categorized Capabilities Navigator: Filter between Multi-Exam Mastery, AI STEM & Voice Solver, 5 Age Cohorts, Gamification, Role Portals, and Prisma Postgres Database.",
 				"Interactive Sample Vocabulary Challenge: Allows guests to test a sample question with immediate pedagogical feedback.",
 				"Secure Authentication Gate: One-click modal for logging into existing accounts or completing OTP-verified registration.",
 				"Seamless Signout Transition: Logging out from any dashboard immediately routes users back to this public landing page."
@@ -13626,21 +13626,31 @@ try {
 	console.warn("[ServerStorage] Safe load note:", e.message);
 }
 // server/db.ts
+var sqlInstance = null;
 function getSql() {
 	const url = process.env.DATABASE_URL;
-	if (!url) throw new Error("DATABASE_URL environment variable is not set. Add it in your Vercel project settings (Neon Postgres integration).");
-	return neon(url);
+	if (!url) throw new Error("DATABASE_URL environment variable is not set. Add it in your Vercel project settings (Prisma Postgres integration).");
+	if (!sqlInstance) sqlInstance = postgres(url, {
+		ssl: "require",
+		max: 10,
+		idle_timeout: 20
+	});
+	return sqlInstance;
 }
 async function initializeDatabase() {
 	if (!process.env.DATABASE_URL) {
-		console.log("[EduBridge DB] DATABASE_URL not set — using local storage vault fallback. In Vercel, attach Neon Postgres to activate cloud DB.");
+		console.log("[EduBridge DB] DATABASE_URL not set — using local storage vault fallback. In Vercel, attach Prisma Postgres to activate cloud DB.");
 		ServerStorage.initialize();
 		return;
 	}
 	const sql = getSql();
 	try {
-		const existing = await sql`SELECT 1 FROM users, standard_tests, quizzes, app_configurations, auth_otps LIMIT 1`;
-		if (existing && existing.length > 0) return;
+		const checkTables = await sql`
+      SELECT COUNT(*) as count FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name IN ('users', 'sessions', 'activities', 'question_attempts', 'written_responses', 'incomplete_attempts', 'smtp_config', 'email_logs', 'auth_otps', 'scheduled_jobs', 'standard_tests', 'quizzes', 'app_configurations')
+    `;
+		if (parseInt(String(checkTables[0]?.count || 0), 10) >= 13) return;
 	} catch {}
 	await sql`
     CREATE TABLE IF NOT EXISTS users (
@@ -13910,14 +13920,14 @@ async function initializeDatabase() {
 	await sql`CREATE OR REPLACE VIEW schedule_jobs AS SELECT * FROM scheduled_jobs`;
 	await sql`CREATE OR REPLACE VIEW student_activities AS SELECT * FROM activities`;
 	await sql`CREATE OR REPLACE VIEW answers AS SELECT id as attempt_id, user_id, user_name, test_id, question_number, user_answer, correct_answer, is_correct, score, explanation, timestamp FROM question_attempts`;
-	console.log("[EduBridge DB] Neon Postgres tables and views created and verified successfully.");
+	console.log("[EduBridge DB] Prisma Postgres tables and views created and verified successfully.");
 }
 async function seedInitialData() {
 	if (!process.env.DATABASE_URL) return;
 	const sql = getSql();
 	const existingUsers = await sql`SELECT COUNT(*) as count FROM users`;
 	if (parseInt(String(existingUsers[0].count), 10) === 0) {
-		console.log("[EduBridge DB] Seeding initial users into Neon Postgres...");
+		console.log("[EduBridge DB] Seeding initial users into Prisma Postgres...");
 		for (const user of initialUsers) try {
 			await sql`
           INSERT INTO users (
@@ -14105,7 +14115,7 @@ async function seedInitialData() {
 	}
 	const existingTests = await sql`SELECT COUNT(*) as count FROM standard_tests`;
 	if (parseInt(String(existingTests[0].count), 10) === 0) {
-		console.log("[EduBridge DB] Seeding multi-exam mock tests & practice tests into Neon Postgres...");
+		console.log("[EduBridge DB] Seeding multi-exam mock tests & practice tests into Prisma Postgres...");
 		for (const test of multiExamMockTests) try {
 			await sql`
           INSERT INTO standard_tests (
@@ -14184,7 +14194,7 @@ async function seedInitialData() {
 	}
 	const existingQuizzes = await sql`SELECT COUNT(*) as count FROM quizzes`;
 	if (parseInt(String(existingQuizzes[0].count), 10) === 0) {
-		console.log("[EduBridge DB] Seeding cohort quizzes into Neon Postgres...");
+		console.log("[EduBridge DB] Seeding cohort quizzes into Prisma Postgres...");
 		for (const q of cohortQuizQuestions) try {
 			await sql`
           INSERT INTO quizzes (
@@ -14207,7 +14217,7 @@ async function seedInitialData() {
 	}
 	const existingConfigs = await sql`SELECT COUNT(*) as count FROM app_configurations`;
 	if (parseInt(String(existingConfigs[0].count), 10) === 0) {
-		console.log("[EduBridge DB] Seeding application configuration tables into Neon Postgres...");
+		console.log("[EduBridge DB] Seeding application configuration tables into Prisma Postgres...");
 		const initialConfigs = [
 			{
 				key: "exam_settings",
@@ -14236,8 +14246,8 @@ async function seedInitialData() {
 				value: {
 					appName: "EduBridge",
 					version: "2.5.0",
-					centralizedDb: "Neon Postgres",
-					databaseDriver: "@neondatabase/serverless",
+					centralizedDb: "Prisma Postgres",
+					databaseDriver: "postgres",
 					minQuestionsPerTest: 10,
 					supportedStandards: [
 						"IELTS",
@@ -14276,7 +14286,17 @@ async function seedInitialData() {
 			console.warn(`[EduBridge DB] Skipping config seed for ${cfg.key}:`, err.message);
 		}
 	}
-	console.log("[EduBridge DB] Initial Neon Postgres seed verified.");
+	console.log("[EduBridge DB] Initial Prisma Postgres seed verified.");
+}
+function safeJsonParse(val, fallback = null) {
+	if (val === null || val === void 0) return fallback;
+	if (typeof val === "object") return val;
+	if (typeof val === "string") try {
+		return JSON.parse(val);
+	} catch {
+		return fallback;
+	}
+	return fallback;
 }
 function rowToUser(row) {
 	return {
@@ -14292,8 +14312,8 @@ function rowToUser(row) {
 		emailVerificationStatus: row.email_verification_status || "verified",
 		createdAt: row.created_at || "",
 		lastLoginAt: row.last_login_at || "",
-		preferences: row.preferences || {},
-		profileStats: row.profile_stats || {}
+		preferences: safeJsonParse(row.preferences, {}),
+		profileStats: safeJsonParse(row.profile_stats, {})
 	};
 }
 function rowToActivity(row) {
@@ -14325,7 +14345,7 @@ function rowToActivity(row) {
 		percentage: row.percentage || void 0,
 		evaluation: row.evaluation || void 0,
 		feedback: row.feedback || void 0,
-		replayPayload: row.replay_payload || { tab: "" }
+		replayPayload: safeJsonParse(row.replay_payload, { tab: "" })
 	};
 }
 function rowToQuestionAttempt(row) {
@@ -14339,7 +14359,7 @@ function rowToQuestionAttempt(row) {
 		moduleOrSubject: row.module_or_subject || "",
 		questionNumber: row.question_number || 0,
 		questionPrompt: row.question_prompt || "",
-		options: row.options || void 0,
+		options: safeJsonParse(row.options, []),
 		userAnswer: row.user_answer || "",
 		correctAnswer: row.correct_answer || void 0,
 		isCorrect: row.is_correct || false,
@@ -14369,12 +14389,12 @@ function rowToWrittenResponse(row) {
 		wordCount: row.word_count || 0,
 		characterCount: row.character_count || 0,
 		writingDurationSec: row.writing_duration_sec || void 0,
-		evaluation: row.evaluation || void 0,
+		evaluation: safeJsonParse(row.evaluation, {}),
 		score: row.score || void 0,
 		feedback: row.feedback || void 0,
-		corrections: row.corrections || void 0,
-		vocabularyRecommendations: row.vocabulary_recommendations || void 0,
-		revisions: row.revisions || void 0,
+		corrections: safeJsonParse(row.corrections, []),
+		vocabularyRecommendations: safeJsonParse(row.vocabulary_recommendations, []),
+		revisions: safeJsonParse(row.revisions, []),
 		timestamp: row.timestamp || ""
 	};
 }
@@ -14387,7 +14407,7 @@ function rowToIncompleteAttempt(row) {
 		examType: row.exam_type || "",
 		module: row.module || "",
 		currentQuestionIndex: row.current_question_index || 0,
-		userAnswers: row.user_answers || {},
+		userAnswers: safeJsonParse(row.user_answers, {}),
 		essayText: row.essay_text || void 0,
 		elapsedSeconds: row.elapsed_seconds || 0,
 		lastSavedAt: row.last_saved_at || (/* @__PURE__ */ new Date()).toISOString()
@@ -14408,9 +14428,9 @@ function rowToStandardTest(row) {
 		questionCount: row.question_count,
 		targetScore: row.target_score,
 		targetBandRequirement: row.target_score,
-		sections: row.sections || [],
-		questions: row.questions || [],
-		metadata: row.metadata || {},
+		sections: safeJsonParse(row.sections, []),
+		questions: safeJsonParse(row.questions, []),
+		metadata: safeJsonParse(row.metadata, {}),
 		createdAt: row.created_at,
 		updatedAt: row.updated_at
 	};
@@ -14424,12 +14444,12 @@ function rowToQuiz(row) {
 		word: row.word || "",
 		phonetic: row.phonetic || "",
 		prompt: row.prompt,
-		options: row.options || [],
+		options: safeJsonParse(row.options, []),
 		correctAnswer: row.correct_answer,
 		explanation: row.explanation || "",
 		audioPrompt: row.audio_prompt || "",
 		praise: row.praise || "",
-		metadata: row.metadata || {},
+		metadata: safeJsonParse(row.metadata, {}),
 		createdAt: row.created_at
 	};
 }
@@ -14449,7 +14469,7 @@ var DbStorage = {
 		]);
 		return {
 			status: "healthy",
-			storageVault: "Neon Postgres (Centralized Cloud Database)",
+			storageVault: "Prisma Postgres (Centralized Cloud Database)",
 			totalUsers: parseInt(String(users[0].count), 10),
 			totalActivities: parseInt(String(acts[0].count), 10),
 			totalQuestionAttempts: parseInt(String(qAtts[0].count), 10),
@@ -14601,52 +14621,32 @@ var DbStorage = {
 	getActivities: async (filter) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.getActivities(filter);
 		const sql = getSql();
-		let query = `SELECT * FROM activities WHERE 1=1`;
-		const params = [];
-		let paramIdx = 1;
-		if (filter?.userId) {
-			query += ` AND user_id = $${paramIdx++}`;
-			params.push(filter.userId);
-		}
+		let query = sql`SELECT * FROM activities WHERE 1=1`;
+		if (filter?.userId) query = sql`${query} AND user_id = ${filter.userId}`;
 		if (filter?.examType && filter.examType !== "all") {
-			query += ` AND (LOWER(exam_type) LIKE $${paramIdx} OR LOWER(category) LIKE $${paramIdx})`;
-			params.push(`%${filter.examType.toLowerCase()}%`);
-			paramIdx++;
+			const examParam = `%${filter.examType.toLowerCase()}%`;
+			query = sql`${query} AND (LOWER(exam_type) LIKE ${examParam} OR LOWER(category) LIKE ${examParam})`;
 		}
 		if (filter?.module && filter.module !== "all") {
-			query += ` AND (LOWER(module) LIKE $${paramIdx} OR LOWER(title) LIKE $${paramIdx})`;
-			params.push(`%${filter.module.toLowerCase()}%`);
-			paramIdx++;
+			const modParam = `%${filter.module.toLowerCase()}%`;
+			query = sql`${query} AND (LOWER(module) LIKE ${modParam} OR LOWER(title) LIKE ${modParam})`;
 		}
 		if (filter?.category && filter.category !== "all") {
-			query += ` AND LOWER(category) LIKE $${paramIdx++}`;
-			params.push(`%${filter.category.toLowerCase()}%`);
+			const catParam = `%${filter.category.toLowerCase()}%`;
+			query = sql`${query} AND LOWER(category) LIKE ${catParam}`;
 		}
-		if (filter?.status && filter.status !== "all") {
-			query += ` AND status = $${paramIdx++}`;
-			params.push(filter.status);
-		}
+		if (filter?.status && filter.status !== "all") query = sql`${query} AND status = ${filter.status}`;
 		if (filter?.search) {
-			query += ` AND (LOWER(title) LIKE $${paramIdx} OR LOWER(details) LIKE $${paramIdx})`;
-			params.push(`%${filter.search.toLowerCase()}%`);
-			paramIdx++;
+			const searchParam = `%${filter.search.toLowerCase()}%`;
+			query = sql`${query} AND (LOWER(title) LIKE ${searchParam} OR LOWER(details) LIKE ${searchParam})`;
 		}
-		const countQuery = query.replace("SELECT *", "SELECT COUNT(*) as count");
-		const countRes = await sql.query(countQuery, params);
-		const countList = Array.isArray(countRes) ? countRes : countRes?.rows || [];
-		const total = parseInt(String(countList[0]?.count || 0), 10);
-		query += ` ORDER BY timestamp DESC`;
-		if (filter?.limit) {
-			query += ` LIMIT $${paramIdx++}`;
-			params.push(filter.limit);
-		}
-		if (filter?.offset) {
-			query += ` OFFSET $${paramIdx++}`;
-			params.push(filter.offset);
-		}
-		const rowsRes = await sql.query(query, params);
+		const countRes = await sql`SELECT COUNT(*) as count FROM (${query}) AS subquery`;
+		const total = parseInt(String(countRes[0]?.count || 0), 10);
+		query = sql`${query} ORDER BY timestamp DESC`;
+		if (filter?.limit) query = sql`${query} LIMIT ${filter.limit}`;
+		if (filter?.offset) query = sql`${query} OFFSET ${filter.offset}`;
 		return {
-			items: (Array.isArray(rowsRes) ? rowsRes : rowsRes?.rows || []).map(rowToActivity),
+			items: (await query).map(rowToActivity),
 			total
 		};
 	},
@@ -14727,20 +14727,11 @@ var DbStorage = {
 	getQuestionAttempts: async (filter) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.getQuestionAttempts(filter);
 		const sql = getSql();
-		let query = `SELECT * FROM question_attempts WHERE 1=1`;
-		const params = [];
-		let paramIdx = 1;
-		if (filter?.userId) {
-			query += ` AND user_id = $${paramIdx++}`;
-			params.push(filter.userId);
-		}
-		if (filter?.testId) {
-			query += ` AND test_id = $${paramIdx++}`;
-			params.push(filter.testId);
-		}
-		query += ` ORDER BY timestamp DESC, question_number ASC`;
-		const rowsRes = await sql.query(query, params);
-		return (Array.isArray(rowsRes) ? rowsRes : rowsRes?.rows || []).map(rowToQuestionAttempt);
+		let query = sql`SELECT * FROM question_attempts WHERE 1=1`;
+		if (filter?.userId) query = sql`${query} AND user_id = ${filter.userId}`;
+		if (filter?.testId) query = sql`${query} AND test_id = ${filter.testId}`;
+		query = sql`${query} ORDER BY timestamp DESC, question_number ASC`;
+		return (await query).map(rowToQuestionAttempt);
 	},
 	saveQuestionAttempt: async (attempt) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.saveQuestionAttempt(attempt);
@@ -14783,20 +14774,11 @@ var DbStorage = {
 	getWrittenResponses: async (filter) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.getWrittenResponses(filter);
 		const sql = getSql();
-		let query = `SELECT * FROM written_responses WHERE 1=1`;
-		const params = [];
-		let paramIdx = 1;
-		if (filter?.userId) {
-			query += ` AND user_id = $${paramIdx++}`;
-			params.push(filter.userId);
-		}
-		if (filter?.activityId) {
-			query += ` AND activity_id = $${paramIdx++}`;
-			params.push(filter.activityId);
-		}
-		query += ` ORDER BY timestamp DESC`;
-		const rowsRes = await sql.query(query, params);
-		return (Array.isArray(rowsRes) ? rowsRes : rowsRes?.rows || []).map(rowToWrittenResponse);
+		let query = sql`SELECT * FROM written_responses WHERE 1=1`;
+		if (filter?.userId) query = sql`${query} AND user_id = ${filter.userId}`;
+		if (filter?.activityId) query = sql`${query} AND activity_id = ${filter.activityId}`;
+		query = sql`${query} ORDER BY timestamp DESC`;
+		return (await query).map(rowToWrittenResponse);
 	},
 	saveWrittenResponse: async (response) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.saveWrittenResponse(response);
@@ -15082,36 +15064,18 @@ var DbStorage = {
 		}
 		try {
 			const sql = getSql();
-			let query = "SELECT * FROM standard_tests WHERE 1=1";
-			const params = [];
-			let pIdx = 1;
-			if (filter?.testStandard) {
-				query += ` AND LOWER(test_standard) = LOWER($${pIdx++})`;
-				params.push(filter.testStandard);
-			}
-			if (filter?.testType) {
-				query += ` AND LOWER(test_type) = LOWER($${pIdx++})`;
-				params.push(filter.testType);
-			}
+			let query = sql`SELECT * FROM standard_tests WHERE 1=1`;
+			if (filter?.testStandard) query = sql`${query} AND LOWER(test_standard) = LOWER(${filter.testStandard})`;
+			if (filter?.testType) query = sql`${query} AND LOWER(test_type) = LOWER(${filter.testType})`;
 			if (filter?.subject) {
-				query += ` AND LOWER(subject) LIKE LOWER($${pIdx++})`;
-				params.push(`%${filter.subject}%`);
+				const subParam = `%${filter.subject}%`;
+				query = sql`${query} AND LOWER(subject) LIKE LOWER(${subParam})`;
 			}
-			if (filter?.category) {
-				query += ` AND LOWER(category) = LOWER($${pIdx++})`;
-				params.push(filter.category);
-			}
-			if (filter?.difficulty) {
-				query += ` AND LOWER(difficulty) = LOWER($${pIdx++})`;
-				params.push(filter.difficulty);
-			}
-			query += " ORDER BY id ASC";
-			if (filter?.limit && filter.limit > 0) {
-				query += ` LIMIT $${pIdx++}`;
-				params.push(filter.limit);
-			}
-			const res = await sql.query(query, params);
-			return (Array.isArray(res) ? res : res?.rows || []).map(rowToStandardTest);
+			if (filter?.category) query = sql`${query} AND LOWER(category) = LOWER(${filter.category})`;
+			if (filter?.difficulty) query = sql`${query} AND LOWER(difficulty) = LOWER(${filter.difficulty})`;
+			query = sql`${query} ORDER BY id ASC`;
+			if (filter?.limit && filter.limit > 0) query = sql`${query} LIMIT ${filter.limit}`;
+			return (await query).map(rowToStandardTest);
 		} catch {
 			let list = [...multiExamMockTests];
 			if (filter?.testStandard) list = list.filter((t) => t.exam?.toLowerCase() === filter.testStandard.toLowerCase());
@@ -15204,24 +15168,12 @@ var DbStorage = {
 		}
 		try {
 			const sql = getSql();
-			let query = "SELECT * FROM quizzes WHERE 1=1";
-			const params = [];
-			let pIdx = 1;
-			if (filter?.cohort) {
-				query += ` AND LOWER(cohort) = LOWER($${pIdx++})`;
-				params.push(filter.cohort);
-			}
-			if (filter?.category) {
-				query += ` AND LOWER(category) = LOWER($${pIdx++})`;
-				params.push(filter.category);
-			}
-			query += " ORDER BY id ASC";
-			if (filter?.limit && filter.limit > 0) {
-				query += ` LIMIT $${pIdx++}`;
-				params.push(filter.limit);
-			}
-			const res = await sql.query(query, params);
-			return (Array.isArray(res) ? res : res?.rows || []).map(rowToQuiz);
+			let query = sql`SELECT * FROM quizzes WHERE 1=1`;
+			if (filter?.cohort) query = sql`${query} AND LOWER(cohort) = LOWER(${filter.cohort})`;
+			if (filter?.category) query = sql`${query} AND LOWER(category) = LOWER(${filter.category})`;
+			query = sql`${query} ORDER BY id ASC`;
+			if (filter?.limit && filter.limit > 0) query = sql`${query} LIMIT ${filter.limit}`;
+			return (await query).map(rowToQuiz);
 		} catch {
 			let list = [...cohortQuizQuestions];
 			if (filter?.cohort) list = list.filter((q) => q.cohort === filter.cohort);
@@ -15302,7 +15254,7 @@ var DbStorage = {
 		try {
 			const rows = await getSql()`SELECT * FROM app_configurations ORDER BY key ASC`;
 			const map = {};
-			for (const r of rows) map[r.key] = r.value;
+			for (const r of rows) map[r.key] = safeJsonParse(r.value, r.value);
 			return map;
 		} catch {
 			return {
@@ -15334,7 +15286,7 @@ var DbStorage = {
 		}
 		try {
 			const rows = await getSql()`SELECT value FROM app_configurations WHERE key = ${key}`;
-			return rows.length > 0 ? rows[0].value : null;
+			return rows.length > 0 ? safeJsonParse(rows[0].value, rows[0].value) : null;
 		} catch {
 			if (key === "exam_settings") return {
 				questionsPerTest: 10,
@@ -15485,7 +15437,7 @@ var DbStorage = {
 // server/scheduler.ts
 /**
 * EduBridge Centralized Database Job Execution Engine
-* Executes scheduled jobs directly against the Neon Postgres cloud database,
+* Executes scheduled jobs directly against the Prisma Postgres cloud database,
 * generating authentic mock tests, practice tests, and cohort quizzes,
 * and persisting every newly generated entity into standard_tests, quizzes,
 * and updating scheduled_jobs table with exact run metrics and timestamps.
@@ -16403,7 +16355,7 @@ serverApp.get("/api/health", async (_req, res) => {
 		res.json({
 			success: true,
 			status: "starting",
-			storageVault: "Neon Postgres",
+			storageVault: "Prisma Postgres",
 			serverTime: (/* @__PURE__ */ new Date()).toISOString()
 		});
 	}
@@ -17151,7 +17103,7 @@ serverApp.post("/api/users", authenticateTokenOptional, async (req, res) => {
 				category: "RBAC_CHANGE",
 				timestamp: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19),
 				status: "completed",
-				details: `Created user account ${created.email} (${created.role.toUpperCase()}) directly in Neon Postgres database table users.`,
+				details: `Created user account ${created.email} (${created.role.toUpperCase()}) directly in Prisma Postgres database table users.`,
 				replayPayload: {
 					tab: "admin",
 					subId: "users"

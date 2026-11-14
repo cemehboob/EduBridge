@@ -117,7 +117,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <p className="text-base sm:text-lg text-slate-300 max-w-3xl mx-auto mb-10 leading-relaxed font-normal">
             EduBridge is a unified, multidisciplinary learning platform calibrated across 5 developmental age cohorts.
             Master global standardized exams (IELTS, PTE, TOEFL, OET, DET, Cambridge), resolve complex STEM equations with
-            voice tutoring in 12 languages, and maintain cryptographic SHA-256 test conduction ledgers synchronized with Neon Postgres.
+            voice tutoring in 12 languages, and maintain cryptographic SHA-256 test conduction ledgers synchronized with Prisma Postgres.
           </p>
 
           {/* Call-to-Action Buttons */}
@@ -178,7 +178,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
               <div className="text-2xl sm:text-3xl font-black text-white">100%</div>
               <div className="text-xs text-emerald-200 font-semibold mt-1">Real-Time Cloud Sync</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Neon Postgres • SHA-256 Ledger</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">Prisma Postgres • SHA-256 Ledger</div>
             </div>
           </div>
 
@@ -195,7 +195,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             { id: 'cohorts', label: '5 Age Cohorts', icon: GraduationCap },
             { id: 'gamification', label: 'Streaks & Gamification', icon: Flame },
             { id: 'portals', label: 'Role-Based Portals', icon: Users },
-            { id: 'database', label: 'Neon Database & Ledgers', icon: Database }
+            { id: 'database', label: 'Prisma Postgres & Ledgers', icon: Database }
           ].map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -229,7 +229,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             Complete EduBridge Functional Matrix
           </h2>
           <p className="text-slate-600 text-sm mt-2">
-            Every feature is architected for academic excellence, accessible across devices, and authoritatively logged in Neon Postgres.
+            Every feature is architected for academic excellence, accessible across devices, and authoritatively logged in Prisma Postgres.
           </p>
         </div>
 
@@ -550,7 +550,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           )}
 
-          {/* Module 7: Neon Postgres & Cryptographic Ledgers */}
+          {/* Module 7: Prisma Postgres & Cryptographic Ledgers */}
           {(activeTab === 'all' || activeTab === 'database') && (
             <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-md hover:shadow-xl transition-all flex flex-col justify-between group">
               <div>
@@ -561,18 +561,18 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
                     Centralized Cloud
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-500">Neon Postgres</span>
+                  <span className="text-[11px] font-semibold text-slate-500">Prisma Postgres</span>
                 </div>
                 <h3 className="text-lg font-black text-slate-900 mb-2">
                   Cloud Synchronization & Conduction Ledgers
                 </h3>
                 <p className="text-xs text-slate-600 leading-relaxed mb-4">
-                  Multi-machine real-time synchronization backed by Neon Postgres serverless database with resilient event queuing and cryptographic audit logs.
+                  Multi-machine real-time synchronization backed by Prisma Postgres high-performance database with resilient event queuing and cryptographic audit logs.
                 </p>
                 <ul className="space-y-2 text-xs text-slate-700">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span><strong>Neon Postgres:</strong> 23 relational tables & views with pooled connections</span>
+                    <span><strong>Prisma Postgres:</strong> 23 relational tables & views with pooled connections</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -788,7 +788,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <span className="font-extrabold text-slate-800 text-sm">EduBridge 2.0</span>
             <span className="text-slate-400">|</span>
-            <span>Self-Hosted & Serverless Neon Postgres Core</span>
+            <span>Self-Hosted & Prisma Postgres Core</span>
           </div>
 
           <div className="flex items-center gap-4 text-slate-600 font-semibold">

@@ -2288,13 +2288,13 @@ async function runTests() {
   }
 
   // =========================================================================
-  // Test 80: Verifying Neon Postgres Database Schema, Vercel Serverless Routing & Cloud Persistence
+  // Test 80: Verifying Prisma Postgres Database Schema, Vercel Serverless Routing & Cloud Persistence
   // =========================================================================
-  console.log('\nTest 80: Verifying Neon Postgres Database Layer, Vercel Serverless Routing & Centralized Persistence...');
+  console.log('\nTest 80: Verifying Prisma Postgres Database Layer, Vercel Serverless Routing & Centralized Persistence...');
   const dbSrc = fs.readFileSync(path.join(process.cwd(), 'server/db.ts'), 'utf-8');
   const apiIndexSrc = fs.readFileSync(path.join(process.cwd(), 'api/index.ts'), 'utf-8');
 
-  const hasNeonImport = dbSrc.includes('@neondatabase/serverless');
+  const hasDbDriver = dbSrc.includes("from 'postgres'") || dbSrc.includes('@neondatabase/serverless');
   const hasUsersTable = dbSrc.includes('CREATE TABLE IF NOT EXISTS users');
   const hasActivitiesTable = dbSrc.includes('CREATE TABLE IF NOT EXISTS activities');
   const hasQuestionAttemptsTable = dbSrc.includes('CREATE TABLE IF NOT EXISTS question_attempts');
@@ -2308,7 +2308,7 @@ async function runTests() {
   const hasApiIndexHandler = apiIndexSrc.includes('serverApp(req, res)');
 
   if (
-    !hasNeonImport ||
+    !hasDbDriver ||
     !hasUsersTable ||
     !hasActivitiesTable ||
     !hasQuestionAttemptsTable ||
@@ -2321,9 +2321,9 @@ async function runTests() {
     !hasApiRewrite ||
     !hasApiIndexHandler
   ) {
-    console.error('FAIL: Test 80 Neon Postgres database architecture verification failed.');
+    console.error('FAIL: Test 80 Prisma Postgres database architecture verification failed.');
     console.error({
-      hasNeonImport,
+      hasDbDriver,
       hasUsersTable,
       hasActivitiesTable,
       hasQuestionAttemptsTable,
@@ -2338,8 +2338,8 @@ async function runTests() {
     });
     failures++;
   } else {
-    console.log('PASS: server/db.ts integrates @neondatabase/serverless for serverless HTTP database queries.');
-    console.log('PASS: Neon Postgres DDL schemas declared for users, sessions, activities, question_attempts, written_responses, incomplete_attempts, smtp_config, email_logs, and scheduled_jobs.');
+    console.log('PASS: server/db.ts integrates postgres driver for Prisma Postgres database queries.');
+    console.log('PASS: Prisma Postgres DDL schemas declared for users, sessions, activities, question_attempts, written_responses, incomplete_attempts, smtp_config, email_logs, and scheduled_jobs.');
     console.log('PASS: api/index.ts exports Vercel serverless HTTP request handler targeting serverApp.');
     console.log('PASS: vercel.json routes all /api/(.*) endpoints directly to /api/index serverless function.');
     console.log('PASS: Centralized database persistence ready for multi-machine synchronization on Vercel deployment.');

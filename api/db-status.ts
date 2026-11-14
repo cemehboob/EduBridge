@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless';
+import postgres from 'postgres';
 
 function sendJson(res: any, status: number, data: any) {
   if (typeof res.status === 'function') {
@@ -53,8 +53,8 @@ export default async function handler(req: any, res: any) {
     filesInTask = ['error: ' + e.message];
   }
 
+  const sql = postgres(dbUrl, { ssl: 'require', max: 5, idle_timeout: 10 });
   try {
-    const sql = neon(dbUrl);
     const tables = await sql`
       SELECT table_name 
       FROM information_schema.tables 
@@ -72,6 +72,7 @@ export default async function handler(req: any, res: any) {
     return sendJson(res, 200, {
       success: true,
       configured: true,
+      databaseProvider: 'Prisma Postgres',
       host: maskedHost,
       totalTables: tables.length,
       tables: tables.map((t: any) => t.table_name),
@@ -88,9 +89,12 @@ export default async function handler(req: any, res: any) {
     return sendJson(res, 200, {
       success: false,
       configured: true,
+      databaseProvider: 'Prisma Postgres',
       host: maskedHost,
       error: err.message,
       timestamp: new Date().toISOString()
     });
+  } finally {
+    await sql.end({ timeout: 5 }).catch(() => {});
   }
 }

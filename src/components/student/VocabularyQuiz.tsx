@@ -92,7 +92,7 @@ export const VocabularyQuiz: React.FC<VocabularyQuizProps> = ({
     }
   }, [currentIndex, cohortQuestions]);
 
-  // Sync cohort quizzes from Neon Postgres database on mount
+  // Sync cohort quizzes from Prisma Postgres database on mount
   useEffect(() => {
     let isMounted = true;
     apiService.quizzes.getAll().then((items) => {

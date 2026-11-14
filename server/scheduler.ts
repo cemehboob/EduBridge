@@ -8,7 +8,7 @@ import { cohortQuizQuestions } from '../src/data/cohortQuizzesData';
 
 /**
  * EduBridge Centralized Database Job Execution Engine
- * Executes scheduled jobs directly against the Neon Postgres cloud database,
+ * Executes scheduled jobs directly against the Prisma Postgres cloud database,
  * generating authentic mock tests, practice tests, and cohort quizzes,
  * and persisting every newly generated entity into standard_tests, quizzes,
  * and updating scheduled_jobs table with exact run metrics and timestamps.

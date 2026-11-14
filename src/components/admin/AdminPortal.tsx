@@ -736,10 +736,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   ? 'bg-indigo-700 text-white ring-2 ring-indigo-400'
                   : 'bg-indigo-600 hover:bg-indigo-700 text-white'
               }`}
-              title="Open Neon Postgres Database Objects & Configuration Setup"
+              title="Open Prisma Postgres Database Objects & Configuration Setup"
             >
               <Database className="w-3.5 h-3.5 shrink-0" />
-              <span>Database &amp; Setup (20 Objects)</span>
+              <span>Database &amp; Setup (23 Objects)</span>
             </button>
             <button
               type="button"
@@ -781,7 +781,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'bg-indigo-100/80 hover:bg-indigo-200/80 text-indigo-800 border border-indigo-200'
               }`}
-              title="Neon Postgres Database Objects, Views & Central Configuration Setup"
+              title="Prisma Postgres Database Objects, Views & Central Configuration Setup"
             >
               <Database className="w-3.5 h-3.5 shrink-0" />
               <span>Database &amp; Setup</span>
@@ -1068,10 +1068,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black uppercase tracking-wider">
                       Live Cloud Database Active
                     </span>
-                    <span className="text-[11px] text-indigo-300 font-mono font-bold">20 Objects Deployed in Neon Postgres</span>
+                    <span className="text-[11px] text-indigo-300 font-mono font-bold">23 Objects Deployed in Prisma Postgres</span>
                   </div>
                   <h3 className="text-lg font-black tracking-tight text-white mt-0.5">
-                    Neon Postgres Cloud Database &amp; Central Configuration Setup
+                    Prisma Postgres Cloud Database &amp; Central Configuration Setup
                   </h3>
                   <p className="text-xs text-indigo-200 leading-relaxed">
                     Control all 20 database objects (standard_tests, quizzes, app_configurations, scheduled_jobs) and manage standardized test counts, themes, and automated jobs directly in the database.
@@ -3273,7 +3273,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl flex items-center justify-between text-xs text-indigo-900 font-bold">
                 <div className="flex items-center gap-2">
                   <Key className="w-4 h-4 text-indigo-600" />
-                  <span>Central Neon Postgres OTP Security Ledger (persisted in <code>auth_otps</code> table).</span>
+                  <span>Central Prisma Postgres OTP Security Ledger (persisted in <code>auth_otps</code> table).</span>
                 </div>
                 <span className="text-[10px] uppercase tracking-wider bg-indigo-200/70 px-2 py-0.5 rounded text-indigo-950 font-black">
                   Postgres Live Ledger
@@ -3287,7 +3287,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </div>
               ) : dbOtps.length === 0 ? (
                 <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 text-xs">
-                  No database OTP records logged yet. New user creations and password resets will appear here directly from Neon Postgres.
+                  No database OTP records logged yet. New user creations and password resets will appear here directly from Prisma Postgres.
                 </div>
               ) : (
                 <div className="overflow-x-auto border border-slate-200 rounded-2xl bg-white">
@@ -3783,7 +3783,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
       )}
 
-      {/* 11. Neon Postgres Cloud Database & Central Configuration Setup Panel */}
+      {/* 11. Prisma Postgres Cloud Database & Central Configuration Setup Panel */}
       {activeAdminTab === 'database' && (
         <div className="space-y-6 animate-in fade-in">
           {/* Header Banner */}
@@ -3795,10 +3795,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <span>Centralized Cloud Database &amp; System Configuration</span>
                 </span>
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">
-                  Neon Postgres Database Objects &amp; Configuration Setup
+                  Prisma Postgres Database Objects &amp; Configuration Setup
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Inspect and control all 20 live database objects (tables and views) across Exams, Practice Tests, Quizzes, Questions, Activities, and Centralized Configurations.
+                  Inspect and control all 23 live database objects (tables and views) across Exams, Practice Tests, Quizzes, Questions, Activities, and Centralized Configurations.
                 </p>
               </div>
 
@@ -3820,7 +3820,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </button>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>Neon Postgres Connected</span>
+                  <span>Prisma Postgres Connected</span>
                 </span>
               </div>
             </div>
@@ -3860,13 +3860,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </div>
           </div>
 
-          {/* Database Objects Directory (20 Objects: 12 Tables + 8 Views) */}
+          {/* Database Objects Directory (23 Objects: 13 Tables + 10 Views) */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <h4 className="text-lg font-black text-slate-900">Database Objects Catalog (20 Objects Deployed in Neon)</h4>
+                <h4 className="text-lg font-black text-slate-900">Database Objects Catalog (23 Objects Deployed in Prisma Postgres)</h4>
                 <p className="text-xs text-slate-500">
-                  Every functional entity in EduBridge is mapped to a dedicated table or view in PostgreSQL (available in both <span className="font-mono text-indigo-600">EduBridge</span> and <span className="font-mono text-indigo-600">neondb</span>).
+                  Every functional entity in EduBridge is mapped to a dedicated table or view in PostgreSQL on <span className="font-mono text-indigo-600">db.prisma.io</span>.
                 </p>
               </div>
               <span className="text-xs font-mono font-bold px-2.5 py-1 bg-slate-100 rounded-lg text-slate-700">Schema: public</span>
@@ -3919,7 +3919,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               </span>
               <h4 className="text-lg font-black text-slate-900">Application Configuration Setup (`app_configurations`)</h4>
               <p className="text-xs text-slate-500">
-                Any configuration changed here is saved directly to the Neon Postgres database and propagates automatically to all connected users within 4 seconds.
+                Any configuration changed here is saved directly to the Prisma Postgres database and propagates automatically to all connected users within 4 seconds.
               </p>
             </div>
 
@@ -4016,7 +4016,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         StorageService.saveColorScheme(newConfig);
                         applyThemeToDom(newConfig);
                         apiService.config.set('color_scheme', newConfig, 'ui', 'Global portal theme').catch(() => {});
-                        setDbSaveNotice(`Theme "${preset.name}" saved to Neon database.`);
+                        setDbSaveNotice(`Theme "${preset.name}" saved to Prisma Postgres database.`);
                       }}
                       className="p-2 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 text-left transition-all flex items-center gap-2 cursor-pointer"
                     >
@@ -4031,7 +4031,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             {/* Save Button */}
             <div className="flex items-center justify-between pt-4 border-t border-slate-100">
               <span className="text-xs text-slate-500">
-                Database Target: <span className="font-mono text-indigo-600 font-bold">Neon Postgres Cloud (EduBridge &amp; neondb)</span>
+                Database Target: <span className="font-mono text-indigo-600 font-bold">Prisma Postgres Cloud (db.prisma.io:5432)</span>
               </span>
               <button
                 type="button"
@@ -4046,7 +4046,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     };
                     StorageService.saveExamSettings(newSettings);
                     await apiService.config.set('exam_settings', newSettings, 'exam', 'Standardized test question counts');
-                    setDbSaveNotice('Configurations saved to Neon Postgres database (app_configurations). Synchronized across all users.');
+                    setDbSaveNotice('Configurations saved to Prisma Postgres database (app_configurations). Synchronized across all users.');
                   } catch (e: any) {
                     setDbSaveNotice(`Saved locally (Cloud response: ${e.message})`);
                   } finally {
@@ -4056,7 +4056,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-200 hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Save All Configurations to Neon Postgres</span>
+                <span>Save All Configurations to Prisma Postgres</span>
               </button>
             </div>
           </div>
@@ -4110,7 +4110,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       setDbRunningJob(job.id);
                       try {
                         await onRunScheduledJob(job.id);
-                        setDbSaveNotice(`Database job "${job.name}" executed successfully! New items stored in Neon Postgres.`);
+                        setDbSaveNotice(`Database job "${job.name}" executed successfully! New items stored in Prisma Postgres.`);
                         const h = await apiService.getHealth();
                         setDbHealth(h);
                       } catch (e: any) {
@@ -4126,7 +4126,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     }`}
                   >
                     <Play className={`w-3.5 h-3.5 ${dbRunningJob === job.id ? 'animate-spin' : ''}`} />
-                    <span>{dbRunningJob === job.id ? 'Executing on Neon DB...' : 'Run Database Job Now'}</span>
+                    <span>{dbRunningJob === job.id ? 'Executing on Prisma Postgres...' : 'Run Database Job Now'}</span>
                   </button>
                 </div>
               ))}

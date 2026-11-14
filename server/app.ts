@@ -6,7 +6,7 @@ import { executeJobOnDatabase, executeAllDatabaseScheduledJobs } from './schedul
 import { UserAccount, UserActivityRecord } from '../src/types';
 import { EmailService } from './emailService';
 
-// Lazy / background initialization of Neon Postgres database on server startup
+// Lazy / background initialization of Prisma Postgres database on server startup
 let dbInitialized = false;
 export async function ensureDbInitialized(): Promise<void> {
   if (dbInitialized) return;
@@ -318,7 +318,7 @@ serverApp.get('/api/health', async (_req: Request, res: Response) => {
     const stats = await DbStorage.getHealthStats();
     res.json({ success: true, ...stats });
   } catch (err: any) {
-    res.json({ success: true, status: 'starting', storageVault: 'Neon Postgres', serverTime: new Date().toISOString() });
+    res.json({ success: true, status: 'starting', storageVault: 'Prisma Postgres', serverTime: new Date().toISOString() });
   }
 });
 
@@ -1098,7 +1098,7 @@ serverApp.post('/api/users', authenticateTokenOptional, async (req: Authenticate
         category: 'RBAC_CHANGE',
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
         status: 'completed',
-        details: `Created user account ${created.email} (${created.role.toUpperCase()}) directly in Neon Postgres database table users.`,
+        details: `Created user account ${created.email} (${created.role.toUpperCase()}) directly in Prisma Postgres database table users.`,
         replayPayload: { tab: 'admin', subId: 'users' }
       });
     } catch {}
@@ -1513,7 +1513,7 @@ serverApp.get('/api/admin/smtp/logs', authenticateToken, requireAdmin, (_req: Au
 });
 
 // ==========================================
-// STANDARD & PRACTICE TESTS ENDPOINTS (NEON DB)
+// STANDARD & PRACTICE TESTS ENDPOINTS (PRISMA POSTGRES DB)
 // ==========================================
 
 serverApp.get('/api/tests', async (req: Request, res: Response) => {
@@ -1581,7 +1581,7 @@ serverApp.delete('/api/tests/:id', authenticateToken, requireAdmin, async (req: 
 });
 
 // ==========================================
-// QUIZZES ENDPOINTS (NEON DB)
+// QUIZZES ENDPOINTS (PRISMA POSTGRES DB)
 // ==========================================
 
 serverApp.get('/api/quizzes', async (req: Request, res: Response) => {
@@ -1640,7 +1640,7 @@ serverApp.post('/api/quizzes/batch', async (req: Request, res: Response) => {
 });
 
 // ==========================================
-// APPLICATION CONFIGURATIONS ENDPOINTS (NEON DB)
+// APPLICATION CONFIGURATIONS ENDPOINTS (PRISMA POSTGRES DB)
 // ==========================================
 
 serverApp.get('/api/configurations', async (_req: Request, res: Response) => {
@@ -1681,7 +1681,7 @@ serverApp.post('/api/configurations/:key', saveConfigHandler);
 serverApp.put('/api/configurations/:key', saveConfigHandler);
 
 // ==========================================
-// SCHEDULED JOBS ENDPOINTS (NEON DB)
+// SCHEDULED JOBS ENDPOINTS (PRISMA POSTGRES DB)
 // ==========================================
 
 serverApp.get('/api/jobs', async (_req: Request, res: Response) => {

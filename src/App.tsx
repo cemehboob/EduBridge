@@ -505,7 +505,7 @@ export default function App() {
   };
 
   const handleRunScheduledJob = async (jobId: string) => {
-    // 1. Trigger centralized database job execution directly in Neon Postgres
+    // 1. Trigger centralized database job execution directly in Prisma Postgres
     try {
       await apiService.jobs.run(jobId);
     } catch (e: any) {
@@ -943,7 +943,7 @@ export default function App() {
   const handleAddUser = async (newUser: UserAccount) => {
     let savedUser = newUser;
     try {
-      // Create user directly at the Neon Postgres database level
+      // Create user directly at the Prisma Postgres database level
       savedUser = await apiService.users.create(newUser);
     } catch (err: any) {
       console.warn('[User DB Creation Fallback]', err.message);
@@ -968,7 +968,7 @@ export default function App() {
 
   const handleAdminUpdateUser = async (updatedUser: UserAccount) => {
     try {
-      // Update user directly at the Neon Postgres database level
+      // Update user directly at the Prisma Postgres database level
       await apiService.users.update(updatedUser.id, updatedUser);
     } catch (err: any) {
       console.warn('[User DB Update Fallback]', err.message);
