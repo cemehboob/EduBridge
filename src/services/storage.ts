@@ -1009,7 +1009,7 @@ export const StorageService = {
   syncUserFromServer: async (userId: string): Promise<void> => {
     try {
       if (typeof window === 'undefined') {
-        if (process.env.DATABASE_URL) {
+        if (process.env.DB_URL || process.env.DATABASE_URL) {
           const { DbStorage } = await import(/* @vite-ignore */ '../../server/db');
           const acts = (await DbStorage.getActivities({ userId })).items;
           const qAtts = await DbStorage.getQuestionAttempts({ userId });

@@ -10,13 +10,13 @@ function sendJson(res: any, status: number, data: any) {
 }
 
 export default async function handler(req: any, res: any) {
-  const dbUrl = process.env.DATABASE_URL;
+  const dbUrl = process.env.DB_URL || process.env.DATABASE_URL;
 
   if (!dbUrl) {
     return sendJson(res, 200, {
       success: false,
       configured: false,
-      message: 'DATABASE_URL environment variable is NOT set in Vercel project settings.',
+      message: 'DB_URL / DATABASE_URL environment variable is NOT set in Vercel project settings.',
       vercelEnv: process.env.VERCEL_ENV || 'unknown'
     });
   }

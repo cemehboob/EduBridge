@@ -1,8 +1,8 @@
 # EduBridge Platform — User Accounts & Authentication Directory
 
-**Document Version:** 2.0  
+**Document Version:** 2.1  
 **Target Environment:** EduBridge Cloud Core & Prisma Postgres Database  
-**Authoritative Source:** Prisma Postgres Cloud Database (table: `users`) & `src/data/userManagementData.ts`
+**Authoritative Source:** Prisma Postgres Cloud Database (via `DB_URL`, table: `users`) & `src/data/userManagementData.ts`
 
 ---
 
@@ -12,7 +12,7 @@ EduBridge supports centralized, cross-device database-driven authentication. Use
 - **Username** (case-insensitive)
 - **Registered Email Address** (case-insensitive)
 
-All user accounts, credentials, learning progress, test attempts, sessions, configurations, and evaluation scores are centrally maintained directly in the cloud **Prisma Postgres** database (`users`, `sessions`, `activities`, `question_attempts`, `written_responses`, `smtp_config`, `email_logs`, and `auth_otps` tables). No user credentials or session data are stored in local JSON files.
+All user accounts, credentials, learning progress, test attempts, sessions, configurations, and evaluation scores are centrally maintained directly in the cloud **Prisma Postgres** database (via `DB_URL`: `users`, `sessions`, `activities`, `question_attempts`, `written_responses`, `smtp_config`, `email_logs`, and `auth_otps` tables). The legacy/backup `DATABASE_URL` environment variable is retained for Neon Postgres. No user credentials or session data are stored in local JSON files.
 
 ---
 

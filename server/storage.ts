@@ -12,6 +12,8 @@ import {
 import { initialUsers } from '../src/data/userManagementData';
 import { initialActivities, initialQuestionAttempts } from '../src/data/activityData';
 
+const isDbConfigured = () => Boolean(process.env.DB_URL || isDbConfigured());
+
 // Determine persistent data directory (use /tmp in serverless / read-only runtimes like Vercel)
 const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 const DATA_DIR = isServerless
@@ -19,7 +21,7 @@ const DATA_DIR = isServerless
   : path.resolve(process.cwd(), 'data/server_vault');
 
 // Ensure directory exists without crashing on read-only environments (only in offline/local mock mode)
-if (!process.env.DATABASE_URL) {
+if (!isDbConfigured()) {
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -57,7 +59,7 @@ function readJsonFile<T>(filename: string, fallback: T): T {
     return memoryVault.get(filename);
   }
   // When DATABASE_URL is active (Prisma Postgres), operate strictly in memory
-  if (process.env.DATABASE_URL) {
+  if (isDbConfigured()) {
     memoryVault.set(filename, fallback);
     return fallback;
   }
@@ -80,7 +82,7 @@ function readJsonFile<T>(filename: string, fallback: T): T {
 function writeJsonFileSync<T>(filename: string, data: T): void {
   memoryVault.set(filename, data);
   // When DATABASE_URL is set (Prisma Postgres), strictly avoid writing JSON files to disk
-  if (process.env.DATABASE_URL) {
+  if (isDbConfigured()) {
     return;
   }
   try {
@@ -141,7 +143,7 @@ export const ServerStorage = {
   // --- Initialization & Health ---
   initialize: () => {
     // When DATABASE_URL is set (Prisma Postgres), strictly bypass local JSON disk operations
-    if (process.env.DATABASE_URL) {
+    if (isDbConfigured()) {
       return;
     }
     // Seed users if file is missing
@@ -638,7 +640,7 @@ export const ServerStorage = {
 };
 
 // Initialize server storage safely upon loading only when no database is configured
-if (!process.env.DATABASE_URL) {
+if (!isDbConfigured()) {
   try {
     ServerStorage.initialize();
   } catch (e: any) {

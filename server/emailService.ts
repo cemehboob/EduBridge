@@ -3,7 +3,7 @@ import tls from 'tls';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { DbStorage } from './db';
+import { DbStorage, isDbConfigured } from './db';
 
 export interface SmtpConfig {
   host: string;
@@ -51,7 +51,7 @@ const SMTP_CONFIG_FILE = path.join(VAULT_DIR, 'smtp_config.json');
 const EMAIL_LOGS_FILE = path.join(VAULT_DIR, 'email_logs.json');
 
 // Ensure vault directory exists only if NOT running with DATABASE_URL
-if (!process.env.DATABASE_URL) {
+if (!isDbConfigured()) {
   try {
     if (!fs.existsSync(VAULT_DIR)) {
       fs.mkdirSync(VAULT_DIR, { recursive: true });
@@ -84,7 +84,7 @@ export class EmailService {
 
   public static async initialize(): Promise<void> {
     if (this.isInitialized) return;
-    if (process.env.DATABASE_URL) {
+    if (isDbConfigured()) {
       try {
         const dbConfig = await DbStorage.getSmtpConfig();
         if (dbConfig) {
@@ -115,7 +115,7 @@ export class EmailService {
   }
 
   public static async syncFromDb(): Promise<void> {
-    if (!process.env.DATABASE_URL) return;
+    if (!isDbConfigured()) return;
     try {
       const dbConfig = await DbStorage.getSmtpConfig();
       if (dbConfig) {
@@ -129,7 +129,7 @@ export class EmailService {
   }
 
   private static readConfig(): SmtpConfig {
-    if (!this.isInitialized && !process.env.DATABASE_URL) {
+    if (!this.isInitialized && !isDbConfigured()) {
       try {
         if (fs.existsSync(SMTP_CONFIG_FILE)) {
           const raw = fs.readFileSync(SMTP_CONFIG_FILE, 'utf-8');
@@ -177,7 +177,7 @@ export class EmailService {
 
     this.inMemoryConfig = newConfig;
 
-    if (process.env.DATABASE_URL) {
+    if (isDbConfigured()) {
       DbStorage.saveSmtpConfig(newConfig).catch((err: any) => {
         console.error('[EmailService] Failed saving SMTP config to Prisma Postgres:', err.message);
       });
@@ -208,7 +208,7 @@ export class EmailService {
 
     this.inMemoryConfig = newConfig;
 
-    if (process.env.DATABASE_URL) {
+    if (isDbConfigured()) {
       await DbStorage.saveSmtpConfig(newConfig);
     } else {
       try {
@@ -225,7 +225,7 @@ export class EmailService {
   }
 
   public static async getLogsAsync(limit: number = 100): Promise<EmailLogEntry[]> {
-    if (process.env.DATABASE_URL) {
+    if (isDbConfigured()) {
       try {
         const dbLogs = await DbStorage.getEmailLogs(limit);
         if (dbLogs && dbLogs.length > 0) {
@@ -243,7 +243,7 @@ export class EmailService {
       this.inMemoryLogs = this.inMemoryLogs.slice(0, 500);
     }
 
-    if (process.env.DATABASE_URL) {
+    if (isDbConfigured()) {
       DbStorage.appendEmailLog(entry).catch((err: any) => {
         console.warn('[EmailService] DB append email log note:', err.message);
       });

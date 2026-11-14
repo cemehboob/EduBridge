@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
-import { DbStorage, initializeDatabase, seedInitialData } from './db';
+import { DbStorage, initializeDatabase, seedInitialData, isDbConfigured } from './db';
 import { executeJobOnDatabase, executeAllDatabaseScheduledJobs } from './scheduler';
 import { UserAccount, UserActivityRecord } from '../src/types';
 import { EmailService } from './emailService';
@@ -90,7 +90,7 @@ serverApp.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // Ensure database tables and initial data are verified on cold-start requests
 serverApp.use(async (_req: Request, _res: Response, next: NextFunction) => {
-  if (!dbInitialized && process.env.DATABASE_URL) {
+  if (!dbInitialized && isDbConfigured()) {
     await ensureDbInitialized().catch(() => {});
   }
   next();
@@ -1456,7 +1456,7 @@ serverApp.post('/api/admin/users/:id/verify-email', authenticateToken, requireAd
 
 // Get SMTP Configuration (safe view with masked credentials)
 serverApp.get('/api/admin/smtp', authenticateToken, requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
-  if (process.env.DATABASE_URL) {
+  if (isDbConfigured()) {
     await EmailService.syncFromDb();
   }
   res.json({

@@ -11511,7 +11511,7 @@ var StorageService = {
 	syncUserFromServer: async (userId) => {
 		try {
 			if (typeof window === "undefined") {
-				if (process.env.DATABASE_URL) {
+				if (process.env.DB_URL || process.env.DATABASE_URL) {
 					const { DbStorage } = await import(
 						/* @vite-ignore */
 						"../../server/db"
@@ -13221,8 +13221,9 @@ var IELTSPracticeService = {
 	}
 };
 // server/storage.ts
+var isDbConfigured$1 = () => Boolean(process.env.DB_URL || isDbConfigured$1());
 var DATA_DIR = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) ? path.resolve("/tmp", "server_vault") : path.resolve(process.cwd(), "data/server_vault");
-if (!process.env.DATABASE_URL) try {
+if (!isDbConfigured$1()) try {
 	if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 } catch (e) {
 	console.warn("[ServerStorage] Directory initialization note:", e.message);
@@ -13247,7 +13248,7 @@ var mutex = new WriteMutex();
 var memoryVault = /* @__PURE__ */ new Map();
 function readJsonFile(filename, fallback) {
 	if (memoryVault.has(filename)) return memoryVault.get(filename);
-	if (process.env.DATABASE_URL) {
+	if (isDbConfigured$1()) {
 		memoryVault.set(filename, fallback);
 		return fallback;
 	}
@@ -13266,7 +13267,7 @@ function readJsonFile(filename, fallback) {
 }
 function writeJsonFileSync(filename, data) {
 	memoryVault.set(filename, data);
-	if (process.env.DATABASE_URL) return;
+	if (isDbConfigured$1()) return;
 	try {
 		const filePath = path.join(DATA_DIR, filename);
 		const tempPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).substring(2, 7)}`;
@@ -13304,7 +13305,7 @@ var initialWrittenResponses = [{
 }];
 var ServerStorage = {
 	initialize: () => {
-		if (process.env.DATABASE_URL) return;
+		if (isDbConfigured$1()) return;
 		const users = readJsonFile("users.json", initialUsers);
 		if (!users || users.length === 0) writeJsonFileSync("users.json", initialUsers);
 		const acts = readJsonFile("activities.json", initialActivities);
@@ -13641,16 +13642,17 @@ var ServerStorage = {
 		});
 	}
 };
-if (!process.env.DATABASE_URL) try {
+if (!isDbConfigured$1()) try {
 	ServerStorage.initialize();
 } catch (e) {
 	console.warn("[ServerStorage] Safe load note:", e.message);
 }
 // server/db.ts
+var isDbConfigured = () => Boolean(process.env.DB_URL || process.env.DATABASE_URL);
 var sqlInstance = null;
 function getSql() {
-	const url = process.env.DATABASE_URL;
-	if (!url) throw new Error("DATABASE_URL environment variable is not set. Add it in your Vercel project settings (Prisma Postgres integration).");
+	const url = process.env.DB_URL || process.env.DATABASE_URL;
+	if (!url) throw new Error("DB_URL environment variable is not set. Add it in your Vercel project settings (Prisma Postgres integration).");
 	if (!sqlInstance) sqlInstance = postgres(url, {
 		ssl: "require",
 		max: 10,
@@ -13659,8 +13661,8 @@ function getSql() {
 	return sqlInstance;
 }
 async function initializeDatabase() {
-	if (!process.env.DATABASE_URL) {
-		console.log("[EduBridge DB] DATABASE_URL not set — using local storage vault fallback. In Vercel, attach Prisma Postgres to activate cloud DB.");
+	if (!isDbConfigured()) {
+		console.log("[EduBridge DB] DB_URL / DATABASE_URL not set — using local storage vault fallback. In Vercel, attach Prisma Postgres to activate cloud DB.");
 		ServerStorage.initialize();
 		return;
 	}
@@ -13944,7 +13946,7 @@ async function initializeDatabase() {
 	console.log("[EduBridge DB] Prisma Postgres tables and views created and verified successfully.");
 }
 async function seedInitialData() {
-	if (!process.env.DATABASE_URL) return;
+	if (!isDbConfigured()) return;
 	const sql = getSql();
 	const existingUsers = await sql`SELECT COUNT(*) as count FROM users`;
 	if (parseInt(String(existingUsers[0].count), 10) === 0) {
@@ -14476,7 +14478,7 @@ function rowToQuiz(row) {
 }
 var DbStorage = {
 	getHealthStats: async () => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getHealthStats();
+		if (!isDbConfigured()) return ServerStorage.getHealthStats();
 		const sql = getSql();
 		const [users, acts, qAtts, wRes, incAtts, tests, quizzes, configs] = await Promise.all([
 			sql`SELECT COUNT(*) as count FROM users`,
@@ -14503,7 +14505,7 @@ var DbStorage = {
 		};
 	},
 	getSessions: async () => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getSessions();
+		if (!isDbConfigured()) return ServerStorage.getSessions();
 		return (await getSql()`SELECT * FROM sessions WHERE expires_at > ${Date.now()}`).map((r) => ({
 			token: r.token,
 			userId: r.user_id,
@@ -14513,7 +14515,7 @@ var DbStorage = {
 		}));
 	},
 	saveSession: async (session) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.saveSession(session);
+		if (!isDbConfigured()) return ServerStorage.saveSession(session);
 		const sql = getSql();
 		await sql`
       INSERT INTO sessions (token, user_id, user_role, created_at, expires_at)
@@ -14523,7 +14525,7 @@ var DbStorage = {
 		await sql`DELETE FROM sessions WHERE expires_at < ${Date.now() - 864e5}`;
 	},
 	findSession: async (token) => {
-		if (!process.env.DATABASE_URL) {
+		if (!isDbConfigured()) {
 			const sess = ServerStorage.getSessions().find((s) => s.token === token && Date.now() <= s.expiresAt);
 			return sess ? {
 				userId: sess.userId,
@@ -14540,20 +14542,20 @@ var DbStorage = {
 		};
 	},
 	removeSession: async (token) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.removeSession(token);
+		if (!isDbConfigured()) return ServerStorage.removeSession(token);
 		await getSql()`DELETE FROM sessions WHERE token = ${token}`;
 	},
 	getUsers: async () => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getUsers();
+		if (!isDbConfigured()) return ServerStorage.getUsers();
 		return (await getSql()`SELECT * FROM users ORDER BY created_at DESC`).map(rowToUser);
 	},
 	getUserById: async (id) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getUserById(id);
+		if (!isDbConfigured()) return ServerStorage.getUserById(id);
 		const rows = await getSql()`SELECT * FROM users WHERE id = ${id}`;
 		return rows.length > 0 ? rowToUser(rows[0]) : null;
 	},
 	getUserByIdentifier: async (identifier) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getUserByIdentifier(identifier);
+		if (!isDbConfigured()) return ServerStorage.getUserByIdentifier(identifier);
 		const clean = identifier.trim().toLowerCase();
 		const rows = await getSql()`
       SELECT * FROM users
@@ -14565,7 +14567,7 @@ var DbStorage = {
 		return rows.length > 0 ? rowToUser(rows[0]) : null;
 	},
 	createUser: async (user) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.createUser(user);
+		if (!isDbConfigured()) return ServerStorage.createUser(user);
 		const sql = getSql();
 		if ((await sql`
       SELECT id FROM users
@@ -14589,7 +14591,7 @@ var DbStorage = {
 		return rowToUser((await sql`SELECT * FROM users WHERE id = ${user.id}`)[0]);
 	},
 	updateUser: async (id, updates) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.updateUser(id, updates);
+		if (!isDbConfigured()) return ServerStorage.updateUser(id, updates);
 		const sql = getSql();
 		const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
 		if (existing.length === 0) throw new Error(`User not found with id ${id}`);
@@ -14626,7 +14628,7 @@ var DbStorage = {
 		return merged;
 	},
 	getActivities: async (filter) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getActivities(filter);
+		if (!isDbConfigured()) return ServerStorage.getActivities(filter);
 		const sql = getSql();
 		let query = sql`SELECT * FROM activities WHERE 1=1`;
 		if (filter?.userId) query = sql`${query} AND user_id = ${filter.userId}`;
@@ -14658,12 +14660,12 @@ var DbStorage = {
 		};
 	},
 	getActivityById: async (id) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getActivityById(id);
+		if (!isDbConfigured()) return ServerStorage.getActivityById(id);
 		const rows = await getSql()`SELECT * FROM activities WHERE id = ${id}`;
 		return rows.length > 0 ? rowToActivity(rows[0]) : null;
 	},
 	saveActivity: async (activity) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.saveActivity(activity);
+		if (!isDbConfigured()) return ServerStorage.saveActivity(activity);
 		const sql = getSql();
 		const id = activity.id || `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 		const timestamp = activity.timestamp || (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19);
@@ -14732,7 +14734,7 @@ var DbStorage = {
 		return rowToActivity((await sql`SELECT * FROM activities WHERE id = ${id}`)[0]);
 	},
 	getQuestionAttempts: async (filter) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getQuestionAttempts(filter);
+		if (!isDbConfigured()) return ServerStorage.getQuestionAttempts(filter);
 		const sql = getSql();
 		let query = sql`SELECT * FROM question_attempts WHERE 1=1`;
 		if (filter?.userId) query = sql`${query} AND user_id = ${filter.userId}`;
@@ -14741,7 +14743,7 @@ var DbStorage = {
 		return (await query).map(rowToQuestionAttempt);
 	},
 	saveQuestionAttempt: async (attempt) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.saveQuestionAttempt(attempt);
+		if (!isDbConfigured()) return ServerStorage.saveQuestionAttempt(attempt);
 		const sql = getSql();
 		const id = attempt.id || `qatt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 		const timestamp = attempt.timestamp || (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19);
@@ -14768,7 +14770,7 @@ var DbStorage = {
 		return rowToQuestionAttempt((await sql`SELECT * FROM question_attempts WHERE id = ${id}`)[0]);
 	},
 	saveBatchQuestionAttempts: async (attempts) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.saveBatchQuestionAttempts(attempts);
+		if (!isDbConfigured()) return ServerStorage.saveBatchQuestionAttempts(attempts);
 		const saved = [];
 		for (const attempt of attempts) try {
 			const s = await DbStorage.saveQuestionAttempt(attempt);
@@ -14779,7 +14781,7 @@ var DbStorage = {
 		return saved;
 	},
 	getWrittenResponses: async (filter) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getWrittenResponses(filter);
+		if (!isDbConfigured()) return ServerStorage.getWrittenResponses(filter);
 		const sql = getSql();
 		let query = sql`SELECT * FROM written_responses WHERE 1=1`;
 		if (filter?.userId) query = sql`${query} AND user_id = ${filter.userId}`;
@@ -14788,7 +14790,7 @@ var DbStorage = {
 		return (await query).map(rowToWrittenResponse);
 	},
 	saveWrittenResponse: async (response) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.saveWrittenResponse(response);
+		if (!isDbConfigured()) return ServerStorage.saveWrittenResponse(response);
 		const sql = getSql();
 		const id = response.id || `wres_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 		const timestamp = response.timestamp || (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").slice(0, 19);
@@ -14826,7 +14828,7 @@ var DbStorage = {
 		return rowToWrittenResponse((await sql`SELECT * FROM written_responses WHERE id = ${id}`)[0]);
 	},
 	getIncompleteAttempt: async (userId, testId) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getIncompleteAttempt(userId, testId);
+		if (!isDbConfigured()) return ServerStorage.getIncompleteAttempt(userId, testId);
 		const sql = getSql();
 		if (testId) {
 			const rows = await sql`
@@ -14841,7 +14843,7 @@ var DbStorage = {
 		return rows.length > 0 ? rowToIncompleteAttempt(rows[0]) : null;
 	},
 	saveIncompleteAttempt: async (attempt) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.saveIncompleteAttempt(attempt);
+		if (!isDbConfigured()) return ServerStorage.saveIncompleteAttempt(attempt);
 		const sql = getSql();
 		const id = attempt.id || `inc_${attempt.userId}_${attempt.testId}`;
 		const lastSavedAt = (/* @__PURE__ */ new Date()).toISOString();
@@ -14868,14 +14870,14 @@ var DbStorage = {
     `)[0]);
 	},
 	clearIncompleteAttempt: async (userId, testId) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.clearIncompleteAttempt(userId, testId);
+		if (!isDbConfigured()) return ServerStorage.clearIncompleteAttempt(userId, testId);
 		const sql = getSql();
 		if (testId) await sql`DELETE FROM incomplete_attempts WHERE user_id = ${userId} AND test_id = ${testId}`;
 		else await sql`DELETE FROM incomplete_attempts WHERE user_id = ${userId}`;
 		return true;
 	},
 	getAttemptDetail: async (activityId, requestingUserId, requestingUserRole) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getAttemptDetail(activityId, requestingUserId, requestingUserRole);
+		if (!isDbConfigured()) return ServerStorage.getAttemptDetail(activityId, requestingUserId, requestingUserRole);
 		const activity = await DbStorage.getActivityById(activityId);
 		if (!activity) throw Object.assign(/* @__PURE__ */ new Error(`Activity not found: ${activityId}`), { statusCode: 404 });
 		if (requestingUserRole !== "admin" && requestingUserId && activity.userId !== requestingUserId) throw Object.assign(/* @__PURE__ */ new Error("Unauthorized: You do not have permission to view another user's attempt."), { statusCode: 403 });
@@ -14909,7 +14911,7 @@ var DbStorage = {
 		};
 	},
 	getUserFullHistory: async (userId) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getUserFullHistory(userId);
+		if (!isDbConfigured()) return ServerStorage.getUserFullHistory(userId);
 		const user = await DbStorage.getUsers().then((users) => users.find((u) => u.id === userId));
 		if (!user) throw new Error(`User not found: ${userId}`);
 		const [activitiesResult, questionAttempts, writtenResponses, incompleteAttempt] = await Promise.all([
@@ -14943,12 +14945,12 @@ var DbStorage = {
 		};
 	},
 	getSmtpConfig: async () => {
-		if (!process.env.DATABASE_URL) return null;
+		if (!isDbConfigured()) return null;
 		const rows = await getSql()`SELECT config_json FROM smtp_config WHERE id = 1`;
 		return rows.length > 0 ? safeJsonParse(rows[0].config_json, null) : null;
 	},
 	saveSmtpConfig: async (config) => {
-		if (!process.env.DATABASE_URL) return;
+		if (!isDbConfigured()) return;
 		await getSql()`
       INSERT INTO smtp_config (id, config_json)
       VALUES (1, ${JSON.stringify(config)})
@@ -14956,7 +14958,7 @@ var DbStorage = {
     `;
 	},
 	appendEmailLog: async (log) => {
-		if (!process.env.DATABASE_URL) return;
+		if (!isDbConfigured()) return;
 		const sql = getSql();
 		await sql`
       INSERT INTO email_logs (id, timestamp, recipient, type, subject, provider, status, error, duration_ms)
@@ -14974,7 +14976,7 @@ var DbStorage = {
     `;
 	},
 	getEmailLogs: async (limit = 100) => {
-		if (!process.env.DATABASE_URL) return [];
+		if (!isDbConfigured()) return [];
 		return (await getSql()`SELECT * FROM email_logs ORDER BY timestamp DESC LIMIT ${limit}`).map((r) => ({
 			id: r.id,
 			timestamp: r.timestamp,
@@ -14988,7 +14990,7 @@ var DbStorage = {
 		}));
 	},
 	getScheduledJobs: async () => {
-		if (!process.env.DATABASE_URL) return [];
+		if (!isDbConfigured()) return [];
 		try {
 			return (await getSql()`SELECT * FROM scheduled_jobs ORDER BY id`).map((r) => ({
 				id: r.id,
@@ -15052,7 +15054,7 @@ var DbStorage = {
 		}
 	},
 	updateScheduledJob: async (id, updates) => {
-		if (!process.env.DATABASE_URL) return;
+		if (!isDbConfigured()) return;
 		try {
 			const sql = getSql();
 			if (updates.lastRunTimestamp !== void 0) await sql`UPDATE scheduled_jobs SET last_run_timestamp = ${updates.lastRunTimestamp} WHERE id = ${id}`;
@@ -15063,7 +15065,7 @@ var DbStorage = {
 		} catch {}
 	},
 	getStandardTests: async (filter) => {
-		if (!process.env.DATABASE_URL) {
+		if (!isDbConfigured()) {
 			let list = [...multiExamMockTests];
 			if (filter?.testStandard) list = list.filter((t) => t.exam?.toLowerCase() === filter.testStandard.toLowerCase());
 			if (filter?.subject) list = list.filter((t) => t.subject?.toLowerCase().includes(filter.subject.toLowerCase()));
@@ -15091,7 +15093,7 @@ var DbStorage = {
 		}
 	},
 	getStandardTestById: async (id) => {
-		if (!process.env.DATABASE_URL) return [...multiExamMockTests, ...mockTests].find((t) => t.id === id) || null;
+		if (!isDbConfigured()) return [...multiExamMockTests, ...mockTests].find((t) => t.id === id) || null;
 		try {
 			const rows = await getSql()`SELECT * FROM standard_tests WHERE id = ${id}`;
 			return rows.length > 0 ? rowToStandardTest(rows[0]) : null;
@@ -15113,7 +15115,7 @@ var DbStorage = {
 		const sections = test.sections || [];
 		const metadata = test.metadata || {};
 		const now = (/* @__PURE__ */ new Date()).toISOString();
-		if (!process.env.DATABASE_URL) return {
+		if (!isDbConfigured()) return {
 			...test,
 			id: test.id,
 			questions,
@@ -15159,14 +15161,14 @@ var DbStorage = {
 		}
 	},
 	deleteStandardTest: async (id) => {
-		if (!process.env.DATABASE_URL) return true;
+		if (!isDbConfigured()) return true;
 		try {
 			await getSql()`DELETE FROM standard_tests WHERE id = ${id}`;
 		} catch {}
 		return true;
 	},
 	getQuizzes: async (filter) => {
-		if (!process.env.DATABASE_URL) {
+		if (!isDbConfigured()) {
 			let list = [...cohortQuizQuestions];
 			if (filter?.cohort) list = list.filter((q) => q.cohort === filter.cohort);
 			if (filter?.category) list = list.filter((q) => q.category === filter.category);
@@ -15190,7 +15192,7 @@ var DbStorage = {
 		}
 	},
 	getQuizById: async (id) => {
-		if (!process.env.DATABASE_URL) return cohortQuizQuestions.find((q) => q.id === id) || null;
+		if (!isDbConfigured()) return cohortQuizQuestions.find((q) => q.id === id) || null;
 		try {
 			const rows = await getSql()`SELECT * FROM quizzes WHERE id = ${id}`;
 			return rows.length > 0 ? rowToQuiz(rows[0]) : null;
@@ -15199,7 +15201,7 @@ var DbStorage = {
 		}
 	},
 	saveQuiz: async (quiz) => {
-		if (!process.env.DATABASE_URL) return quiz;
+		if (!isDbConfigured()) return quiz;
 		try {
 			const sql = getSql();
 			const now = (/* @__PURE__ */ new Date()).toISOString();
@@ -15244,7 +15246,7 @@ var DbStorage = {
 		return saved;
 	},
 	getAllConfigurations: async () => {
-		if (!process.env.DATABASE_URL) return {
+		if (!isDbConfigured()) return {
 			exam_settings: {
 				questionsPerTest: 10,
 				allowShuffleOptions: true,
@@ -15281,7 +15283,7 @@ var DbStorage = {
 		}
 	},
 	getConfiguration: async (key) => {
-		if (!process.env.DATABASE_URL) {
+		if (!isDbConfigured()) {
 			if (key === "exam_settings") return {
 				questionsPerTest: 10,
 				allowShuffleOptions: true,
@@ -15306,7 +15308,7 @@ var DbStorage = {
 		}
 	},
 	setConfiguration: async (key, value, category = "general", description = "", updatedBy = "system") => {
-		if (!process.env.DATABASE_URL) return value;
+		if (!isDbConfigured()) return value;
 		const sql = getSql();
 		const now = (/* @__PURE__ */ new Date()).toISOString();
 		await sql`
@@ -15322,7 +15324,7 @@ var DbStorage = {
 		return value;
 	},
 	createOtp: async (record) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.createOtp(record);
+		if (!isDbConfigured()) return ServerStorage.createOtp(record);
 		const sql = getSql();
 		await sql`
       UPDATE auth_otps
@@ -15346,7 +15348,7 @@ var DbStorage = {
 		return record;
 	},
 	getOtp: async (email, type) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getOtp(email, type);
+		if (!isDbConfigured()) return ServerStorage.getOtp(email, type);
 		const rows = await getSql()`
       SELECT * FROM auth_otps
       WHERE LOWER(email) = ${email.toLowerCase()} AND type = ${type} AND status = 'active'
@@ -15371,7 +15373,7 @@ var DbStorage = {
 		};
 	},
 	incrementOtpAttempts: async (id) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.incrementOtpAttempts(id);
+		if (!isDbConfigured()) return ServerStorage.incrementOtpAttempts(id);
 		const rows = await getSql()`
       UPDATE auth_otps
       SET attempts = attempts + 1
@@ -15381,7 +15383,7 @@ var DbStorage = {
 		return rows.length > 0 ? parseInt(String(rows[0].attempts), 10) : 1;
 	},
 	markOtpVerified: async (id) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.markOtpVerified(id);
+		if (!isDbConfigured()) return ServerStorage.markOtpVerified(id);
 		await getSql()`
       UPDATE auth_otps
       SET status = 'verified'
@@ -15389,7 +15391,7 @@ var DbStorage = {
     `;
 	},
 	invalidateOtp: async (id) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.invalidateOtp(id);
+		if (!isDbConfigured()) return ServerStorage.invalidateOtp(id);
 		await getSql()`
       UPDATE auth_otps
       SET status = 'invalidated'
@@ -15397,7 +15399,7 @@ var DbStorage = {
     `;
 	},
 	getOtpLogs: async (limit = 50) => {
-		if (!process.env.DATABASE_URL) return ServerStorage.getOtpLogs(limit);
+		if (!isDbConfigured()) return ServerStorage.getOtpLogs(limit);
 		return (await getSql()`
       SELECT id, email, type, attempts, max_attempts, expires_at, created_at, last_sent_at, status, metadata
       FROM auth_otps
@@ -15582,7 +15584,7 @@ async function executeAllDatabaseScheduledJobs() {
 var VAULT_DIR = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) ? path.resolve("/tmp", "server_vault") : path.resolve(process.cwd(), "data", "server_vault");
 var SMTP_CONFIG_FILE = path.join(VAULT_DIR, "smtp_config.json");
 var EMAIL_LOGS_FILE = path.join(VAULT_DIR, "email_logs.json");
-if (!process.env.DATABASE_URL) try {
+if (!isDbConfigured()) try {
 	if (!fs.existsSync(VAULT_DIR)) fs.mkdirSync(VAULT_DIR, { recursive: true });
 } catch (e) {
 	console.warn("[EmailService] Directory initialization note:", e.message);
@@ -15613,7 +15615,7 @@ var EmailService = class {
 	}
 	static async initialize() {
 		if (this.isInitialized) return;
-		if (process.env.DATABASE_URL) try {
+		if (isDbConfigured()) try {
 			const dbConfig = await DbStorage.getSmtpConfig();
 			if (dbConfig) this.inMemoryConfig = {
 				...DEFAULT_SMTP_CONFIG,
@@ -15642,7 +15644,7 @@ var EmailService = class {
 		this.isInitialized = true;
 	}
 	static async syncFromDb() {
-		if (!process.env.DATABASE_URL) return;
+		if (!isDbConfigured()) return;
 		try {
 			const dbConfig = await DbStorage.getSmtpConfig();
 			if (dbConfig) this.inMemoryConfig = {
@@ -15654,7 +15656,7 @@ var EmailService = class {
 		} catch {}
 	}
 	static readConfig() {
-		if (!this.isInitialized && !process.env.DATABASE_URL) try {
+		if (!this.isInitialized && !isDbConfigured()) try {
 			if (fs.existsSync(SMTP_CONFIG_FILE)) {
 				const raw = fs.readFileSync(SMTP_CONFIG_FILE, "utf-8");
 				this.inMemoryConfig = {
@@ -15697,7 +15699,7 @@ var EmailService = class {
 			isConfigured: true
 		};
 		this.inMemoryConfig = newConfig;
-		if (process.env.DATABASE_URL) DbStorage.saveSmtpConfig(newConfig).catch((err) => {
+		if (isDbConfigured()) DbStorage.saveSmtpConfig(newConfig).catch((err) => {
 			console.error("[EmailService] Failed saving SMTP config to Prisma Postgres:", err.message);
 		});
 		else try {
@@ -15721,7 +15723,7 @@ var EmailService = class {
 			isConfigured: true
 		};
 		this.inMemoryConfig = newConfig;
-		if (process.env.DATABASE_URL) await DbStorage.saveSmtpConfig(newConfig);
+		if (isDbConfigured()) await DbStorage.saveSmtpConfig(newConfig);
 		else try {
 			fs.writeFileSync(SMTP_CONFIG_FILE, JSON.stringify(newConfig, null, 2), "utf-8");
 		} catch (err) {
@@ -15733,7 +15735,7 @@ var EmailService = class {
 		return this.inMemoryLogs.slice(0, limit);
 	}
 	static async getLogsAsync(limit = 100) {
-		if (process.env.DATABASE_URL) try {
+		if (isDbConfigured()) try {
 			const dbLogs = await DbStorage.getEmailLogs(limit);
 			if (dbLogs && dbLogs.length > 0) {
 				this.inMemoryLogs = dbLogs;
@@ -15745,7 +15747,7 @@ var EmailService = class {
 	static appendLog(entry) {
 		this.inMemoryLogs.unshift(entry);
 		if (this.inMemoryLogs.length > 500) this.inMemoryLogs = this.inMemoryLogs.slice(0, 500);
-		if (process.env.DATABASE_URL) DbStorage.appendEmailLog(entry).catch((err) => {
+		if (isDbConfigured()) DbStorage.appendEmailLog(entry).catch((err) => {
 			console.warn("[EmailService] DB append email log note:", err.message);
 		});
 		else try {
@@ -16255,7 +16257,7 @@ serverApp.use(express.urlencoded({
 	limit: "15mb"
 }));
 serverApp.use(async (_req, _res, next) => {
-	if (!dbInitialized && process.env.DATABASE_URL) await ensureDbInitialized().catch(() => {});
+	if (!dbInitialized && isDbConfigured()) await ensureDbInitialized().catch(() => {});
 	next();
 });
 var activeSessions = /* @__PURE__ */ new Map();
@@ -17605,7 +17607,7 @@ serverApp.post("/api/admin/users/:id/verify-email", authenticateToken, requireAd
 	}
 });
 serverApp.get("/api/admin/smtp", authenticateToken, requireAdmin, async (_req, res) => {
-	if (process.env.DATABASE_URL) await EmailService.syncFromDb();
+	if (isDbConfigured()) await EmailService.syncFromDb();
 	res.json({
 		success: true,
 		config: EmailService.getConfig()

@@ -18,11 +18,11 @@ import { IELTSPracticeService } from '../services/ieltsPracticeService';
 import { DEFAULT_COLOR_SCHEME } from '../utils/themeManager';
 import { executeAllDatabaseScheduledJobs } from '../../server/scheduler';
 
-const CONNECTION_STRING = process.env.DATABASE_URL;
+const CONNECTION_STRING = process.env.DB_URL || process.env.DATABASE_URL;
 
 if (!CONNECTION_STRING) {
-  console.error('\n[EduBridge Deploy Error] DATABASE_URL environment variable is not set.');
-  console.error('Please configure DATABASE_URL in your .env file or export it in your shell environment.');
+  console.error('\n[EduBridge Deploy Error] DB_URL environment variable is not set.');
+  console.error('Please configure DB_URL in your .env file or export it in your shell environment.');
   process.exit(1);
 }
 
@@ -728,7 +728,7 @@ async function deployToDatabase() {
 
     // 5. Environment confirmation
     console.log('\nStep 5/5: Verifying Prisma Postgres connection & state...');
-    console.log('  ✓ DATABASE_URL environment variable is active and verified.');
+    console.log('  ✓ DB_URL environment variable is active and verified.');
 
     console.log('\n=================================================================');
     console.log('  SUCCESS: Prisma Postgres Database Fully Deployed & Verified!   ');
@@ -738,7 +738,9 @@ async function deployToDatabase() {
   }
 }
 
-deployToDatabase().catch((err) => {
+deployToDatabase().then(() => {
+  process.exit(0);
+}).catch((err) => {
   console.error('\nDeployment Error:', err);
   process.exit(1);
 });

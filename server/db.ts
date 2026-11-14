@@ -32,13 +32,15 @@ import { ServerStorage } from './storage';
 
 // ─── DB Connection ───────────────────────────────────────────────────────────
 
+export const isDbConfigured = (): boolean => Boolean(process.env.DB_URL || process.env.DATABASE_URL);
+
 let sqlInstance: Sql | null = null;
 
 function getSql(): Sql {
-  const url = process.env.DATABASE_URL;
+  const url = process.env.DB_URL || process.env.DATABASE_URL;
   if (!url) {
     throw new Error(
-      'DATABASE_URL environment variable is not set. Add it in your Vercel project settings (Prisma Postgres integration).'
+      'DB_URL environment variable is not set. Add it in your Vercel project settings (Prisma Postgres integration).'
     );
   }
   if (!sqlInstance) {
@@ -50,8 +52,8 @@ function getSql(): Sql {
 // ─── Schema Creation (DDL) ───────────────────────────────────────────────────
 
 export async function initializeDatabase(): Promise<void> {
-  if (!process.env.DATABASE_URL) {
-    console.log('[EduBridge DB] DATABASE_URL not set — using local storage vault fallback. In Vercel, attach Prisma Postgres to activate cloud DB.');
+  if (!isDbConfigured()) {
+    console.log('[EduBridge DB] DB_URL / DATABASE_URL not set — using local storage vault fallback. In Vercel, attach Prisma Postgres to activate cloud DB.');
     ServerStorage.initialize();
     return;
   }
@@ -375,7 +377,7 @@ export async function initializeDatabase(): Promise<void> {
 // ─── Seed Data ───────────────────────────────────────────────────────────────
 
 export async function seedInitialData(): Promise<void> {
-  if (!process.env.DATABASE_URL) return;
+  if (!isDbConfigured()) return;
 
   const sql = getSql();
 
@@ -964,7 +966,7 @@ export const DbStorage = {
 
   // --- Health ---
   getHealthStats: async () => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getHealthStats();
     }
     const sql = getSql();
@@ -995,7 +997,7 @@ export const DbStorage = {
 
   // --- Sessions ---
   getSessions: async (): Promise<{ token: string; userId: string; userRole: string; createdAt: number; expiresAt: number }[]> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getSessions();
     }
     const sql = getSql();
@@ -1010,7 +1012,7 @@ export const DbStorage = {
   },
 
   saveSession: async (session: { token: string; userId: string; userRole: string; createdAt: number; expiresAt: number }): Promise<void> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.saveSession(session);
     }
     const sql = getSql();
@@ -1024,7 +1026,7 @@ export const DbStorage = {
   },
 
   findSession: async (token: string): Promise<{ userId: string; userRole: string; expiresAt: number } | null> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       const sess = ServerStorage.getSessions().find((s) => s.token === token && Date.now() <= s.expiresAt);
       return sess ? { userId: sess.userId, userRole: sess.userRole, expiresAt: sess.expiresAt } : null;
     }
@@ -1039,7 +1041,7 @@ export const DbStorage = {
   },
 
   removeSession: async (token: string): Promise<void> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.removeSession(token);
     }
     const sql = getSql();
@@ -1048,7 +1050,7 @@ export const DbStorage = {
 
   // --- Users ---
   getUsers: async (): Promise<UserAccount[]> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getUsers();
     }
     const sql = getSql();
@@ -1057,7 +1059,7 @@ export const DbStorage = {
   },
 
   getUserById: async (id: string): Promise<UserAccount | null> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getUserById(id);
     }
     const sql = getSql();
@@ -1066,7 +1068,7 @@ export const DbStorage = {
   },
 
   getUserByIdentifier: async (identifier: string): Promise<UserAccount | null> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getUserByIdentifier(identifier);
     }
     const clean = identifier.trim().toLowerCase();
@@ -1082,7 +1084,7 @@ export const DbStorage = {
   },
 
   createUser: async (user: UserAccount): Promise<UserAccount> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.createUser(user);
     }
     const sql = getSql();
@@ -1114,7 +1116,7 @@ export const DbStorage = {
   },
 
   updateUser: async (id: string, updates: Partial<UserAccount>): Promise<UserAccount> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.updateUser(id, updates);
     }
     const sql = getSql();
@@ -1162,7 +1164,7 @@ export const DbStorage = {
     limit?: number;
     offset?: number;
   }): Promise<{ items: UserActivityRecord[]; total: number }> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getActivities(filter);
     }
     const sql = getSql();
@@ -1211,7 +1213,7 @@ export const DbStorage = {
   },
 
   getActivityById: async (id: string): Promise<UserActivityRecord | null> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getActivityById(id);
     }
     const sql = getSql();
@@ -1220,7 +1222,7 @@ export const DbStorage = {
   },
 
   saveActivity: async (activity: UserActivityRecord): Promise<UserActivityRecord> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.saveActivity(activity);
     }
     const sql = getSql();
@@ -1305,7 +1307,7 @@ export const DbStorage = {
     testId?: string;
     activityId?: string;
   }): Promise<QuestionAttemptRecord[]> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getQuestionAttempts(filter);
     }
     const sql = getSql();
@@ -1326,7 +1328,7 @@ export const DbStorage = {
   },
 
   saveQuestionAttempt: async (attempt: QuestionAttemptRecord): Promise<QuestionAttemptRecord> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.saveQuestionAttempt(attempt);
     }
     const sql = getSql();
@@ -1359,7 +1361,7 @@ export const DbStorage = {
   },
 
   saveBatchQuestionAttempts: async (attempts: QuestionAttemptRecord[]): Promise<QuestionAttemptRecord[]> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.saveBatchQuestionAttempts(attempts);
     }
     const saved: QuestionAttemptRecord[] = [];
@@ -1379,7 +1381,7 @@ export const DbStorage = {
     userId?: string;
     activityId?: string;
   }): Promise<WrittenResponseRecord[]> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getWrittenResponses(filter);
     }
     const sql = getSql();
@@ -1400,7 +1402,7 @@ export const DbStorage = {
   },
 
   saveWrittenResponse: async (response: WrittenResponseRecord): Promise<WrittenResponseRecord> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.saveWrittenResponse(response);
     }
     const sql = getSql();
@@ -1445,7 +1447,7 @@ export const DbStorage = {
 
   // --- Incomplete Attempts ---
   getIncompleteAttempt: async (userId: string, testId?: string): Promise<IncompleteAttemptRecord | null> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getIncompleteAttempt(userId, testId);
     }
     const sql = getSql();
@@ -1463,7 +1465,7 @@ export const DbStorage = {
   },
 
   saveIncompleteAttempt: async (attempt: IncompleteAttemptRecord): Promise<IncompleteAttemptRecord> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.saveIncompleteAttempt(attempt);
     }
     const sql = getSql();
@@ -1496,7 +1498,7 @@ export const DbStorage = {
   },
 
   clearIncompleteAttempt: async (userId: string, testId?: string): Promise<boolean> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.clearIncompleteAttempt(userId, testId);
     }
     const sql = getSql();
@@ -1514,7 +1516,7 @@ export const DbStorage = {
     requestingUserId?: string,
     requestingUserRole?: string
   ): Promise<AttemptDetailResponse> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getAttemptDetail(activityId, requestingUserId, requestingUserRole);
     }
     const activity = await DbStorage.getActivityById(activityId);
@@ -1568,7 +1570,7 @@ export const DbStorage = {
 
   // --- Admin Full User History ---
   getUserFullHistory: async (userId: string) => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getUserFullHistory(userId);
     }
     const user = await DbStorage.getUsers().then((users) => users.find((u) => u.id === userId));
@@ -1612,14 +1614,14 @@ export const DbStorage = {
 
   // --- SMTP Config in DB ---
   getSmtpConfig: async (): Promise<any | null> => {
-    if (!process.env.DATABASE_URL) return null;
+    if (!isDbConfigured()) return null;
     const sql = getSql();
     const rows = await sql`SELECT config_json FROM smtp_config WHERE id = 1`;
     return rows.length > 0 ? safeJsonParse(rows[0].config_json, null) : null;
   },
 
   saveSmtpConfig: async (config: any): Promise<void> => {
-    if (!process.env.DATABASE_URL) return;
+    if (!isDbConfigured()) return;
     const sql = getSql();
     await sql`
       INSERT INTO smtp_config (id, config_json)
@@ -1630,7 +1632,7 @@ export const DbStorage = {
 
   // --- Email Logs ---
   appendEmailLog: async (log: any): Promise<void> => {
-    if (!process.env.DATABASE_URL) return;
+    if (!isDbConfigured()) return;
     const sql = getSql();
     await sql`
       INSERT INTO email_logs (id, timestamp, recipient, type, subject, provider, status, error, duration_ms)
@@ -1650,7 +1652,7 @@ export const DbStorage = {
   },
 
   getEmailLogs: async (limit: number = 100): Promise<any[]> => {
-    if (!process.env.DATABASE_URL) return [];
+    if (!isDbConfigured()) return [];
     const sql = getSql();
     const rows = await sql`SELECT * FROM email_logs ORDER BY timestamp DESC LIMIT ${limit}`;
     return rows.map((r) => ({
@@ -1668,7 +1670,7 @@ export const DbStorage = {
 
   // --- Scheduled Jobs ---
   getScheduledJobs: async (): Promise<any[]> => {
-    if (!process.env.DATABASE_URL) return [];
+    if (!isDbConfigured()) return [];
     try {
       const sql = getSql();
       const rows = await sql`SELECT * FROM scheduled_jobs ORDER BY id`;
@@ -1735,7 +1737,7 @@ export const DbStorage = {
   },
 
   updateScheduledJob: async (id: string, updates: Partial<{ lastRunTimestamp: string; nextRunTimestamp: string; status: string; itemsGeneratedCount: number; enabled: boolean }>): Promise<void> => {
-    if (!process.env.DATABASE_URL) return;
+    if (!isDbConfigured()) return;
     try {
       const sql = getSql();
       if (updates.lastRunTimestamp !== undefined) {
@@ -1765,7 +1767,7 @@ export const DbStorage = {
     difficulty?: string;
     limit?: number;
   }): Promise<any[]> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       let list = [...multiExamMockTests];
       if (filter?.testStandard) {
         list = list.filter((t) => t.exam?.toLowerCase() === filter.testStandard!.toLowerCase());
@@ -1817,7 +1819,7 @@ export const DbStorage = {
   },
 
   getStandardTestById: async (id: string): Promise<any | null> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return [...multiExamMockTests, ...mockTests].find((t) => t.id === id) || null;
     }
     try {
@@ -1844,7 +1846,7 @@ export const DbStorage = {
     const metadata = test.metadata || {};
     const now = new Date().toISOString();
 
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return { ...test, id: test.id, questions, questionCount };
     }
 
@@ -1886,7 +1888,7 @@ export const DbStorage = {
   },
 
   deleteStandardTest: async (id: string): Promise<boolean> => {
-    if (!process.env.DATABASE_URL) return true;
+    if (!isDbConfigured()) return true;
     try {
       const sql = getSql();
       await sql`DELETE FROM standard_tests WHERE id = ${id}`;
@@ -1896,7 +1898,7 @@ export const DbStorage = {
 
   // --- Quizzes ---
   getQuizzes: async (filter?: { cohort?: string; category?: string; limit?: number }): Promise<any[]> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       let list = [...cohortQuizQuestions];
       if (filter?.cohort) list = list.filter((q) => q.cohort === filter.cohort);
       if (filter?.category) list = list.filter((q) => q.category === filter.category);
@@ -1931,7 +1933,7 @@ export const DbStorage = {
   },
 
   getQuizById: async (id: string): Promise<any | null> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return cohortQuizQuestions.find((q) => q.id === id) || null;
     }
     try {
@@ -1944,7 +1946,7 @@ export const DbStorage = {
   },
 
   saveQuiz: async (quiz: any): Promise<any> => {
-    if (!process.env.DATABASE_URL) return quiz;
+    if (!isDbConfigured()) return quiz;
     try {
       const sql = getSql();
       const now = new Date().toISOString();
@@ -1992,7 +1994,7 @@ export const DbStorage = {
 
   // --- App Configurations ---
   getAllConfigurations: async (): Promise<Record<string, any>> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return {
         exam_settings: { questionsPerTest: 10, allowShuffleOptions: true, writingTestQuestions: 1 },
         feature_flags: initialFeatureFlags,
@@ -2019,7 +2021,7 @@ export const DbStorage = {
   },
 
   getConfiguration: async (key: string): Promise<any | null> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       if (key === 'exam_settings') return { questionsPerTest: 10, allowShuffleOptions: true, writingTestQuestions: 1 };
       if (key === 'feature_flags') return initialFeatureFlags;
       if (key === 'color_scheme') return DEFAULT_COLOR_SCHEME;
@@ -2044,7 +2046,7 @@ export const DbStorage = {
     description: string = '',
     updatedBy: string = 'system'
   ): Promise<any> => {
-    if (!process.env.DATABASE_URL) return value;
+    if (!isDbConfigured()) return value;
     const sql = getSql();
     const now = new Date().toISOString();
     await sql`
@@ -2074,7 +2076,7 @@ export const DbStorage = {
     status: 'active' | 'verified' | 'expired' | 'invalidated';
     metadata?: Record<string, any>;
   }): Promise<any> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.createOtp(record);
     }
     const sql = getSql();
@@ -2101,7 +2103,7 @@ export const DbStorage = {
   },
 
   getOtp: async (email: string, type: 'REGISTRATION' | 'PASSWORD_RESET'): Promise<any | null> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getOtp(email, type);
     }
     const sql = getSql();
@@ -2130,7 +2132,7 @@ export const DbStorage = {
   },
 
   incrementOtpAttempts: async (id: string): Promise<number> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.incrementOtpAttempts(id);
     }
     const sql = getSql();
@@ -2144,7 +2146,7 @@ export const DbStorage = {
   },
 
   markOtpVerified: async (id: string): Promise<void> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.markOtpVerified(id);
     }
     const sql = getSql();
@@ -2156,7 +2158,7 @@ export const DbStorage = {
   },
 
   invalidateOtp: async (id: string): Promise<void> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.invalidateOtp(id);
     }
     const sql = getSql();
@@ -2168,7 +2170,7 @@ export const DbStorage = {
   },
 
   getOtpLogs: async (limit: number = 50): Promise<any[]> => {
-    if (!process.env.DATABASE_URL) {
+    if (!isDbConfigured()) {
       return ServerStorage.getOtpLogs(limit);
     }
     const sql = getSql();

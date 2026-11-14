@@ -28,7 +28,8 @@ import { ServerStorage } from '../../server/storage';
 import { DbStorage } from '../../server/db';
 import { getActivityQuestionStats } from '../utils/activityStats';
 
-const storage = process.env.DATABASE_URL ? DbStorage : ServerStorage;
+const dbConnectionString = process.env.DB_URL || process.env.DATABASE_URL;
+const storage = dbConnectionString ? DbStorage : ServerStorage;
 
 async function runTests() {
   console.log('=== STARTING EDU BRIDGE VERIFICATION SUITE ===\n');
@@ -2613,9 +2614,9 @@ async function runTests() {
   }
 
   // Cleanup transient test records from Prisma Postgres database if configured
-  if (process.env.DATABASE_URL) {
+  if (dbConnectionString) {
     try {
-      const sql = (await import('postgres')).default(process.env.DATABASE_URL, { ssl: 'require' });
+      const sql = (await import('postgres')).default(dbConnectionString, { ssl: 'require' });
       await sql`DELETE FROM question_attempts WHERE user_id LIKE 'usr_cross_%' OR user_id LIKE 'usr_streak_test_%' OR user_id LIKE 'usr_verified_%' OR user_id LIKE 'usr_machine_a_%'`;
       await sql`DELETE FROM written_responses WHERE user_id LIKE 'usr_cross_%' OR user_id LIKE 'usr_streak_test_%' OR user_id LIKE 'usr_verified_%' OR user_id LIKE 'usr_machine_a_%'`;
       await sql`DELETE FROM activities WHERE user_id LIKE 'usr_cross_%' OR user_id LIKE 'usr_streak_test_%' OR user_id LIKE 'usr_verified_%' OR user_id LIKE 'usr_machine_a_%'`;
@@ -2630,6 +2631,7 @@ async function runTests() {
 
   console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 85 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);
   if (failures > 0) process.exit(1);
+  process.exit(0);
 }
 
 runTests();
