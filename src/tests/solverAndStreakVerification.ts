@@ -1,3 +1,4 @@
+import 'dotenv/config';
 /**
  * Automated Verification Script for Streak Service & AI Question Solver
  */
@@ -24,7 +25,10 @@ import { UserAccount, UserActivityRecord } from '../types';
 import { IELTSPracticeService } from '../services/ieltsPracticeService';
 import { calculateAge, calculateCohortFromDob, calculateEducationLevel, userAccountToProfile } from '../utils/userProfile';
 import { ServerStorage } from '../../server/storage';
+import { DbStorage } from '../../server/db';
 import { getActivityQuestionStats } from '../utils/activityStats';
+
+const storage = process.env.DATABASE_URL ? DbStorage : ServerStorage;
 
 async function runTests() {
   console.log('=== STARTING EDU BRIDGE VERIFICATION SUITE ===\n');
@@ -1491,9 +1495,9 @@ async function runTests() {
   };
 
   // Register on simulated Machine A
-  const createdOnServer = await ServerStorage.createUser(registeredMachineA);
+  const createdOnServer = await storage.createUser(registeredMachineA);
   // Authenticate on simulated Machine B
-  const authenticatedMachineB = ServerStorage.getUserByIdentifier(crossDeviceEmail);
+  const authenticatedMachineB = await storage.getUserByIdentifier(crossDeviceEmail);
   if (!authenticatedMachineB || authenticatedMachineB.password !== 'SecurePass987!') {
     console.error('FAIL: Machine B failed to authenticate user registered on Machine A.');
     failures++;
@@ -1504,7 +1508,7 @@ async function runTests() {
   // Test 58: Cross-Device Learning History & Question Attempts (Mandatory Test 2)
   console.log('\nTest 58: Verifying Cross-Device Learning History & Question Attempts...');
   const machineAActivityId = `act_machineA_${Date.now()}`;
-  await ServerStorage.saveActivity({
+  await storage.saveActivity({
     id: machineAActivityId,
     userId: createdOnServer.id,
     userName: createdOnServer.name,
@@ -1518,7 +1522,7 @@ async function runTests() {
     replayPayload: { tab: 'exam', subId: 'pte_prac_01' }
   });
 
-  await ServerStorage.saveBatchQuestionAttempts([
+  await storage.saveBatchQuestionAttempts([
     {
       id: `qatt_machA_1_${Date.now()}`,
       userId: createdOnServer.id,
@@ -1538,8 +1542,8 @@ async function runTests() {
   ]);
 
   // Query on simulated Machine B
-  const machineBActivities = ServerStorage.getActivities({ userId: createdOnServer.id }).items;
-  const machineBQuestions = ServerStorage.getQuestionAttempts({ userId: createdOnServer.id });
+  const machineBActivities = (await storage.getActivities({ userId: createdOnServer.id })).items;
+  const machineBQuestions = await storage.getQuestionAttempts({ userId: createdOnServer.id });
   if (machineBActivities.length === 0 || machineBQuestions.length === 0) {
     console.error('FAIL: Machine B failed to retrieve learning history recorded on Machine A.');
     failures++;
@@ -1552,7 +1556,7 @@ async function runTests() {
   const writingAttemptId = `att_essay_${Date.now()}`;
   const essayTextSample = `In the contemporary era of pervasive digital connectivity, the integration of computational algorithms into educational pedagogy has fundamentally altered traditional instructional paradigms. While pedagogical traditionalists maintain that artificial intelligence undermines organic cognitive inquiry, contemporary empirical evidence suggests that adaptive learning architectures augment human potential.\n\nOn one hand, unconstrained automation without rigorous oversight risks fostering cognitive passivity. If students rely exclusively on generative outputs without interrogating evidentiary validity, critical reasoning capacities will inevitably diminish. Therefore, institutional frameworks must enforce rigorous verification protocols.\n\nNevertheless, algorithmic tutoring provides personalized scaffolding tailored to each learner's developmental trajectory. In disciplines such as computational linguistics and quantum mechanics, AI agents decompose intricate proofs into digestible concepts, democratizing high-level scholarship for diverse cohorts.\n\nIn conclusion, rather than viewing technology as a replacement for intellectual rigor, institutions should leverage adaptive synthesis to cultivate resilient, critically minded scholars.`;
 
-  await ServerStorage.saveWrittenResponse({
+  await storage.saveWrittenResponse({
     id: `wres_test_${Date.now()}`,
     userId: createdOnServer.id,
     userName: createdOnServer.name,
@@ -1580,7 +1584,7 @@ async function runTests() {
     timestamp: '2026-11-03 21:05:00'
   });
 
-  const retrievedWritten = ServerStorage.getWrittenResponses({ userId: createdOnServer.id });
+  const retrievedWritten = await storage.getWrittenResponses({ userId: createdOnServer.id });
   if (retrievedWritten.length === 0 || !retrievedWritten[0].writtenText.includes('pervasive digital connectivity')) {
     console.error('FAIL: Failed to retrieve complete written essay from server storage.');
     failures++;
@@ -1606,8 +1610,8 @@ async function runTests() {
 
   // Test 61: Administrator Full Inspection & Show Attempt (Mandatory Test 5)
   console.log('\nTest 61: Verifying Administrator Access & Attempt Inspection...');
-  const adminInspection = ServerStorage.getUserFullHistory(createdOnServer.id);
-  const adminAttemptDetail = ServerStorage.getAttemptDetail(machineAActivityId, 'usr_admin_01', 'admin');
+  const adminInspection = await storage.getUserFullHistory(createdOnServer.id);
+  const adminAttemptDetail = await storage.getAttemptDetail(machineAActivityId, 'usr_admin_01', 'admin');
   if (!adminInspection.user || adminInspection.activities.length === 0 || !adminAttemptDetail.summary) {
     console.error('FAIL: Administrator could not inspect user full history and attempt breakdown.');
     failures++;
@@ -1619,7 +1623,7 @@ async function runTests() {
   console.log('\nTest 62: Verifying Cross-User Unauthorized Access Rejection...');
   try {
     // Student usr_student_01 attempting to inspect Elena Rostova's private attempt
-    ServerStorage.getAttemptDetail(machineAActivityId, 'usr_student_01', 'student');
+    await storage.getAttemptDetail(machineAActivityId, 'usr_student_01', 'student');
     console.error('FAIL: Unauthorized user was able to access another user’s attempt!');
     failures++;
   } catch (secErr: any) {
@@ -1633,7 +1637,7 @@ async function runTests() {
 
   // Test 63: Concurrent Device Updates (Mandatory Test 7)
   console.log('\nTest 63: Verifying Concurrent Device Updates...');
-  const concurrentP1 = ServerStorage.saveActivity({
+  const concurrentP1 = storage.saveActivity({
     id: `act_conc_1_${Date.now()}`,
     userId: createdOnServer.id,
     userName: createdOnServer.name,
@@ -1647,7 +1651,7 @@ async function runTests() {
     replayPayload: { tab: 'language' }
   });
 
-  const concurrentP2 = ServerStorage.saveActivity({
+  const concurrentP2 = storage.saveActivity({
     id: `act_conc_2_${Date.now()}`,
     userId: createdOnServer.id,
     userName: createdOnServer.name,
@@ -1671,7 +1675,7 @@ async function runTests() {
 
   // Test 64: Autosave & Incomplete Attempt Recovery Across Devices (Mandatory Test 8)
   console.log('\nTest 64: Verifying Incomplete Attempt Autosave & Cross-Device Recovery...');
-  await ServerStorage.saveIncompleteAttempt({
+  await storage.saveIncompleteAttempt({
     id: `inc_${createdOnServer.id}_ielts_mock_09`,
     userId: createdOnServer.id,
     testId: 'ielts_mock_09',
@@ -1686,7 +1690,7 @@ async function runTests() {
   });
 
   // Query on simulated second device
-  const recoveredOnDeviceB = ServerStorage.getIncompleteAttempt(createdOnServer.id, 'ielts_mock_09');
+  const recoveredOnDeviceB = await storage.getIncompleteAttempt(createdOnServer.id, 'ielts_mock_09');
   if (
     !recoveredOnDeviceB ||
     recoveredOnDeviceB.currentQuestionIndex !== 14 ||
@@ -1699,8 +1703,8 @@ async function runTests() {
   }
 
   // Clear incomplete attempt upon test finalization
-  await ServerStorage.clearIncompleteAttempt(createdOnServer.id, 'ielts_mock_09');
-  const clearedCheck = ServerStorage.getIncompleteAttempt(createdOnServer.id, 'ielts_mock_09');
+  await storage.clearIncompleteAttempt(createdOnServer.id, 'ielts_mock_09');
+  const clearedCheck = await storage.getIncompleteAttempt(createdOnServer.id, 'ielts_mock_09');
   if (clearedCheck !== null) {
     console.error('FAIL: Incomplete attempt was not cleared after finalization.');
     failures++;
@@ -1760,7 +1764,7 @@ async function runTests() {
   };
 
   StorageService.recordUserActivity(newActivityWithStats);
-  await ServerStorage.saveActivity(newActivityWithStats);
+  await storage.saveActivity(newActivityWithStats);
   const reRetrieved = StorageService.getUserActivities(createdOnServer.id).find((a) => a.id === newActivityWithStats.id);
   if (!reRetrieved) {
     console.error('FAIL: Newly recorded activity was not saved.');
@@ -1775,11 +1779,11 @@ async function runTests() {
     }
   }
 
-  // 3. Verify ServerStorage also holds the question metrics
-  const serverActivities = ServerStorage.getActivities({ userId: createdOnServer.id }).items;
+  // 3. Verify storage also holds the question metrics
+  const serverActivities = (await storage.getActivities({ userId: createdOnServer.id })).items;
   const serverActivity = serverActivities.find((a) => a.id === newActivityWithStats.id);
   if (!serverActivity || serverActivity.totalQuestions !== 10 || serverActivity.correctAnswers !== 9) {
-    console.error('FAIL: ServerStorage did not persist question metrics correctly.');
+    console.error('FAIL: storage did not persist question metrics correctly.');
     failures++;
   } else {
     console.log('PASS: Central Server Vault correctly persisted totalQuestions, attemptedQuestions, correctAnswers, and incorrectAnswers.');
@@ -1857,7 +1861,7 @@ async function runTests() {
     }
   };
 
-  await ServerStorage.createUser(studentMachineA);
+  await storage.createUser(studentMachineA);
 
   const activityMachineA: UserActivityRecord = {
     id: `act_cross_machine_${Date.now()}`,
@@ -1878,10 +1882,10 @@ async function runTests() {
     replayPayload: { tab: 'exam', subId: 'ielts_acad_reading_01' }
   };
 
-  await ServerStorage.saveActivity(activityMachineA);
+  await storage.saveActivity(activityMachineA);
 
   // Admin query with no userId (effectiveUserId is undefined) must return activities across ALL users
-  const globalActivities = ServerStorage.getActivities({}).items;
+  const globalActivities = (await storage.getActivities({})).items;
   const foundGlobal = globalActivities.find((a) => a.id === activityMachineA.id);
   if (!foundGlobal) {
     console.error('FAIL: Activity performed by student on Machine A is not returned in global activities query.');
@@ -1891,7 +1895,7 @@ async function runTests() {
   }
 
   // Admin inspects user full history
-  const fullHistory = ServerStorage.getUserFullHistory(studentMachineA.id);
+  const fullHistory = await storage.getUserFullHistory(studentMachineA.id);
   if (!fullHistory || !fullHistory.activities.some((a: any) => a.id === activityMachineA.id)) {
     console.error('FAIL: getUserFullHistory did not include the cross-machine activity.');
     failures++;
@@ -1972,7 +1976,7 @@ async function runTests() {
     }
   };
 
-  const createdVerified = await ServerStorage.createUser(verifiedUser);
+  const createdVerified = await storage.createUser(verifiedUser);
   if (!createdVerified.emailVerified || createdVerified.emailVerificationStatus !== 'verified') {
     console.error('FAIL: Created user does not have emailVerified: true and emailVerificationStatus: "verified".');
     failures++;
@@ -1991,8 +1995,8 @@ async function runTests() {
     console.log(`PASS: Password reset OTP [${resetOtp}] dispatched to ${otpTestEmail}.`);
   }
 
-  // Update password in ServerStorage
-  const updatedUserPassword = await ServerStorage.updateUser(createdVerified.id, {
+  // Update password in storage
+  const updatedUserPassword = await storage.updateUser(createdVerified.id, {
     password: 'NewStrongPassword789!'
   });
   if (updatedUserPassword.password !== 'NewStrongPassword789!') {
@@ -2008,7 +2012,7 @@ async function runTests() {
   await EmailService.sendPasswordResetOtp(studentMachineA.email, studentMachineA.name, adminResetOtp);
 
   // Admin marks user as verified
-  const adminVerified = await ServerStorage.updateUser(studentMachineA.id, {
+  const adminVerified = await storage.updateUser(studentMachineA.id, {
     emailVerified: true,
     emailVerificationStatus: 'verified'
   });
@@ -2606,6 +2610,22 @@ async function runTests() {
     console.log('PASS: Backend /api/users/:id endpoint blocks non-admin modification of enableQuickUserSwitch.');
     console.log('PASS: Redundant User Directory card grid removed from User Live Dashboard Inspector.');
     console.log('PASS: Educator terminology active across user-facing profiles and initial data.');
+  }
+
+  // Cleanup transient test records from Prisma Postgres database if configured
+  if (process.env.DATABASE_URL) {
+    try {
+      const sql = (await import('postgres')).default(process.env.DATABASE_URL, { ssl: 'require' });
+      await sql`DELETE FROM question_attempts WHERE user_id LIKE 'usr_cross_%' OR user_id LIKE 'usr_streak_test_%' OR user_id LIKE 'usr_verified_%' OR user_id LIKE 'usr_machine_a_%'`;
+      await sql`DELETE FROM written_responses WHERE user_id LIKE 'usr_cross_%' OR user_id LIKE 'usr_streak_test_%' OR user_id LIKE 'usr_verified_%' OR user_id LIKE 'usr_machine_a_%'`;
+      await sql`DELETE FROM activities WHERE user_id LIKE 'usr_cross_%' OR user_id LIKE 'usr_streak_test_%' OR user_id LIKE 'usr_verified_%' OR user_id LIKE 'usr_machine_a_%'`;
+      await sql`DELETE FROM incomplete_attempts WHERE user_id LIKE 'usr_cross_%' OR user_id LIKE 'usr_streak_test_%' OR user_id LIKE 'usr_verified_%' OR user_id LIKE 'usr_machine_a_%'`;
+      await sql`DELETE FROM users WHERE id LIKE 'usr_cross_%' OR id LIKE 'usr_streak_test_%' OR id LIKE 'usr_verified_%' OR id LIKE 'usr_machine_a_%' OR email LIKE '%cross_device_user%' OR email LIKE '%student_test_streak%' OR email LIKE '%verified_test%' OR email LIKE '%sofia.martinez.%'`;
+      await sql.end();
+      console.log('PASS: Ephemeral test users and activities cleanly purged from Prisma Postgres database.');
+    } catch (cleanupErr: any) {
+      console.warn('[Test Cleanup Note]', cleanupErr.message);
+    }
   }
 
   console.log(`\n=== VERIFICATION COMPLETE: ${failures === 0 ? 'ALL 85 TESTS PASSED' : failures + ' TESTS FAILED'} ===`);

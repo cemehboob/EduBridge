@@ -13,6 +13,7 @@ export async function ensureDbInitialized(): Promise<void> {
   try {
     await initializeDatabase();
     await seedInitialData();
+    await EmailService.initialize();
     dbInitialized = true;
   } catch (err: any) {
     console.warn('[EduBridge DB Init Note]', err.message);
@@ -1454,7 +1455,10 @@ serverApp.post('/api/admin/users/:id/verify-email', authenticateToken, requireAd
 // ==================== SMTP INTEGRATION & EMAIL DIAGNOSTICS ====================
 
 // Get SMTP Configuration (safe view with masked credentials)
-serverApp.get('/api/admin/smtp', authenticateToken, requireAdmin, (_req: AuthenticatedRequest, res: Response) => {
+serverApp.get('/api/admin/smtp', authenticateToken, requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  if (process.env.DATABASE_URL) {
+    await EmailService.syncFromDb();
+  }
   res.json({
     success: true,
     config: EmailService.getConfig()
@@ -1464,7 +1468,7 @@ serverApp.get('/api/admin/smtp', authenticateToken, requireAdmin, (_req: Authent
 // Update SMTP Configuration
 serverApp.post('/api/admin/smtp', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const updated = await EmailService.saveConfig(req.body);
+    const updated = await EmailService.saveConfigAsync(req.body);
     res.json({
       success: true,
       message: 'SMTP settings updated successfully.',
@@ -1481,34 +1485,40 @@ serverApp.post('/api/admin/smtp/test', authenticateToken, requireAdmin, async (r
     const { recipientEmail, ...smtpOverrides } = req.body;
     const targetEmail = recipientEmail || req.user?.email || 'admin@edubridge.io';
     const result = await EmailService.sendTestEmail(targetEmail, smtpOverrides);
+    const logs = await EmailService.getLogsAsync(5);
     if (!result.success || result.delivered === false) {
       return res.status(400).json({
         success: false,
         delivered: false,
         message: result.info,
         error: result.info,
-        logs: EmailService.getLogs().slice(0, 5)
+        logs
       });
     }
     res.json({
       success: true,
       delivered: true,
       message: result.info,
-      logs: EmailService.getLogs().slice(0, 5)
+      logs
     });
   } catch (err: any) {
+    const logs = await EmailService.getLogsAsync(5);
     res.status(500).json({
       success: false,
-      error: err.message || 'SMTP test execution failed.'
+      delivered: false,
+      error: err.message || 'SMTP test execution failed.',
+      message: err.message || 'SMTP test execution failed.',
+      logs
     });
   }
 });
 
 // Get Email Delivery Diagnostics Logs
-serverApp.get('/api/admin/smtp/logs', authenticateToken, requireAdmin, (_req: AuthenticatedRequest, res: Response) => {
+serverApp.get('/api/admin/smtp/logs', authenticateToken, requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  const logs = await EmailService.getLogsAsync();
   res.json({
     success: true,
-    logs: EmailService.getLogs()
+    logs
   });
 });
 

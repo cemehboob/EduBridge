@@ -1069,100 +1069,86 @@ export const DbStorage = {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.getUserByIdentifier(identifier);
     }
-    try {
-      const clean = identifier.trim().toLowerCase();
-      const sql = getSql();
-      const rows = await sql`
-        SELECT * FROM users
-        WHERE LOWER(email) = ${clean}
-           OR LOWER(username) = ${clean}
-           OR LOWER(name) = ${clean}
-        LIMIT 1
-      `;
-      return rows.length > 0 ? rowToUser(rows[0]) : null;
-    } catch {
-      return ServerStorage.getUserByIdentifier(identifier);
-    }
+    const clean = identifier.trim().toLowerCase();
+    const sql = getSql();
+    const rows = await sql`
+      SELECT * FROM users
+      WHERE LOWER(email) = ${clean}
+         OR LOWER(username) = ${clean}
+         OR LOWER(name) = ${clean}
+      LIMIT 1
+    `;
+    return rows.length > 0 ? rowToUser(rows[0]) : null;
   },
 
   createUser: async (user: UserAccount): Promise<UserAccount> => {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.createUser(user);
     }
-    try {
-      const sql = getSql();
-      // Check uniqueness
-      const existing = await sql`
-        SELECT id FROM users
-        WHERE id = ${user.id} OR LOWER(email) = ${user.email.toLowerCase()}
-        LIMIT 1
-      `;
-      if (existing.length > 0) {
-        throw new Error('An account already exists with this email address.');
-      }
-      await sql`
-        INSERT INTO users (
-          id, name, username, email, password, date_of_birth,
-          role, status, email_verified, email_verification_status,
-          created_at, last_login_at, preferences, profile_stats
-        )
-        VALUES (
-          ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
-          ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
-          ${user.emailVerified ?? true}, ${user.emailVerificationStatus || 'verified'},
-          ${user.createdAt}, ${user.lastLoginAt},
-          ${JSON.stringify(user.preferences)}, ${JSON.stringify(user.profileStats)}
-        )
-      `;
-      const created = await sql`SELECT * FROM users WHERE id = ${user.id}`;
-      return rowToUser(created[0]);
-    } catch (err: any) {
-      if (err.message?.includes('already exists')) throw err;
-      return ServerStorage.createUser(user);
+    const sql = getSql();
+    // Check uniqueness
+    const existing = await sql`
+      SELECT id FROM users
+      WHERE id = ${user.id} OR LOWER(email) = ${user.email.toLowerCase()}
+      LIMIT 1
+    `;
+    if (existing.length > 0) {
+      throw new Error('An account already exists with this email address.');
     }
+    await sql`
+      INSERT INTO users (
+        id, name, username, email, password, date_of_birth,
+        role, status, email_verified, email_verification_status,
+        created_at, last_login_at, preferences, profile_stats
+      )
+      VALUES (
+        ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
+        ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
+        ${user.emailVerified ?? true}, ${user.emailVerificationStatus || 'verified'},
+        ${user.createdAt}, ${user.lastLoginAt},
+        ${JSON.stringify(user.preferences || {})}, ${JSON.stringify(user.profileStats || {})}
+      )
+    `;
+    const created = await sql`SELECT * FROM users WHERE id = ${user.id}`;
+    return rowToUser(created[0]);
   },
 
   updateUser: async (id: string, updates: Partial<UserAccount>): Promise<UserAccount> => {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.updateUser(id, updates);
     }
-    try {
-      const sql = getSql();
-      const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
-      if (existing.length === 0) {
-        throw new Error(`User not found with id ${id}`);
-      }
-      const current = rowToUser(existing[0]);
-
-      const merged: UserAccount = {
-        ...current,
-        ...updates,
-        id: current.id, // immutable
-        preferences: updates.preferences ? { ...current.preferences, ...updates.preferences } : current.preferences,
-        profileStats: updates.profileStats ? { ...current.profileStats, ...updates.profileStats } : current.profileStats
-      };
-
-      await sql`
-        UPDATE users SET
-          name = ${merged.name},
-          username = ${merged.username || null},
-          email = ${merged.email},
-          password = ${merged.password},
-          date_of_birth = ${merged.dateOfBirth},
-          role = ${merged.role},
-          status = ${merged.status},
-          email_verified = ${merged.emailVerified ?? true},
-          email_verification_status = ${merged.emailVerificationStatus || 'verified'},
-          last_login_at = ${merged.lastLoginAt},
-          preferences = ${JSON.stringify(merged.preferences)},
-          profile_stats = ${JSON.stringify(merged.profileStats)}
-        WHERE id = ${id}
-      `;
-      return merged;
-    } catch (err: any) {
-      if (err.message?.includes('not found')) throw err;
-      return ServerStorage.updateUser(id, updates);
+    const sql = getSql();
+    const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
+    if (existing.length === 0) {
+      throw new Error(`User not found with id ${id}`);
     }
+    const current = rowToUser(existing[0]);
+
+    const merged: UserAccount = {
+      ...current,
+      ...updates,
+      id: current.id, // immutable
+      preferences: updates.preferences ? { ...current.preferences, ...updates.preferences } : current.preferences,
+      profileStats: updates.profileStats ? { ...current.profileStats, ...updates.profileStats } : current.profileStats
+    };
+
+    await sql`
+      UPDATE users SET
+        name = ${merged.name},
+        username = ${merged.username || null},
+        email = ${merged.email},
+        password = ${merged.password},
+        date_of_birth = ${merged.dateOfBirth},
+        role = ${merged.role},
+        status = ${merged.status},
+        email_verified = ${merged.emailVerified ?? true},
+        email_verification_status = ${merged.emailVerificationStatus || 'verified'},
+        last_login_at = ${merged.lastLoginAt},
+        preferences = ${JSON.stringify(merged.preferences || {})},
+        profile_stats = ${JSON.stringify(merged.profileStats || {})}
+      WHERE id = ${id}
+    `;
+    return merged;
   },
 
   // --- Activities ---
@@ -1629,7 +1615,7 @@ export const DbStorage = {
     if (!process.env.DATABASE_URL) return null;
     const sql = getSql();
     const rows = await sql`SELECT config_json FROM smtp_config WHERE id = 1`;
-    return rows.length > 0 ? rows[0].config_json : null;
+    return rows.length > 0 ? safeJsonParse(rows[0].config_json, null) : null;
   },
 
   saveSmtpConfig: async (config: any): Promise<void> => {
@@ -2092,141 +2078,116 @@ export const DbStorage = {
       return ServerStorage.createOtp(record);
     }
     const sql = getSql();
-    try {
-      await sql`
-        UPDATE auth_otps
-        SET status = 'invalidated'
-        WHERE LOWER(email) = ${record.email.toLowerCase()} AND type = ${record.type} AND status = 'active'
-      `;
-      await sql`
-        INSERT INTO auth_otps (
-          id, email, type, otp_code, otp_hash,
-          attempts, max_attempts, expires_at, created_at,
-          last_sent_at, status, metadata
-        )
-        VALUES (
-          ${record.id}, ${record.email.toLowerCase()}, ${record.type},
-          ${record.otpCode}, ${record.otpHash},
-          ${record.attempts}, ${record.maxAttempts}, ${record.expiresAt},
-          ${record.createdAt}, ${record.lastSentAt}, ${record.status},
-          ${JSON.stringify(record.metadata || {})}
-        )
-      `;
-      return record;
-    } catch (err: any) {
-      console.warn('[DbStorage createOtp Note]', err.message);
-      return ServerStorage.createOtp(record);
-    }
+    await sql`
+      UPDATE auth_otps
+      SET status = 'invalidated'
+      WHERE LOWER(email) = ${record.email.toLowerCase()} AND type = ${record.type} AND status = 'active'
+    `;
+    await sql`
+      INSERT INTO auth_otps (
+        id, email, type, otp_code, otp_hash,
+        attempts, max_attempts, expires_at, created_at,
+        last_sent_at, status, metadata
+      )
+      VALUES (
+        ${record.id}, ${record.email.toLowerCase()}, ${record.type},
+        ${record.otpCode}, ${record.otpHash},
+        ${record.attempts}, ${record.maxAttempts}, ${record.expiresAt},
+        ${record.createdAt}, ${record.lastSentAt}, ${record.status},
+        ${JSON.stringify(record.metadata || {})}
+      )
+    `;
+    return record;
   },
 
   getOtp: async (email: string, type: 'REGISTRATION' | 'PASSWORD_RESET'): Promise<any | null> => {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.getOtp(email, type);
     }
-    try {
-      const sql = getSql();
-      const rows = await sql`
-        SELECT * FROM auth_otps
-        WHERE LOWER(email) = ${email.toLowerCase()} AND type = ${type} AND status = 'active'
-        ORDER BY created_at DESC
-        LIMIT 1
-      `;
-      if (rows.length === 0) return null;
-      const r = rows[0];
-      return {
-        id: r.id,
-        email: r.email,
-        type: r.type,
-        otpCode: r.otp_code,
-        otpHash: r.otp_hash,
-        attempts: parseInt(String(r.attempts), 10),
-        maxAttempts: parseInt(String(r.max_attempts), 10),
-        expiresAt: Number(r.expires_at),
-        createdAt: Number(r.created_at),
-        lastSentAt: Number(r.last_sent_at),
-        status: r.status,
-        metadata: typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata || {}
-      };
-    } catch {
-      return ServerStorage.getOtp(email, type);
-    }
+    const sql = getSql();
+    const rows = await sql`
+      SELECT * FROM auth_otps
+      WHERE LOWER(email) = ${email.toLowerCase()} AND type = ${type} AND status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return {
+      id: r.id,
+      email: r.email,
+      type: r.type,
+      otpCode: r.otp_code,
+      otpHash: r.otp_hash,
+      attempts: parseInt(String(r.attempts), 10),
+      maxAttempts: parseInt(String(r.max_attempts), 10),
+      expiresAt: Number(r.expires_at),
+      createdAt: Number(r.created_at),
+      lastSentAt: Number(r.last_sent_at),
+      status: r.status,
+      metadata: typeof r.metadata === 'string' ? safeJsonParse(r.metadata, {}) : r.metadata || {}
+    };
   },
 
   incrementOtpAttempts: async (id: string): Promise<number> => {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.incrementOtpAttempts(id);
     }
-    try {
-      const sql = getSql();
-      const rows = await sql`
-        UPDATE auth_otps
-        SET attempts = attempts + 1
-        WHERE id = ${id}
-        RETURNING attempts
-      `;
-      return rows.length > 0 ? parseInt(String(rows[0].attempts), 10) : 1;
-    } catch {
-      return ServerStorage.incrementOtpAttempts(id);
-    }
+    const sql = getSql();
+    const rows = await sql`
+      UPDATE auth_otps
+      SET attempts = attempts + 1
+      WHERE id = ${id}
+      RETURNING attempts
+    `;
+    return rows.length > 0 ? parseInt(String(rows[0].attempts), 10) : 1;
   },
 
   markOtpVerified: async (id: string): Promise<void> => {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.markOtpVerified(id);
     }
-    try {
-      const sql = getSql();
-      await sql`
-        UPDATE auth_otps
-        SET status = 'verified'
-        WHERE id = ${id}
-      `;
-    } catch {
-      ServerStorage.markOtpVerified(id);
-    }
+    const sql = getSql();
+    await sql`
+      UPDATE auth_otps
+      SET status = 'verified'
+      WHERE id = ${id}
+    `;
   },
 
   invalidateOtp: async (id: string): Promise<void> => {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.invalidateOtp(id);
     }
-    try {
-      const sql = getSql();
-      await sql`
-        UPDATE auth_otps
-        SET status = 'invalidated'
-        WHERE id = ${id}
-      `;
-    } catch {
-      ServerStorage.invalidateOtp(id);
-    }
+    const sql = getSql();
+    await sql`
+      UPDATE auth_otps
+      SET status = 'invalidated'
+      WHERE id = ${id}
+    `;
   },
 
   getOtpLogs: async (limit: number = 50): Promise<any[]> => {
     if (!process.env.DATABASE_URL) {
       return ServerStorage.getOtpLogs(limit);
     }
-    try {
-      const sql = getSql();
-      const rows = await sql`
-        SELECT id, email, type, attempts, max_attempts, expires_at, created_at, last_sent_at, status, metadata
-        FROM auth_otps
-        ORDER BY created_at DESC
-        LIMIT ${limit}
-      `;
-      return rows.map((r: any) => ({
-        id: r.id,
-        email: r.email,
-        type: r.type,
-        attempts: parseInt(String(r.attempts), 10),
-        maxAttempts: parseInt(String(r.max_attempts), 10),
-        expiresAt: new Date(Number(r.expires_at)).toISOString(),
-        createdAt: new Date(Number(r.created_at)).toISOString(),
-        status: r.status,
-        metadata: typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata || {}
-      }));
-    } catch {
-      return ServerStorage.getOtpLogs(limit);
-    }
+    const sql = getSql();
+    const rows = await sql`
+      SELECT id, email, type, attempts, max_attempts, expires_at, created_at, last_sent_at, status, metadata
+      FROM auth_otps
+      ORDER BY created_at DESC
+      LIMIT ${limit}
+    `;
+    return rows.map((r: any) => ({
+      id: r.id,
+      email: r.email,
+      type: r.type,
+      attempts: parseInt(String(r.attempts), 10),
+      maxAttempts: parseInt(String(r.max_attempts), 10),
+      expiresAt: new Date(Number(r.expires_at)).toISOString(),
+      createdAt: new Date(Number(r.created_at)).toISOString(),
+      status: r.status,
+      metadata: typeof r.metadata === 'string' ? safeJsonParse(r.metadata, {}) : r.metadata || {}
+    }));
   }
 };

@@ -11511,6 +11511,22 @@ var StorageService = {
 	syncUserFromServer: async (userId) => {
 		try {
 			if (typeof window === "undefined") {
+				if (process.env.DATABASE_URL) {
+					const { DbStorage } = await import(
+						/* @vite-ignore */
+						"../../server/db"
+);
+					const acts = (await DbStorage.getActivities({ userId })).items;
+					const qAtts = await DbStorage.getQuestionAttempts({ userId });
+					const wRes = await DbStorage.getWrittenResponses({ userId });
+					const currentActivities = StorageService.getUserActivities().filter((a) => a.userId !== userId);
+					StorageService.saveUserActivities([...acts, ...currentActivities]);
+					const currentQuestions = StorageService.getQuestionAttempts().filter((q) => q.userId !== userId);
+					StorageService.saveQuestionAttempts([...qAtts, ...currentQuestions]);
+					const currentWritten = StorageService.getWrittenResponses().filter((w) => w.userId !== userId);
+					StorageService.saveWrittenResponses([...wRes, ...currentWritten]);
+					return;
+				}
 				const { ServerStorage } = await import(
 					/* @vite-ignore */
 					"../../server/storage"
@@ -13206,7 +13222,7 @@ var IELTSPracticeService = {
 };
 // server/storage.ts
 var DATA_DIR = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) ? path.resolve("/tmp", "server_vault") : path.resolve(process.cwd(), "data/server_vault");
-try {
+if (!process.env.DATABASE_URL) try {
 	if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 } catch (e) {
 	console.warn("[ServerStorage] Directory initialization note:", e.message);
@@ -13230,10 +13246,14 @@ var WriteMutex = class {
 var mutex = new WriteMutex();
 var memoryVault = /* @__PURE__ */ new Map();
 function readJsonFile(filename, fallback) {
+	if (memoryVault.has(filename)) return memoryVault.get(filename);
+	if (process.env.DATABASE_URL) {
+		memoryVault.set(filename, fallback);
+		return fallback;
+	}
 	const filePath = path.join(DATA_DIR, filename);
 	try {
 		if (!fs.existsSync(filePath)) {
-			if (memoryVault.has(filename)) return memoryVault.get(filename);
 			writeJsonFileSync(filename, fallback);
 			return fallback;
 		}
@@ -13241,12 +13261,12 @@ function readJsonFile(filename, fallback) {
 		if (!raw.trim()) return fallback;
 		return JSON.parse(raw);
 	} catch (err) {
-		if (memoryVault.has(filename)) return memoryVault.get(filename);
 		return fallback;
 	}
 }
 function writeJsonFileSync(filename, data) {
 	memoryVault.set(filename, data);
+	if (process.env.DATABASE_URL) return;
 	try {
 		const filePath = path.join(DATA_DIR, filename);
 		const tempPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).substring(2, 7)}`;
@@ -13258,7 +13278,7 @@ function writeJsonFileSync(filename, data) {
 var initialWrittenResponses = [{
 	id: "wres_alex_01",
 	userId: "usr_student_01",
-	userName: "Alex Rivera",
+	userName: "Educator Rivera",
 	activityId: "act_alex_03",
 	attemptId: "att_alex_w1",
 	questionId: "q_ielts_w2_01",
@@ -13284,6 +13304,7 @@ var initialWrittenResponses = [{
 }];
 var ServerStorage = {
 	initialize: () => {
+		if (process.env.DATABASE_URL) return;
 		const users = readJsonFile("users.json", initialUsers);
 		if (!users || users.length === 0) writeJsonFileSync("users.json", initialUsers);
 		const acts = readJsonFile("activities.json", initialActivities);
@@ -13620,7 +13641,7 @@ var ServerStorage = {
 		});
 	}
 };
-try {
+if (!process.env.DATABASE_URL) try {
 	ServerStorage.initialize();
 } catch (e) {
 	console.warn("[ServerStorage] Safe load note:", e.message);
@@ -14533,90 +14554,76 @@ var DbStorage = {
 	},
 	getUserByIdentifier: async (identifier) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.getUserByIdentifier(identifier);
-		try {
-			const clean = identifier.trim().toLowerCase();
-			const rows = await getSql()`
-        SELECT * FROM users
-        WHERE LOWER(email) = ${clean}
-           OR LOWER(username) = ${clean}
-           OR LOWER(name) = ${clean}
-        LIMIT 1
-      `;
-			return rows.length > 0 ? rowToUser(rows[0]) : null;
-		} catch {
-			return ServerStorage.getUserByIdentifier(identifier);
-		}
+		const clean = identifier.trim().toLowerCase();
+		const rows = await getSql()`
+      SELECT * FROM users
+      WHERE LOWER(email) = ${clean}
+         OR LOWER(username) = ${clean}
+         OR LOWER(name) = ${clean}
+      LIMIT 1
+    `;
+		return rows.length > 0 ? rowToUser(rows[0]) : null;
 	},
 	createUser: async (user) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.createUser(user);
-		try {
-			const sql = getSql();
-			if ((await sql`
-        SELECT id FROM users
-        WHERE id = ${user.id} OR LOWER(email) = ${user.email.toLowerCase()}
-        LIMIT 1
-      `).length > 0) throw new Error("An account already exists with this email address.");
-			await sql`
-        INSERT INTO users (
-          id, name, username, email, password, date_of_birth,
-          role, status, email_verified, email_verification_status,
-          created_at, last_login_at, preferences, profile_stats
-        )
-        VALUES (
-          ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
-          ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
-          ${user.emailVerified ?? true}, ${user.emailVerificationStatus || "verified"},
-          ${user.createdAt}, ${user.lastLoginAt},
-          ${JSON.stringify(user.preferences)}, ${JSON.stringify(user.profileStats)}
-        )
-      `;
-			return rowToUser((await sql`SELECT * FROM users WHERE id = ${user.id}`)[0]);
-		} catch (err) {
-			if (err.message?.includes("already exists")) throw err;
-			return ServerStorage.createUser(user);
-		}
+		const sql = getSql();
+		if ((await sql`
+      SELECT id FROM users
+      WHERE id = ${user.id} OR LOWER(email) = ${user.email.toLowerCase()}
+      LIMIT 1
+    `).length > 0) throw new Error("An account already exists with this email address.");
+		await sql`
+      INSERT INTO users (
+        id, name, username, email, password, date_of_birth,
+        role, status, email_verified, email_verification_status,
+        created_at, last_login_at, preferences, profile_stats
+      )
+      VALUES (
+        ${user.id}, ${user.name}, ${user.username || null}, ${user.email},
+        ${user.password}, ${user.dateOfBirth}, ${user.role}, ${user.status},
+        ${user.emailVerified ?? true}, ${user.emailVerificationStatus || "verified"},
+        ${user.createdAt}, ${user.lastLoginAt},
+        ${JSON.stringify(user.preferences || {})}, ${JSON.stringify(user.profileStats || {})}
+      )
+    `;
+		return rowToUser((await sql`SELECT * FROM users WHERE id = ${user.id}`)[0]);
 	},
 	updateUser: async (id, updates) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.updateUser(id, updates);
-		try {
-			const sql = getSql();
-			const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
-			if (existing.length === 0) throw new Error(`User not found with id ${id}`);
-			const current = rowToUser(existing[0]);
-			const merged = {
-				...current,
-				...updates,
-				id: current.id,
-				preferences: updates.preferences ? {
-					...current.preferences,
-					...updates.preferences
-				} : current.preferences,
-				profileStats: updates.profileStats ? {
-					...current.profileStats,
-					...updates.profileStats
-				} : current.profileStats
-			};
-			await sql`
-        UPDATE users SET
-          name = ${merged.name},
-          username = ${merged.username || null},
-          email = ${merged.email},
-          password = ${merged.password},
-          date_of_birth = ${merged.dateOfBirth},
-          role = ${merged.role},
-          status = ${merged.status},
-          email_verified = ${merged.emailVerified ?? true},
-          email_verification_status = ${merged.emailVerificationStatus || "verified"},
-          last_login_at = ${merged.lastLoginAt},
-          preferences = ${JSON.stringify(merged.preferences)},
-          profile_stats = ${JSON.stringify(merged.profileStats)}
-        WHERE id = ${id}
-      `;
-			return merged;
-		} catch (err) {
-			if (err.message?.includes("not found")) throw err;
-			return ServerStorage.updateUser(id, updates);
-		}
+		const sql = getSql();
+		const existing = await sql`SELECT * FROM users WHERE id = ${id}`;
+		if (existing.length === 0) throw new Error(`User not found with id ${id}`);
+		const current = rowToUser(existing[0]);
+		const merged = {
+			...current,
+			...updates,
+			id: current.id,
+			preferences: updates.preferences ? {
+				...current.preferences,
+				...updates.preferences
+			} : current.preferences,
+			profileStats: updates.profileStats ? {
+				...current.profileStats,
+				...updates.profileStats
+			} : current.profileStats
+		};
+		await sql`
+      UPDATE users SET
+        name = ${merged.name},
+        username = ${merged.username || null},
+        email = ${merged.email},
+        password = ${merged.password},
+        date_of_birth = ${merged.dateOfBirth},
+        role = ${merged.role},
+        status = ${merged.status},
+        email_verified = ${merged.emailVerified ?? true},
+        email_verification_status = ${merged.emailVerificationStatus || "verified"},
+        last_login_at = ${merged.lastLoginAt},
+        preferences = ${JSON.stringify(merged.preferences || {})},
+        profile_stats = ${JSON.stringify(merged.profileStats || {})}
+      WHERE id = ${id}
+    `;
+		return merged;
 	},
 	getActivities: async (filter) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.getActivities(filter);
@@ -14938,7 +14945,7 @@ var DbStorage = {
 	getSmtpConfig: async () => {
 		if (!process.env.DATABASE_URL) return null;
 		const rows = await getSql()`SELECT config_json FROM smtp_config WHERE id = 1`;
-		return rows.length > 0 ? rows[0].config_json : null;
+		return rows.length > 0 ? safeJsonParse(rows[0].config_json, null) : null;
 	},
 	saveSmtpConfig: async (config) => {
 		if (!process.env.DATABASE_URL) return;
@@ -15317,121 +15324,96 @@ var DbStorage = {
 	createOtp: async (record) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.createOtp(record);
 		const sql = getSql();
-		try {
-			await sql`
-        UPDATE auth_otps
-        SET status = 'invalidated'
-        WHERE LOWER(email) = ${record.email.toLowerCase()} AND type = ${record.type} AND status = 'active'
-      `;
-			await sql`
-        INSERT INTO auth_otps (
-          id, email, type, otp_code, otp_hash,
-          attempts, max_attempts, expires_at, created_at,
-          last_sent_at, status, metadata
-        )
-        VALUES (
-          ${record.id}, ${record.email.toLowerCase()}, ${record.type},
-          ${record.otpCode}, ${record.otpHash},
-          ${record.attempts}, ${record.maxAttempts}, ${record.expiresAt},
-          ${record.createdAt}, ${record.lastSentAt}, ${record.status},
-          ${JSON.stringify(record.metadata || {})}
-        )
-      `;
-			return record;
-		} catch (err) {
-			console.warn("[DbStorage createOtp Note]", err.message);
-			return ServerStorage.createOtp(record);
-		}
+		await sql`
+      UPDATE auth_otps
+      SET status = 'invalidated'
+      WHERE LOWER(email) = ${record.email.toLowerCase()} AND type = ${record.type} AND status = 'active'
+    `;
+		await sql`
+      INSERT INTO auth_otps (
+        id, email, type, otp_code, otp_hash,
+        attempts, max_attempts, expires_at, created_at,
+        last_sent_at, status, metadata
+      )
+      VALUES (
+        ${record.id}, ${record.email.toLowerCase()}, ${record.type},
+        ${record.otpCode}, ${record.otpHash},
+        ${record.attempts}, ${record.maxAttempts}, ${record.expiresAt},
+        ${record.createdAt}, ${record.lastSentAt}, ${record.status},
+        ${JSON.stringify(record.metadata || {})}
+      )
+    `;
+		return record;
 	},
 	getOtp: async (email, type) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.getOtp(email, type);
-		try {
-			const rows = await getSql()`
-        SELECT * FROM auth_otps
-        WHERE LOWER(email) = ${email.toLowerCase()} AND type = ${type} AND status = 'active'
-        ORDER BY created_at DESC
-        LIMIT 1
-      `;
-			if (rows.length === 0) return null;
-			const r = rows[0];
-			return {
-				id: r.id,
-				email: r.email,
-				type: r.type,
-				otpCode: r.otp_code,
-				otpHash: r.otp_hash,
-				attempts: parseInt(String(r.attempts), 10),
-				maxAttempts: parseInt(String(r.max_attempts), 10),
-				expiresAt: Number(r.expires_at),
-				createdAt: Number(r.created_at),
-				lastSentAt: Number(r.last_sent_at),
-				status: r.status,
-				metadata: typeof r.metadata === "string" ? JSON.parse(r.metadata) : r.metadata || {}
-			};
-		} catch {
-			return ServerStorage.getOtp(email, type);
-		}
+		const rows = await getSql()`
+      SELECT * FROM auth_otps
+      WHERE LOWER(email) = ${email.toLowerCase()} AND type = ${type} AND status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+		if (rows.length === 0) return null;
+		const r = rows[0];
+		return {
+			id: r.id,
+			email: r.email,
+			type: r.type,
+			otpCode: r.otp_code,
+			otpHash: r.otp_hash,
+			attempts: parseInt(String(r.attempts), 10),
+			maxAttempts: parseInt(String(r.max_attempts), 10),
+			expiresAt: Number(r.expires_at),
+			createdAt: Number(r.created_at),
+			lastSentAt: Number(r.last_sent_at),
+			status: r.status,
+			metadata: typeof r.metadata === "string" ? safeJsonParse(r.metadata, {}) : r.metadata || {}
+		};
 	},
 	incrementOtpAttempts: async (id) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.incrementOtpAttempts(id);
-		try {
-			const rows = await getSql()`
-        UPDATE auth_otps
-        SET attempts = attempts + 1
-        WHERE id = ${id}
-        RETURNING attempts
-      `;
-			return rows.length > 0 ? parseInt(String(rows[0].attempts), 10) : 1;
-		} catch {
-			return ServerStorage.incrementOtpAttempts(id);
-		}
+		const rows = await getSql()`
+      UPDATE auth_otps
+      SET attempts = attempts + 1
+      WHERE id = ${id}
+      RETURNING attempts
+    `;
+		return rows.length > 0 ? parseInt(String(rows[0].attempts), 10) : 1;
 	},
 	markOtpVerified: async (id) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.markOtpVerified(id);
-		try {
-			await getSql()`
-        UPDATE auth_otps
-        SET status = 'verified'
-        WHERE id = ${id}
-      `;
-		} catch {
-			ServerStorage.markOtpVerified(id);
-		}
+		await getSql()`
+      UPDATE auth_otps
+      SET status = 'verified'
+      WHERE id = ${id}
+    `;
 	},
 	invalidateOtp: async (id) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.invalidateOtp(id);
-		try {
-			await getSql()`
-        UPDATE auth_otps
-        SET status = 'invalidated'
-        WHERE id = ${id}
-      `;
-		} catch {
-			ServerStorage.invalidateOtp(id);
-		}
+		await getSql()`
+      UPDATE auth_otps
+      SET status = 'invalidated'
+      WHERE id = ${id}
+    `;
 	},
 	getOtpLogs: async (limit = 50) => {
 		if (!process.env.DATABASE_URL) return ServerStorage.getOtpLogs(limit);
-		try {
-			return (await getSql()`
-        SELECT id, email, type, attempts, max_attempts, expires_at, created_at, last_sent_at, status, metadata
-        FROM auth_otps
-        ORDER BY created_at DESC
-        LIMIT ${limit}
-      `).map((r) => ({
-				id: r.id,
-				email: r.email,
-				type: r.type,
-				attempts: parseInt(String(r.attempts), 10),
-				maxAttempts: parseInt(String(r.max_attempts), 10),
-				expiresAt: new Date(Number(r.expires_at)).toISOString(),
-				createdAt: new Date(Number(r.created_at)).toISOString(),
-				status: r.status,
-				metadata: typeof r.metadata === "string" ? JSON.parse(r.metadata) : r.metadata || {}
-			}));
-		} catch {
-			return ServerStorage.getOtpLogs(limit);
-		}
+		return (await getSql()`
+      SELECT id, email, type, attempts, max_attempts, expires_at, created_at, last_sent_at, status, metadata
+      FROM auth_otps
+      ORDER BY created_at DESC
+      LIMIT ${limit}
+    `).map((r) => ({
+			id: r.id,
+			email: r.email,
+			type: r.type,
+			attempts: parseInt(String(r.attempts), 10),
+			maxAttempts: parseInt(String(r.max_attempts), 10),
+			expiresAt: new Date(Number(r.expires_at)).toISOString(),
+			createdAt: new Date(Number(r.created_at)).toISOString(),
+			status: r.status,
+			metadata: typeof r.metadata === "string" ? safeJsonParse(r.metadata, {}) : r.metadata || {}
+		}));
 	}
 };
 // server/scheduler.ts
@@ -15600,7 +15582,7 @@ async function executeAllDatabaseScheduledJobs() {
 var VAULT_DIR = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) ? path.resolve("/tmp", "server_vault") : path.resolve(process.cwd(), "data", "server_vault");
 var SMTP_CONFIG_FILE = path.join(VAULT_DIR, "smtp_config.json");
 var EMAIL_LOGS_FILE = path.join(VAULT_DIR, "email_logs.json");
-try {
+if (!process.env.DATABASE_URL) try {
 	if (!fs.existsSync(VAULT_DIR)) fs.mkdirSync(VAULT_DIR, { recursive: true });
 } catch (e) {
 	console.warn("[EmailService] Directory initialization note:", e.message);
@@ -15620,11 +15602,62 @@ var DEFAULT_SMTP_CONFIG = {
 	isConfigured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
 };
 var EmailService = class {
-	static readConfig() {
-		try {
+	static {
+		this.inMemoryConfig = { ...DEFAULT_SMTP_CONFIG };
+	}
+	static {
+		this.inMemoryLogs = [];
+	}
+	static {
+		this.isInitialized = false;
+	}
+	static async initialize() {
+		if (this.isInitialized) return;
+		if (process.env.DATABASE_URL) try {
+			const dbConfig = await DbStorage.getSmtpConfig();
+			if (dbConfig) this.inMemoryConfig = {
+				...DEFAULT_SMTP_CONFIG,
+				...dbConfig
+			};
+			const dbLogs = await DbStorage.getEmailLogs(100);
+			if (dbLogs && dbLogs.length > 0) this.inMemoryLogs = dbLogs;
+		} catch (err) {
+			console.warn("[EmailService] Database init note:", err.message);
+		}
+		else try {
 			if (fs.existsSync(SMTP_CONFIG_FILE)) {
 				const raw = fs.readFileSync(SMTP_CONFIG_FILE, "utf-8");
-				return {
+				this.inMemoryConfig = {
+					...DEFAULT_SMTP_CONFIG,
+					...JSON.parse(raw)
+				};
+			}
+			if (fs.existsSync(EMAIL_LOGS_FILE)) {
+				const raw = fs.readFileSync(EMAIL_LOGS_FILE, "utf-8");
+				this.inMemoryLogs = JSON.parse(raw);
+			}
+		} catch (err) {
+			console.warn("[EmailService] Local vault read note:", err.message);
+		}
+		this.isInitialized = true;
+	}
+	static async syncFromDb() {
+		if (!process.env.DATABASE_URL) return;
+		try {
+			const dbConfig = await DbStorage.getSmtpConfig();
+			if (dbConfig) this.inMemoryConfig = {
+				...DEFAULT_SMTP_CONFIG,
+				...dbConfig
+			};
+			const dbLogs = await DbStorage.getEmailLogs(100);
+			if (dbLogs && dbLogs.length > 0) this.inMemoryLogs = dbLogs;
+		} catch {}
+	}
+	static readConfig() {
+		if (!this.isInitialized && !process.env.DATABASE_URL) try {
+			if (fs.existsSync(SMTP_CONFIG_FILE)) {
+				const raw = fs.readFileSync(SMTP_CONFIG_FILE, "utf-8");
+				this.inMemoryConfig = {
 					...DEFAULT_SMTP_CONFIG,
 					...JSON.parse(raw)
 				};
@@ -15632,7 +15665,7 @@ var EmailService = class {
 		} catch (e) {
 			console.warn("[EmailService] Failed reading smtp_config.json:", e.message);
 		}
-		return DEFAULT_SMTP_CONFIG;
+		return this.inMemoryConfig;
 	}
 	static getConfig() {
 		const config = this.readConfig();
@@ -15663,7 +15696,33 @@ var EmailService = class {
 			},
 			isConfigured: true
 		};
-		try {
+		this.inMemoryConfig = newConfig;
+		if (process.env.DATABASE_URL) DbStorage.saveSmtpConfig(newConfig).catch((err) => {
+			console.error("[EmailService] Failed saving SMTP config to Prisma Postgres:", err.message);
+		});
+		else try {
+			fs.writeFileSync(SMTP_CONFIG_FILE, JSON.stringify(newConfig, null, 2), "utf-8");
+		} catch (err) {
+			console.warn("[EmailService] Config write note:", err.message);
+		}
+		return this.getConfig();
+	}
+	static async saveConfigAsync(updates) {
+		const current = this.readConfig();
+		const pass = updates.authPass || updates.auth?.pass;
+		const user = updates.authUser !== void 0 ? updates.authUser : updates.auth?.user !== void 0 ? updates.auth.user : current.auth.user;
+		const newConfig = {
+			...current,
+			...updates,
+			auth: {
+				user,
+				pass: pass && pass !== "••••••••" ? pass : current.auth.pass
+			},
+			isConfigured: true
+		};
+		this.inMemoryConfig = newConfig;
+		if (process.env.DATABASE_URL) await DbStorage.saveSmtpConfig(newConfig);
+		else try {
 			fs.writeFileSync(SMTP_CONFIG_FILE, JSON.stringify(newConfig, null, 2), "utf-8");
 		} catch (err) {
 			console.warn("[EmailService] Config write note:", err.message);
@@ -15671,21 +15730,26 @@ var EmailService = class {
 		return this.getConfig();
 	}
 	static getLogs(limit = 100) {
-		try {
-			if (fs.existsSync(EMAIL_LOGS_FILE)) {
-				const raw = fs.readFileSync(EMAIL_LOGS_FILE, "utf-8");
-				return JSON.parse(raw).slice(0, limit);
+		return this.inMemoryLogs.slice(0, limit);
+	}
+	static async getLogsAsync(limit = 100) {
+		if (process.env.DATABASE_URL) try {
+			const dbLogs = await DbStorage.getEmailLogs(limit);
+			if (dbLogs && dbLogs.length > 0) {
+				this.inMemoryLogs = dbLogs;
+				return dbLogs;
 			}
 		} catch {}
-		return [];
+		return this.getLogs(limit);
 	}
 	static appendLog(entry) {
-		try {
-			let logs = [];
-			if (fs.existsSync(EMAIL_LOGS_FILE)) logs = JSON.parse(fs.readFileSync(EMAIL_LOGS_FILE, "utf-8"));
-			logs.unshift(entry);
-			if (logs.length > 500) logs = logs.slice(0, 500);
-			fs.writeFileSync(EMAIL_LOGS_FILE, JSON.stringify(logs, null, 2), "utf-8");
+		this.inMemoryLogs.unshift(entry);
+		if (this.inMemoryLogs.length > 500) this.inMemoryLogs = this.inMemoryLogs.slice(0, 500);
+		if (process.env.DATABASE_URL) DbStorage.appendEmailLog(entry).catch((err) => {
+			console.warn("[EmailService] DB append email log note:", err.message);
+		});
+		else try {
+			fs.writeFileSync(EMAIL_LOGS_FILE, JSON.stringify(this.inMemoryLogs, null, 2), "utf-8");
 		} catch (err) {
 			console.error("[EmailService] Failed to write email log:", err.message);
 		}
@@ -16167,6 +16231,7 @@ async function ensureDbInitialized() {
 	try {
 		await initializeDatabase();
 		await seedInitialData();
+		await EmailService.initialize();
 		dbInitialized = true;
 	} catch (err) {
 		console.warn("[EduBridge DB Init Note]", err.message);
@@ -17539,7 +17604,8 @@ serverApp.post("/api/admin/users/:id/verify-email", authenticateToken, requireAd
 		});
 	}
 });
-serverApp.get("/api/admin/smtp", authenticateToken, requireAdmin, (_req, res) => {
+serverApp.get("/api/admin/smtp", authenticateToken, requireAdmin, async (_req, res) => {
+	if (process.env.DATABASE_URL) await EmailService.syncFromDb();
 	res.json({
 		success: true,
 		config: EmailService.getConfig()
@@ -17547,7 +17613,7 @@ serverApp.get("/api/admin/smtp", authenticateToken, requireAdmin, (_req, res) =>
 });
 serverApp.post("/api/admin/smtp", authenticateToken, requireAdmin, async (req, res) => {
 	try {
-		const updated = await EmailService.saveConfig(req.body);
+		const updated = await EmailService.saveConfigAsync(req.body);
 		res.json({
 			success: true,
 			message: "SMTP settings updated successfully.",
@@ -17565,30 +17631,36 @@ serverApp.post("/api/admin/smtp/test", authenticateToken, requireAdmin, async (r
 		const { recipientEmail, ...smtpOverrides } = req.body;
 		const targetEmail = recipientEmail || req.user?.email || "admin@edubridge.io";
 		const result = await EmailService.sendTestEmail(targetEmail, smtpOverrides);
+		const logs = await EmailService.getLogsAsync(5);
 		if (!result.success || result.delivered === false) return res.status(400).json({
 			success: false,
 			delivered: false,
 			message: result.info,
 			error: result.info,
-			logs: EmailService.getLogs().slice(0, 5)
+			logs
 		});
 		res.json({
 			success: true,
 			delivered: true,
 			message: result.info,
-			logs: EmailService.getLogs().slice(0, 5)
+			logs
 		});
 	} catch (err) {
+		const logs = await EmailService.getLogsAsync(5);
 		res.status(500).json({
 			success: false,
-			error: err.message || "SMTP test execution failed."
+			delivered: false,
+			error: err.message || "SMTP test execution failed.",
+			message: err.message || "SMTP test execution failed.",
+			logs
 		});
 	}
 });
-serverApp.get("/api/admin/smtp/logs", authenticateToken, requireAdmin, (_req, res) => {
+serverApp.get("/api/admin/smtp/logs", authenticateToken, requireAdmin, async (_req, res) => {
+	const logs = await EmailService.getLogsAsync();
 	res.json({
 		success: true,
-		logs: EmailService.getLogs()
+		logs
 	});
 });
 serverApp.get("/api/tests", async (req, res) => {

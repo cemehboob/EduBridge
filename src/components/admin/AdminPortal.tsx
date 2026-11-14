@@ -3462,7 +3462,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       <li>Ensure <strong>2-Step Verification</strong> is ON in your Google Account (<a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold underline">myaccount.google.com/security</a>).</li>
                       <li>Visit <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-indigo-600 font-black underline">myaccount.google.com/apppasswords</a> to generate an App Password.</li>
                       <li>Type app name <strong>EduBridge</strong> and copy the generated 16-character code (e.g. <code className="font-mono text-indigo-700 bg-indigo-50 px-1 rounded">abcd efgh ijkl mnop</code>).</li>
-                      <li>Paste this code into <strong>SMTP Password / App Password</strong> below (spaces are stripped automatically), then click <strong>Save Configuration to Server Vault</strong>.</li>
+                      <li>Paste this code into <strong>SMTP Password / App Password</strong> below (spaces are stripped automatically), then click <strong>Save Configuration to Database</strong>.</li>
                     </ol>
                   </div>
                 </div>
@@ -3477,7 +3477,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 try {
                   const res = await apiService.smtp.saveConfig(smtpConfig);
                   if (res && res.config) setSmtpConfig(res.config);
-                  setSmtpSavedNotice('✓ SMTP configuration securely saved to server vault.');
+                  setSmtpSavedNotice('✓ SMTP configuration securely saved to Prisma Postgres database.');
                   sound.playSuccess();
                   setTimeout(() => setSmtpSavedNotice(null), 4000);
                 } catch (err: any) {
@@ -3595,7 +3595,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-xs transition-all cursor-pointer flex items-center gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Save Configuration to Server Vault</span>
+                  <span>Save Configuration to Database</span>
                 </button>
               </div>
             </form>
@@ -3629,7 +3629,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       recipientEmail: smtpTestRecipient,
                       ...smtpConfig
                     });
-                    const isSuccess = Boolean(res.success && (res as any).delivered !== false);
+                    const isDelivered = Boolean(res.success && (res as any).delivered === true);
+                    const hasErrorInMsg = Boolean(
+                      (res.message || '').includes('failed') ||
+                      (res.message || '').includes('BadCredentials') ||
+                      (res.message || '').includes('535') ||
+                      (res.message || '').includes('SIMULATED') ||
+                      (res.message || '').includes('notice:')
+                    );
+                    const isSuccess = isDelivered && !hasErrorInMsg;
                     setSmtpTestResult({
                       success: isSuccess,
                       message: res.message || (isSuccess ? 'Verification test delivered successfully.' : 'Diagnostic test could not deliver.')
@@ -3698,7 +3706,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       <li>Visit <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-indigo-600 font-black underline">myaccount.google.com/apppasswords</a>.</li>
                       <li>In the app name field, enter <strong>EduBridge</strong> and click <em>Create</em>.</li>
                       <li>Google will display a 16-character code (e.g., <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-indigo-700">xxxx xxxx xxxx xxxx</code>).</li>
-                      <li>Paste this 16-character App Password into the <strong>SMTP Password / App Password</strong> field above, click <strong>Save Configuration to Server Vault</strong>, and click <strong>Send Test Verification Email</strong> again.</li>
+                      <li>Paste this 16-character App Password into the <strong>SMTP Password / App Password</strong> field above, click <strong>Save Configuration to Database</strong>, and click <strong>Send Test Verification Email</strong> again.</li>
                     </ol>
                   </div>
                 )}

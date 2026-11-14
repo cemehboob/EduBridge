@@ -3,6 +3,7 @@ import tls from 'tls';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { DbStorage } from './db';
 
 export interface SmtpConfig {
   host: string;
@@ -49,13 +50,15 @@ const VAULT_DIR = isServerless
 const SMTP_CONFIG_FILE = path.join(VAULT_DIR, 'smtp_config.json');
 const EMAIL_LOGS_FILE = path.join(VAULT_DIR, 'email_logs.json');
 
-// Ensure vault directory exists without crashing on read-only environments
-try {
-  if (!fs.existsSync(VAULT_DIR)) {
-    fs.mkdirSync(VAULT_DIR, { recursive: true });
+// Ensure vault directory exists only if NOT running with DATABASE_URL
+if (!process.env.DATABASE_URL) {
+  try {
+    if (!fs.existsSync(VAULT_DIR)) {
+      fs.mkdirSync(VAULT_DIR, { recursive: true });
+    }
+  } catch (e: any) {
+    console.warn('[EmailService] Directory initialization note:', e.message);
   }
-} catch (e: any) {
-  console.warn('[EmailService] Directory initialization note:', e.message);
 }
 
 // Default SMTP Configuration (Free Microsoft Outlook / Exchange or environment-driven)
@@ -75,16 +78,68 @@ const DEFAULT_SMTP_CONFIG: SmtpConfig = {
 };
 
 export class EmailService {
-  private static readConfig(): SmtpConfig {
-    try {
-      if (fs.existsSync(SMTP_CONFIG_FILE)) {
-        const raw = fs.readFileSync(SMTP_CONFIG_FILE, 'utf-8');
-        return { ...DEFAULT_SMTP_CONFIG, ...JSON.parse(raw) };
+  private static inMemoryConfig: SmtpConfig = { ...DEFAULT_SMTP_CONFIG };
+  private static inMemoryLogs: EmailLogEntry[] = [];
+  private static isInitialized = false;
+
+  public static async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+    if (process.env.DATABASE_URL) {
+      try {
+        const dbConfig = await DbStorage.getSmtpConfig();
+        if (dbConfig) {
+          this.inMemoryConfig = { ...DEFAULT_SMTP_CONFIG, ...dbConfig };
+        }
+        const dbLogs = await DbStorage.getEmailLogs(100);
+        if (dbLogs && dbLogs.length > 0) {
+          this.inMemoryLogs = dbLogs;
+        }
+      } catch (err: any) {
+        console.warn('[EmailService] Database init note:', err.message);
       }
-    } catch (e: any) {
-      console.warn('[EmailService] Failed reading smtp_config.json:', e.message);
+    } else {
+      try {
+        if (fs.existsSync(SMTP_CONFIG_FILE)) {
+          const raw = fs.readFileSync(SMTP_CONFIG_FILE, 'utf-8');
+          this.inMemoryConfig = { ...DEFAULT_SMTP_CONFIG, ...JSON.parse(raw) };
+        }
+        if (fs.existsSync(EMAIL_LOGS_FILE)) {
+          const raw = fs.readFileSync(EMAIL_LOGS_FILE, 'utf-8');
+          this.inMemoryLogs = JSON.parse(raw);
+        }
+      } catch (err: any) {
+        console.warn('[EmailService] Local vault read note:', err.message);
+      }
     }
-    return DEFAULT_SMTP_CONFIG;
+    this.isInitialized = true;
+  }
+
+  public static async syncFromDb(): Promise<void> {
+    if (!process.env.DATABASE_URL) return;
+    try {
+      const dbConfig = await DbStorage.getSmtpConfig();
+      if (dbConfig) {
+        this.inMemoryConfig = { ...DEFAULT_SMTP_CONFIG, ...dbConfig };
+      }
+      const dbLogs = await DbStorage.getEmailLogs(100);
+      if (dbLogs && dbLogs.length > 0) {
+        this.inMemoryLogs = dbLogs;
+      }
+    } catch {}
+  }
+
+  private static readConfig(): SmtpConfig {
+    if (!this.isInitialized && !process.env.DATABASE_URL) {
+      try {
+        if (fs.existsSync(SMTP_CONFIG_FILE)) {
+          const raw = fs.readFileSync(SMTP_CONFIG_FILE, 'utf-8');
+          this.inMemoryConfig = { ...DEFAULT_SMTP_CONFIG, ...JSON.parse(raw) };
+        }
+      } catch (e: any) {
+        console.warn('[EmailService] Failed reading smtp_config.json:', e.message);
+      }
+    }
+    return this.inMemoryConfig;
   }
 
   public static getConfig(): SmtpConfig & { authUser?: string; authPass?: string; active?: boolean } {
@@ -94,7 +149,6 @@ export class EmailService {
       authUser: config.auth.user,
       authPass: config.auth.pass ? '••••••••' : '••••••••',
       active: true,
-      // Mask password for security
       auth: {
         user: config.auth.user,
         pass: config.auth.pass ? '••••••••' : '••••••••'
@@ -121,38 +175,84 @@ export class EmailService {
       isConfigured: true
     };
 
-    try {
-      fs.writeFileSync(SMTP_CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf-8');
-    } catch (err: any) {
-      console.warn('[EmailService] Config write note:', err.message);
+    this.inMemoryConfig = newConfig;
+
+    if (process.env.DATABASE_URL) {
+      DbStorage.saveSmtpConfig(newConfig).catch((err: any) => {
+        console.error('[EmailService] Failed saving SMTP config to Prisma Postgres:', err.message);
+      });
+    } else {
+      try {
+        fs.writeFileSync(SMTP_CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf-8');
+      } catch (err: any) {
+        console.warn('[EmailService] Config write note:', err.message);
+      }
+    }
+    return this.getConfig();
+  }
+
+  public static async saveConfigAsync(updates: Partial<SmtpConfig> & { authUser?: string; authPass?: string; active?: boolean }): Promise<SmtpConfig> {
+    const current = this.readConfig();
+    const pass = updates.authPass || updates.auth?.pass;
+    const user = updates.authUser !== undefined ? updates.authUser : (updates.auth?.user !== undefined ? updates.auth.user : current.auth.user);
+
+    const newConfig: SmtpConfig = {
+      ...current,
+      ...updates,
+      auth: {
+        user,
+        pass: pass && pass !== '••••••••' ? pass : current.auth.pass
+      },
+      isConfigured: true
+    };
+
+    this.inMemoryConfig = newConfig;
+
+    if (process.env.DATABASE_URL) {
+      await DbStorage.saveSmtpConfig(newConfig);
+    } else {
+      try {
+        fs.writeFileSync(SMTP_CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf-8');
+      } catch (err: any) {
+        console.warn('[EmailService] Config write note:', err.message);
+      }
     }
     return this.getConfig();
   }
 
   public static getLogs(limit: number = 100): EmailLogEntry[] {
-    try {
-      if (fs.existsSync(EMAIL_LOGS_FILE)) {
-        const raw = fs.readFileSync(EMAIL_LOGS_FILE, 'utf-8');
-        const logs: EmailLogEntry[] = JSON.parse(raw);
-        return logs.slice(0, limit);
-      }
-    } catch {
-      // ignore
+    return this.inMemoryLogs.slice(0, limit);
+  }
+
+  public static async getLogsAsync(limit: number = 100): Promise<EmailLogEntry[]> {
+    if (process.env.DATABASE_URL) {
+      try {
+        const dbLogs = await DbStorage.getEmailLogs(limit);
+        if (dbLogs && dbLogs.length > 0) {
+          this.inMemoryLogs = dbLogs;
+          return dbLogs;
+        }
+      } catch {}
     }
-    return [];
+    return this.getLogs(limit);
   }
 
   private static appendLog(entry: EmailLogEntry): void {
-    try {
-      let logs: EmailLogEntry[] = [];
-      if (fs.existsSync(EMAIL_LOGS_FILE)) {
-        logs = JSON.parse(fs.readFileSync(EMAIL_LOGS_FILE, 'utf-8'));
+    this.inMemoryLogs.unshift(entry);
+    if (this.inMemoryLogs.length > 500) {
+      this.inMemoryLogs = this.inMemoryLogs.slice(0, 500);
+    }
+
+    if (process.env.DATABASE_URL) {
+      DbStorage.appendEmailLog(entry).catch((err: any) => {
+        console.warn('[EmailService] DB append email log note:', err.message);
+      });
+    } else {
+      try {
+        fs.writeFileSync(EMAIL_LOGS_FILE, JSON.stringify(this.inMemoryLogs, null, 2), 'utf-8');
+      } catch (err: any) {
+        console.error('[EmailService] Failed to write email log:', err.message);
       }
-      logs.unshift(entry);
-      if (logs.length > 500) logs = logs.slice(0, 500);
-      fs.writeFileSync(EMAIL_LOGS_FILE, JSON.stringify(logs, null, 2), 'utf-8');
-    } catch (err: any) {
-      console.error('[EmailService] Failed to write email log:', err.message);
     }
   }
 

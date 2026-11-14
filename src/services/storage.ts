@@ -1009,6 +1009,22 @@ export const StorageService = {
   syncUserFromServer: async (userId: string): Promise<void> => {
     try {
       if (typeof window === 'undefined') {
+        if (process.env.DATABASE_URL) {
+          const { DbStorage } = await import(/* @vite-ignore */ '../../server/db');
+          const acts = (await DbStorage.getActivities({ userId })).items;
+          const qAtts = await DbStorage.getQuestionAttempts({ userId });
+          const wRes = await DbStorage.getWrittenResponses({ userId });
+
+          const currentActivities = StorageService.getUserActivities().filter((a) => a.userId !== userId);
+          StorageService.saveUserActivities([...acts, ...currentActivities]);
+
+          const currentQuestions = StorageService.getQuestionAttempts().filter((q) => q.userId !== userId);
+          StorageService.saveQuestionAttempts([...qAtts, ...currentQuestions]);
+
+          const currentWritten = StorageService.getWrittenResponses().filter((w) => w.userId !== userId);
+          StorageService.saveWrittenResponses([...wRes, ...currentWritten]);
+          return;
+        }
         const modulePath = '../../server/storage';
         const { ServerStorage } = await import(/* @vite-ignore */ modulePath);
         const acts = ServerStorage.getActivities({ userId }).items;
