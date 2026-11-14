@@ -17,7 +17,8 @@ import {
   Sparkles,
   Sliders,
   Check,
-  Layout
+  Layout,
+  Users
 } from 'lucide-react';
 import { UserAccount, AgeCohortId, FontScale, VisibleModulesConfig, VoicePersona, ColorSchemeConfig } from '../../types';
 import { sound } from '../../utils/audio';
@@ -165,7 +166,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-black text-slate-900">Account Preferences &amp; Profile</h3>
-              <p className="text-xs text-slate-500">Stored in EduBridge JSON Repository</p>
+              <p className="text-xs text-slate-500">Stored in EduBridge Prisma Postgres Database</p>
             </div>
           </div>
           <button
@@ -181,7 +182,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
           {isSaved && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl font-bold text-emerald-800 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Preferences and credentials saved successfully to JSON!</span>
+              <span>Preferences and credentials saved successfully to Database!</span>
             </div>
           )}
 

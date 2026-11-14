@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import {
   X,
@@ -55,7 +55,7 @@ export const ExerciseModal: React.FC<ExerciseModalProps> = ({
   // Shuffle options for the current question so correct answer position is randomized
   useEffect(() => {
     if (currentEx?.options && currentEx.options.length > 0) {
-      setShuffledOptions(shuffleOptions(currentEx.options, currentEx.correctAnswer));
+      setShuffledOptions(shuffleOptions(currentEx.options, String(currentEx.correctAnswer)));
     } else {
       setShuffledOptions([]);
     }

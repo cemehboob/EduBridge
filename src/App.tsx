@@ -94,17 +94,17 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
-    // 1. Authoritative session token establishment for active user
-    if (currentUser) {
-      apiService.auth.ensureSession(currentUser);
-      try {
-        localStorage.setItem('edubridge_active_user_id', currentUser.id);
-      } catch {}
-    }
-
-    // 2. Initial flush of pending offline queue and pull latest activities from central server
     const executeSync = async () => {
       try {
+        // 1. Authoritative session token establishment for active user
+        if (currentUser) {
+          await apiService.auth.ensureSession(currentUser);
+          try {
+            localStorage.setItem('edubridge_active_user_id', currentUser.id);
+          } catch {}
+        }
+
+        // 2. Flush pending offline queue and pull latest activities from central server
         await StorageService.flushPendingSyncQueue();
         const res = await apiService.activities.getAll();
         if (isMounted && res && Array.isArray(res.items)) {
@@ -114,14 +114,18 @@ export default function App() {
         await StorageService.syncConfigurationsFromCloud();
         await StorageService.syncTestsFromCloud();
 
-        // 3. Sync users from central database across all connected machines
-        try {
-          const remoteUsers = await apiService.users.getAll();
-          if (isMounted && remoteUsers && remoteUsers.length > 0) {
-            setUsers(remoteUsers);
-            StorageService.saveUsers(remoteUsers);
+        // 3. Sync users from central database across all connected machines (accessible when admin is active)
+        if (currentUser?.role === 'admin') {
+          try {
+            const remoteUsers = await apiService.users.getAll();
+            if (isMounted && remoteUsers && remoteUsers.length > 0) {
+              setUsers(remoteUsers);
+              StorageService.saveUsers(remoteUsers);
+            }
+          } catch (uErr: any) {
+            console.warn('[App] User sync notice:', uErr.message);
           }
-        } catch {}
+        }
 
         if (isMounted) {
           setFeatureFlags(StorageService.getFeatureFlags());
@@ -1000,6 +1004,21 @@ export default function App() {
     StorageService.saveAuditLogs(updatedLogs);
   };
 
+  const handleRefreshUsers = async () => {
+    if (currentUser?.role === 'admin') {
+      try {
+        const remoteUsers = await apiService.users.getAll();
+        if (remoteUsers && remoteUsers.length > 0) {
+          setUsers(remoteUsers);
+          StorageService.saveUsers(remoteUsers);
+        }
+      } catch (err: any) {
+        console.warn('[App] Manual user sync notice:', err.message);
+        throw err;
+      }
+    }
+  };
+
   const handleRecordActivity = (act: Omit<UserActivityRecord, 'id' | 'timestamp'> & { timestamp?: string }) => {
     const newRecord = StorageService.recordUserActivity(act);
     setActivities(StorageService.getUserActivities());
@@ -1271,6 +1290,7 @@ export default function App() {
                   onToggleUserStatus={handleToggleUserStatus}
                   onAddUser={handleAddUser}
                   onUpdateUser={handleAdminUpdateUser}
+                  onRefreshUsers={handleRefreshUsers}
                   onToggleFeatureFlag={handleToggleFeatureFlag}
                   onRespondFeedback={handleRespondFeedback}
                 />

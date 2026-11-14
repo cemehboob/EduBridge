@@ -552,7 +552,7 @@ export const StorageService = {
     }
   },
 
-  // User Management stored in JSON with strict unique name & username deduplication
+  // User Management stored in Database with strict unique name & username deduplication
   getUsers: (): UserAccount[] => {
     const raw = safeGet<UserAccount[]>(KEYS.USERS, initialUsers);
     const seenNames = new Set<string>();

@@ -112,15 +112,23 @@ async function runPrismaLiveVerification() {
       createdAt: new Date().toISOString(),
       lastLoginAt: new Date().toISOString(),
       preferences: {
-        theme: 'default-indigo',
-        soundEffects: true,
+        preferredLanguage: 'Academic English',
+        dailyGoalXp: 100,
+        theme: 'system',
+        soundEnabled: true,
+        emailNotifications: true,
         enableQuickUserSwitch: false,
-        expectedBandScore: 7.5
+        targetBand: '7.5 Band'
       },
       profileStats: {
-        totalStudyMinutes: 45,
-        streakDays: 3,
-        xpPoints: 120
+        currentStreak: 3,
+        highestStreak: 3,
+        xp: 120,
+        level: 1,
+        league: 'Bronze',
+        hearts: 5,
+        maxHearts: 5,
+        todayXp: 45
       }
     };
 
@@ -195,7 +203,7 @@ async function runPrismaLiveVerification() {
       id: testActivityId,
       userId: testUserId,
       userName: testUser.name,
-      type: 'practice',
+      type: 'practice_test',
       title: 'Prisma Live DB Verification Quiz',
       category: 'Diagnostic Verification',
       timestamp: new Date().toISOString(),

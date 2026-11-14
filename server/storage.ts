@@ -12,7 +12,7 @@ import {
 import { initialUsers } from '../src/data/userManagementData';
 import { initialActivities, initialQuestionAttempts } from '../src/data/activityData';
 
-const isDbConfigured = () => Boolean(process.env.DB_URL || isDbConfigured());
+const isDbConfigured = (): boolean => Boolean(process.env.DB_URL || process.env.DATABASE_URL);
 
 // Determine persistent data directory (use /tmp in serverless / read-only runtimes like Vercel)
 const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);

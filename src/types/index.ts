@@ -536,7 +536,7 @@ export interface VocabularyWord {
   antonyms?: string[];
 }
 
-// User Management in JSON
+// User Management in Database
 export interface UserAccount {
   id: string;
   name: string;

@@ -13221,7 +13221,7 @@ var IELTSPracticeService = {
 	}
 };
 // server/storage.ts
-var isDbConfigured$1 = () => Boolean(process.env.DB_URL || isDbConfigured$1());
+var isDbConfigured$1 = () => Boolean(process.env.DB_URL || process.env.DATABASE_URL);
 var DATA_DIR = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) ? path.resolve("/tmp", "server_vault") : path.resolve(process.cwd(), "data/server_vault");
 if (!isDbConfigured$1()) try {
 	if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });

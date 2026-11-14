@@ -418,7 +418,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-black text-slate-900">EduBridge Authentication</h3>
-              <p className="text-xs text-slate-500">Secure JSON User Management</p>
+              <p className="text-xs text-slate-500">Secure Database User Management</p>
             </div>
           </div>
           <button

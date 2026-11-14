@@ -21,7 +21,7 @@ import { StorageService } from '../services/storage';
 import { ResumeEnhancementService } from '../services/resumeEnhancementService';
 import { ResumeExportService } from '../services/resumeExportService';
 import { CVRegionPattern, EnhancedResumeData } from '../types/career';
-import { UserAccount, UserActivityRecord } from '../types';
+import { UserAccount, UserActivityRecord, UserProfile } from '../types';
 import { IELTSPracticeService } from '../services/ieltsPracticeService';
 import { calculateAge, calculateCohortFromDob, calculateEducationLevel, userAccountToProfile } from '../utils/userProfile';
 import { ServerStorage } from '../../server/storage';

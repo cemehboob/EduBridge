@@ -81,8 +81,9 @@ interface AdminPortalProps {
   onToggleJob: (jobId: string) => void;
   onRunScheduledJob: (jobId: string) => Promise<void>;
   onToggleUserStatus: (userId: string) => void;
-  onAddUser: (newUser: UserAccount) => void;
+  onAddUser: (newUser: UserAccount) => void | Promise<void>;
   onUpdateUser?: (updatedUser: UserAccount) => void;
+  onRefreshUsers?: () => Promise<void>;
   onToggleFeatureFlag: (flagId: string) => void;
   onRespondFeedback: (ticketId: string, replyMessage: string, newStatus: 'Resolved' | 'Investigating') => void;
 }
@@ -105,6 +106,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onToggleUserStatus,
   onAddUser,
   onUpdateUser,
+  onRefreshUsers,
   onToggleFeatureFlag,
   onRespondFeedback
 }) => {
@@ -387,6 +389,86 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     });
   };
 
+  // Live Cloud Database Connection Diagnostic State
+  const [dbDiagStatus, setDbDiagStatus] = useState<{
+    tested: boolean;
+    loading: boolean;
+    success?: boolean;
+    message?: string;
+    host?: string;
+    provider?: string;
+    totalTables?: number;
+    userCount?: number;
+    activityCount?: number;
+    latencyMs?: number;
+  }>({ tested: false, loading: false });
+  const [isSyncingUsers, setIsSyncingUsers] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+
+  const handleTestDatabaseConnection = async () => {
+    sound.playClick();
+    setDbDiagStatus({ tested: true, loading: true });
+    const startTime = Date.now();
+    try {
+      const res = await fetch('/api/db-status');
+      const data = await res.json();
+      const latencyMs = Date.now() - startTime;
+      if (data.success) {
+        setDbDiagStatus({
+          tested: true,
+          loading: false,
+          success: true,
+          message: 'Connected to Prisma Postgres Cloud Database!',
+          host: data.host,
+          provider: data.databaseProvider || 'Prisma Postgres',
+          totalTables: data.totalTables,
+          userCount: data.userCount,
+          activityCount: data.activityCount,
+          latencyMs
+        });
+      } else {
+        setDbDiagStatus({
+          tested: true,
+          loading: false,
+          success: false,
+          message: data.message || data.error || 'Connection failed.',
+          host: data.host,
+          latencyMs
+        });
+      }
+    } catch (err: any) {
+      setDbDiagStatus({
+        tested: true,
+        loading: false,
+        success: false,
+        message: err.message || 'Failed to reach /api/db-status endpoint',
+        latencyMs: Date.now() - startTime
+      });
+    }
+  };
+
+  const handleManualSyncUsers = async () => {
+    sound.playClick();
+    if (!onRefreshUsers) return;
+    setIsSyncingUsers(true);
+    try {
+      await onRefreshUsers();
+      sound.playSuccess();
+      setUserDashboardFetchFeedback({
+        type: 'success',
+        message: 'Successfully synchronized user list directly from Prisma Postgres cloud database!'
+      });
+    } catch (err: any) {
+      sound.playError();
+      setUserDashboardFetchFeedback({
+        type: 'error',
+        message: err.message || 'Failed to synchronize users from cloud database.'
+      });
+    } finally {
+      setIsSyncingUsers(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     syncActivities();
@@ -518,7 +600,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     }
   };
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateUserError(null);
 
@@ -534,7 +616,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     // 1. Strict duplicate name check (no two users with same name on same machine)
     if (users.some((u) => u.name.trim().toLowerCase() === cleanName.toLowerCase())) {
       sound.playError();
-      setCreateUserError(`A user with the name "${cleanName}" already exists on this machine. Duplicate user names are not allowed.`);
+      setCreateUserError(`A user with the name "${cleanName}" already exists. Duplicate user names are not allowed.`);
       return;
     }
 
@@ -552,7 +634,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       return;
     }
 
-    sound.playSuccess();
     const newUser: UserAccount = {
       id: `usr_${Date.now()}`,
       name: cleanName,
@@ -562,6 +643,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       dateOfBirth: newUserDob,
       role: newUserRole,
       status: 'active',
+      emailVerified: true,
+      emailVerificationStatus: 'verified',
       createdAt: new Date().toISOString().split('T')[0],
       lastLoginAt: 'Never logged in',
       preferences: {
@@ -587,12 +670,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       }
     };
 
-    onAddUser(newUser);
-    setNewUserName('');
-    setNewUserUsername('');
-    setNewUserEmail('');
-    setCreateUserError(null);
-    setShowAddUserModal(false);
+    setIsCreatingUser(true);
+    try {
+      await onAddUser(newUser);
+      sound.playSuccess();
+      setNewUserName('');
+      setNewUserUsername('');
+      setNewUserEmail('');
+      setCreateUserError(null);
+      setShowAddUserModal(false);
+      setUserDashboardFetchFeedback({
+        type: 'success',
+        message: `User ${newUser.name} (${newUser.email}) successfully created and stored in Prisma Postgres database!`
+      });
+    } catch (err: any) {
+      sound.playError();
+      setCreateUserError(err.message || 'Failed to create user in database.');
+    } finally {
+      setIsCreatingUser(false);
+    }
   };
 
   const openEditUser = (u: UserAccount) => {
@@ -723,7 +819,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               User Management, Feature Controls &amp; Feedback Center
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              JSON User Accounts · Feature Flags · Email Dispatched Feedback · 00:00 Cron Schedulers
+              Prisma Postgres Database · User Accounts · Feature Flags · Email Feedback · Schedulers
             </p>
           </div>
 
@@ -798,7 +894,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               className={`flex-1 min-w-[82px] px-2 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap ${
                 activeAdminTab === 'users' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
               }`}
-              title="JSON-Stored User Accounts & Credential Access"
+              title="Database User Accounts & Credential Access"
             >
               <Users className="w-3.5 h-3.5 shrink-0" />
               <span>Users ({users.length})</span>
@@ -2089,28 +2185,96 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
-                  JSON-Stored User Directory
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
+                    Prisma Postgres Database User Directory
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Live Cloud DB
+                  </span>
+                </div>
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">
                   User Management &amp; Access Controls
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Manage login credentials, passwords, dates of birth (DOB), assigned roles, and enable/disable account access.
+                  Manage login credentials, passwords, dates of birth (DOB), assigned roles, and enable/disable account access directly in Prisma Postgres.
                 </p>
               </div>
 
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  setShowAddUserModal(true);
-                }}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition-all shrink-0"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Create New User</span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleTestDatabaseConnection}
+                  disabled={dbDiagStatus.loading}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition-all cursor-pointer"
+                  title="Test live connection from Vercel to Prisma Postgres database"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${dbDiagStatus.loading ? 'animate-spin' : ''}`} />
+                  <span>{dbDiagStatus.loading ? 'Testing DB...' : 'Test DB Connection'}</span>
+                </button>
+
+                {onRefreshUsers && (
+                  <button
+                    type="button"
+                    onClick={handleManualSyncUsers}
+                    disabled={isSyncingUsers}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition-all cursor-pointer"
+                    title="Reload users directly from Prisma Postgres database"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncingUsers ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingUsers ? 'Syncing...' : 'Sync from Database'}</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    setShowAddUserModal(true);
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition-all shrink-0 cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Create New User</span>
+                </button>
+              </div>
             </div>
+
+            {/* Live Database Diagnostic Results Banner */}
+            {dbDiagStatus.tested && (
+              <div className={`p-4 rounded-2xl border text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in ${
+                dbDiagStatus.success
+                  ? 'bg-emerald-50/90 border-emerald-200 text-emerald-900'
+                  : 'bg-rose-50/90 border-rose-200 text-rose-900'
+              }`}>
+                <div className="space-y-1">
+                  <div className="font-extrabold flex items-center gap-2">
+                    {dbDiagStatus.success ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    )}
+                    <span>{dbDiagStatus.message}</span>
+                    {dbDiagStatus.latencyMs !== undefined && (
+                      <span className="font-mono text-[11px] px-2 py-0.5 rounded-md bg-white/80 border border-slate-200">
+                        {dbDiagStatus.latencyMs}ms
+                      </span>
+                    )}
+                  </div>
+                  {dbDiagStatus.success && (
+                    <p className="text-[11px] text-emerald-700">
+                      Host: <span className="font-mono font-bold">{dbDiagStatus.host}</span> · Database Tables: <span className="font-bold">{dbDiagStatus.totalTables} verified</span> · Users in Cloud DB: <span className="font-bold">{dbDiagStatus.userCount}</span> · Activities: <span className="font-bold">{dbDiagStatus.activityCount}</span>
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDbDiagStatus({ tested: false, loading: false })}
+                  className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
 
             {/* Administrator-Controlled Setting: Quick User Switch */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
@@ -4147,7 +4311,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       {showAddUserModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
-            <h3 className="text-lg font-black text-slate-900">Add New User to JSON Repository</h3>
+            <h3 className="text-lg font-black text-slate-900">Add New User to Prisma Postgres Database</h3>
             
             {createUserError && (
               <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700">
@@ -4239,15 +4403,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAddUserModal(false)}
-                  className="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-slate-100"
+                  disabled={isCreatingUser}
+                  className="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs"
+                  disabled={isCreatingUser}
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                 >
-                  Save User to JSON
+                  {isCreatingUser ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving to Database...</span>
+                    </>
+                  ) : (
+                    <span>Save User to Database</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -4266,7 +4439,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900">User Identity &amp; Credential Record</h3>
-                  <p className="text-xs text-slate-500">ID: {inspectingUser.id} · Stored in JSON</p>
+                  <p className="text-xs text-slate-500">ID: {inspectingUser.id} · Stored in Prisma Postgres Database</p>
                 </div>
               </div>
               <button
