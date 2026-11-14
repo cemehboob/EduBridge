@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "test": "tsx src/tests/solverAndStreakVerification.ts",
+    "test:db": "tsx src/tests/verifyPrismaLiveConnection.ts",
     "deploy:db": "tsx src/scripts/deployPrismaDb.ts"
   },
   "dependencies": {
